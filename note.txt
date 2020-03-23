@@ -1,4 +1,4 @@
-1£¬In AF.h£¬new parameter "afCnfCB" and "cnfParam" was added into message "AF_DATA_CONFIRM_MSG". New function "AF_DataRequestExt" has been instead of "AF_DataRequest". This change also effect in ZDP, ZCL and "zstacktask" which has called "AF_DataRequest".
+1£¬In AF.h£¬new parameter "afCnfCB" and "cnfParam" was added into message "AF_DATA_CONFIRM_MSG". New function "AF_DataRequestExt" has been instead of "AF_DataRequest". This change also effect in ZDP and ZCL and "zstacktask" who will execute "AF_DataRequest".
 
 2, In ZDP and ZCL, "ZDP_SetSendConfirm" and "zcl_SetSendExtParam" can set the "afCnfCB" and "cnfParam" of "AF_DATA_CONFIRM_MSG". Especially in ZDP, "afCnfCB" is executed in Zstack-task, and Application-task who has called ZDP-Command-Request function will receives "zstackmsg_CmdIDs_AF_DATA_CONFIRM_IND" sent by ZDP-layer.
 
