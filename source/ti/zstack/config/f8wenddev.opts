@@ -1,0 +1,22 @@
+/*
+ *                        f8wenddev.h
+ *
+ *  Compiler command-line options used to define a TI Z-Stack
+ *  End Device. To move an option from here to the project file,
+ *  comment out or delete the option from this file and enter it
+ *  into the "Define Symbols" box under the Preprocessor tab of
+ *  the C/C++ Compiler Project Options. New user defined options
+ *  may be added to this file, as necessary.
+ *
+ */
+
+/* MAC Settings */
+-DMAC_CFG_TX_DATA_MAX=3
+-DMAC_CFG_TX_MAX=6
+-DMAC_CFG_RX_MAX=3
+
+/* CC26xx compile flags */
+-DOSAL_NV_EXTENDED
+-DADDRMGR_NV_SINGLES
+-DBINDINGTABLE_NV_SINGLES
+-DASSOCLIST_NV_SINGLES
