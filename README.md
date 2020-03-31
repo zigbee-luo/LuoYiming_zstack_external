@@ -17,6 +17,29 @@ What is New:
 And there are many issues in zstack have been fixed by me. There are many modifying that I have no time to describe, I will note them next time.
 
 
+====================================================================================================================================
+
+How to use "AF-Data-Confirm-Callback":
+
+1, "AF_DataRequestExt" offers 2 new parameter, "afCnfCB" is the callback function that is executed when AF_DATA_CONFIRM_MSG is triggered. And the callback's parameter "cnfParam" is a pointer which is set before AF_DataRequestExt executed and can be processed in callback executed.
+
+2, To send a ZDP command with data-confirm-callback, structure member "zstack_zdoExtParam_t" has been added into every ZDO Interface Request Structures. When your code calls any ZDP-Request function, "extParam" in its input parameter can be filled with callback-function and its parameter. The member "transID" and "seqNum" can told your program what are the "transID" and "seqNum" of your current ZDP-Command when ZDP-Request-Function returned. make sure that ZDP-trans-ID is not ZDP-sequence-number. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
