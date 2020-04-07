@@ -983,11 +983,11 @@ void bdb_StartCommissioning(uint8_t mode)
           //Which is not distributed
           if(!APSME_IsDistributedSecurity())
           {
-              uint8_t found;
-              uint16_t entryIndex;
-              APSME_TCLinkKeyNVEntry_t APSME_TCLKDevEntry;
+            uint8_t found;
+            uint16_t entryIndex;
+            APSME_TCLinkKeyNVEntry_t APSME_TCLKDevEntry;
 
-              entryIndex = APSME_SearchTCLinkKeyEntry(AIB_apsTrustCenterAddress, &found, &APSME_TCLKDevEntry);
+            entryIndex = APSME_SearchTCLinkKeyEntry(AIB_apsTrustCenterAddress, &found, &APSME_TCLKDevEntry);
 
             //If we must perform the TCLK exchange and we didn't complete it, then reset to FN
             if(requestNewTrustCenterLinkKey && (APSME_TCLKDevEntry.keyAttributes != ZG_NON_R21_NWK_JOINED) && (APSME_TCLKDevEntry.keyAttributes != ZG_VERIFIED_KEY))
