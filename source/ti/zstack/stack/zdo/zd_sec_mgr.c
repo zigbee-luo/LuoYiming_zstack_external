@@ -1760,17 +1760,19 @@ void ZDSecMgrTransportKeyInd( ZDO_TransportKeyInd_t* ind )
     }
     else
     {
-        // Read current TCLK Device entry and update locally
-        osal_nv_read_ex(ZCD_NV_EX_TCLK_TABLE, 0, 0,
-                     sizeof(APSME_TCLinkKeyNVEntry_t),
-                     &TCLKDevEntryCpy);
+        // Find TCLK entry with TC extAddr or first unused entry, fixed at 2020-04-07
+        uint8_t entryFound;
+        entryIndex = APSME_SearchTCLinkKeyEntry(AIB_apsTrustCenterAddress,&entryFound,&TCLKDevEntryCpy);
+ 
+        if(entryIndex < gZDSECMGR_TC_DEVICE_MAX)
+        {
+            OsalPort_memcpy(TCLKDevEntryCpy.extAddr, ind->srcExtAddr, Z_EXTADDR_LEN);
 
-        OsalPort_memcpy(TCLKDevEntryCpy.extAddr, ind->srcExtAddr, Z_EXTADDR_LEN);
-
-        //Save the KeyAttribute for joining device
-        osal_nv_write_ex(ZCD_NV_EX_TCLK_TABLE, 0,
-                         sizeof(APSME_TCLinkKeyNVEntry_t),
-                         &TCLKDevEntryCpy);
+            //Save the KeyAttribute for joining device
+            osal_nv_write_ex(ZCD_NV_EX_TCLK_TABLE, entryIndex,
+                             sizeof(APSME_TCLinkKeyNVEntry_t),
+                             &TCLKDevEntryCpy);
+        }
     }
 
 }

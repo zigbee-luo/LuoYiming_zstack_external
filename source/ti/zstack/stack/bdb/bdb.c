@@ -983,29 +983,28 @@ void bdb_StartCommissioning(uint8_t mode)
           //Which is not distributed
           if(!APSME_IsDistributedSecurity())
           {
-            uint8_t keyAttributes;
-            osal_nv_read_ex(ZCD_NV_EX_TCLK_TABLE, 0,
-                            OsalPort_OFFSET_OF(APSME_TCLinkKeyNVEntry_t,
-                                               keyAttributes),
-                            sizeof(uint8_t),
-                            &keyAttributes);
-
-            //If we must perform the TCLK exchange and we didn't complete it, then reset to FN
-            if(requestNewTrustCenterLinkKey && (keyAttributes != ZG_NON_R21_NWK_JOINED) && (keyAttributes != ZG_VERIFIED_KEY))
-            {
-              //Force to initialize the entry
+              uint8_t found;
+              uint16_t entryIndex;
               APSME_TCLinkKeyNVEntry_t APSME_TCLKDevEntry;
 
-              memset(&APSME_TCLKDevEntry,0,sizeof(APSME_TCLinkKeyNVEntry_t));
-              APSME_TCLKDevEntry.keyAttributes = ZG_DEFAULT_KEY;
-              osal_nv_write_ex(ZCD_NV_EX_TCLK_TABLE, 0,
-                               sizeof(APSME_TCLinkKeyNVEntry_t),
-                               &APSME_TCLKDevEntry);
+              entryIndex = APSME_SearchTCLinkKeyEntry(AIB_apsTrustCenterAddress, &found, &APSME_TCLKDevEntry);
 
-              TCLinkKeyRAMEntry[0].txFrmCntr = 0;
-              TCLinkKeyRAMEntry[0].rxFrmCntr = 0;
-              TCLinkKeyRAMEntry[0].entryUsed = FALSE;
+            //If we must perform the TCLK exchange and we didn't complete it, then reset to FN
+            if(requestNewTrustCenterLinkKey && (APSME_TCLKDevEntry.keyAttributes != ZG_NON_R21_NWK_JOINED) && (APSME_TCLKDevEntry.keyAttributes != ZG_VERIFIED_KEY))
+            {
+              if(entryIndex < gZDSECMGR_TC_DEVICE_MAX)
+              {
+                //Force to initialize the entry
+                memset(&APSME_TCLKDevEntry,0,sizeof(APSME_TCLinkKeyNVEntry_t));
+                APSME_TCLKDevEntry.keyAttributes = ZG_DEFAULT_KEY;
+                osal_nv_write_ex(ZCD_NV_EX_TCLK_TABLE, entryIndex,
+                                sizeof(APSME_TCLinkKeyNVEntry_t),
+                                &APSME_TCLKDevEntry);
 
+                TCLinkKeyRAMEntry[entryIndex].txFrmCntr = 0;
+                TCLinkKeyRAMEntry[entryIndex].rxFrmCntr = 0;
+                TCLinkKeyRAMEntry[entryIndex].entryUsed = FALSE;
+              }
 
               //reset the device parameters to FN
               bdbAttributes.bdbNodeIsOnANetwork = FALSE;
