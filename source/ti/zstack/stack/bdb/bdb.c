@@ -989,7 +989,7 @@ void bdb_StartCommissioning(uint8_t mode)
 
             entryIndex = APSME_SearchTCLinkKeyEntry(AIB_apsTrustCenterAddress, &found, &APSME_TCLKDevEntry);
 
-            //If we must perform the TCLK exchange and we didn't complete it, then reset to FN
+            //If we must perform the TCLK exchange and we didn't complete it, then reset to FN, fixed at 2020-04-07
             if(requestNewTrustCenterLinkKey && (APSME_TCLKDevEntry.keyAttributes != ZG_NON_R21_NWK_JOINED) && (APSME_TCLKDevEntry.keyAttributes != ZG_VERIFIED_KEY))
             {
               if(entryIndex < gZDSECMGR_TC_DEVICE_MAX)
