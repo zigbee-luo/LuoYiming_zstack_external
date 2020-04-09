@@ -1959,11 +1959,8 @@ void ZDO_ProcessMgmtPermitJoinReq( zdoIncomingMsg_t *inMsg )
   if(ZG_DEVICE_COORDINATOR_TYPE)
   {
     //If zgAllowRemoteTCPolicyChange is set to FALSE, the request from other
-    //devices cannot affect the  Trust Center policies.
-    //If ZDSecMgrPermitJoining is FALSE, the request from other devices cannot
-    //affect the  Trust Center policies, added by luoyiming 2019-08-23
-    if(( (zgAllowRemoteTCPolicyChange == 0) || (FALSE == ZDSecMgrPermitJoiningStatus()) ) &&
-       (inMsg->srcAddr.addr.shortAddr!= 0x0000))
+    //devices cannot affect the  Trust Center policies
+    if((zgAllowRemoteTCPolicyChange == 0) && (inMsg->srcAddr.addr.shortAddr!= 0x0000))
     {
       return;
     }
