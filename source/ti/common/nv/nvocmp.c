@@ -148,7 +148,7 @@ Requires API's in a crc.h to implement CRC functionality.
 #define NVOCMP_COMPR        0           // Order Change When Compaction
 #define NVOCMP_HDRLE        0           // Little Endian Format Item Header
 #define NVOCMP_FASTOFF      1           // Fast Search Offset
-#define NVOCMP_FASTITEM     0           // Fast Find Item
+#define NVOCMP_FASTITEM     1           // Fast Find Item
 
 #define NVOCMP_NVONEP       1           // One Page NV
 #define NVOCMP_NVTWOP       2           // Two Page NV
@@ -2944,7 +2944,7 @@ static int8_t NVOCMP_findItem(NVOCMP_nvHandle_t *pNvHandle, uint8_t pg, uint16_t
         continue;
       }
 #endif
-      NVOCMP_read(pg, 0, (uint8_t *)pTBuffer, FLASH_PAGE_SIZE);
+      NVOCMP_read(p, 0, (uint8_t *)pTBuffer, FLASH_PAGE_SIZE);
 
       while(ofs >= (NVOCMP_PGDATAOFS + NVOCMP_ITEMHDRLEN))
       {
