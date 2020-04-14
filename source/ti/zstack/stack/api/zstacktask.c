@@ -4483,7 +4483,7 @@ static void sendMgmtNwkUpdateNotifyInd( uint16_t dstID, uint16_t srcAddr, void *
   pRsp->hdr.status = 0;
 
   pRsp->rsp.srcAddr = srcAddr;
-  pRsp->rsp.tranSeq = pNotify->tranSeq;  //add by luoyiming
+  pRsp->rsp.transSeq = pNotify->transSeq;  //add by luoyiming
   pRsp->rsp.status = (zstack_ZdpStatus)pNotify->status;
 
   pRsp->rsp.scannedChannels = pNotify->scannedChannels;
