@@ -1046,7 +1046,7 @@ uint8_t ZDApp_RestoreNetworkState( void )
         ZDO_Config_Node_Descriptor.LogicalType = NODETYPE_COORDINATOR;
       }
       if(ZG_DEVICE_ENDDEVICE_TYPE || 
-        (ZG_DEVICE_RTRONLY_TYPE && (ZDApp_RestoreNwkKey(FALSE) == FALSE))) // Router unsecured-rejoin when no NWK-Key, fixed by luoyiming 2020-04-13
+        (ZG_DEVICE_RTRONLY_TYPE && (ZDApp_RestoreNwkKey(FALSE) == FALSE))) // Router unsecured-rejoin when no NWK-Key, fixed by luoyiming 2020-04-14
       {
         devStartMode = MODE_REJOIN;
         _NIB.nwkState = NWK_INIT;
