@@ -1045,22 +1045,15 @@ uint8_t ZDApp_RestoreNetworkState( void )
       {
         ZDO_Config_Node_Descriptor.LogicalType = NODETYPE_COORDINATOR;
       }
-      if(ZG_DEVICE_ENDDEVICE_TYPE)
+      if(ZG_DEVICE_ENDDEVICE_TYPE || 
+        (ZG_DEVICE_RTRONLY_TYPE && (ZDApp_RestoreNwkKey(FALSE) == FALSE))) // Router unsecured-rejoin when no NWK-Key, fixed by luoyiming 2020-04-13
       {
         devStartMode = MODE_REJOIN;
         _NIB.nwkState = NWK_INIT;
       }
       else
       {
-        if (ZDApp_RestoreNwkKey( FALSE ) == TRUE) // Resume when normal start, fixed by luoyiming 2020-02-04
-        {
-          devStartMode = MODE_RESUME;
-        }
-        else // turn to unsecured-rejoin mode when FFD needs new NWK-key, fixed by luoyiming 2020-02-04
-        {
-          devStartMode = MODE_REJOIN;
-          _NIB.nwkState = NWK_INIT;
-        }
+        devStartMode = MODE_RESUME;
       }
       osal_cpyExtAddr( ZDO_UseExtendedPANID, _NIB.extendedPANID );
     }
