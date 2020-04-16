@@ -128,18 +128,17 @@ extern void   ZDApp_ResetTimerCancel( void );
  * LOCAL VARIABLES
  */
 
-// set callback to filter default-link-key-joining/rejoing, add by luoyiming
-// parameter is changed by luoyiming at 2019-12-25
+// set callback to filter default-link-key-joining, add by luoyiming
+// parameter is changed by luoyiming at 2020-04-16
 //
 // @param       nwkAddr - joiner's nwkAddr
 //              extAddr - joiner's extAddr
 //              parentAddr - joiner's parent nwkAddr
-//              rejoin - TRUE if joiner is unsecured-rejoin
 //              
 // @return      TRUE, allowd join/rejoin
 //              FALSE, denied join/rejoin
 //
-ZStatus_t (*pZDSecMgrDeviceValidateCallback)( uint16_t nwkAddr, uint8_t* extAddr, uint16_t parentAddr, bool rejoin ) = NULL;
+ZStatus_t (*pZDSecMgrDeviceValidateCallback)( uint16_t nwkAddr, uint8_t* extAddr, uint16_t parentAddr ) = NULL;
 
 //set Device Leave Notify Callback, add by luoyiming 2019-05-16
 void (*pZDSecMgrDeviceLeaveNotifyCallback)( uint16_t nwkAddr, uint8_t* extAddr, uint16_t parentAddr ) = NULL;
@@ -1094,68 +1093,25 @@ void ZDSecMgrDeviceRemove( ZDSecMgrDevice_t* device )
 ZStatus_t ZDSecMgrDeviceValidate( ZDSecMgrDevice_t* device )
 {
   ZStatus_t status;
-  // execute device validate in callback, fixed by luoyiming 2019-12-25
-  bool rejoin = FALSE;
-  bool defaultLinkKey = FALSE;
 
-  if ( device->devStatus & DEV_SEC_AUTH_TC_REJOIN_STATUS )
+  if ( (ZDSecMgrPermitJoiningEnabled == TRUE) && (zgSecurePermitJoin == TRUE) )
   {
-    // check if we recognize the device performing an unsecure rejoin. If we have
-    // previously authenticated it on the TC, we can consider that it is performing
-    // a trust center rejoin, and we can send it the nwk key using the unique TCLK
-    // that was previously established. If we do not recognize it, it is an unknown
-    // device performing an unsecure rejoin, so we would have to encrypt the nwk key
-    // using the well-known TCLK. zgAllowRejoinsWithWellKnownKey determines if we are allowed to
-    // encrypt the nwk key using the well-known TCLK or not, see zglobals.c definition for
-    // more info, moved by luoyiming 2019-12-24
-    uint8_t  found = 0;
-    APSME_TCLinkKeyNVEntry_t TCLKDevEntry;
-    APSME_SearchTCLinkKeyEntry(device->extAddr, &found, &TCLKDevEntry);
-    if( found && (TCLKDevEntry.keyAttributes == ZG_VERIFIED_KEY) )
-    {
-      return ZSuccess;
-    }
-    else if( zgAllowRejoinsWithWellKnownKey == FALSE )
-    {
-      // if we did not find the entry, do not send nwk key and return failure
-      // if we found the entry but it is not in the ZG_VERIFIED_KEY state,
-      // do not send nwk key and return failure
-      return ZNwkUnknownDevice;
-    }
-    else
-    {
-      rejoin = TRUE;
-      defaultLinkKey = TRUE;
-    }
-  }
-  else if ( (ZDSecMgrPermitJoiningEnabled == TRUE) && (zgSecurePermitJoin == TRUE) )
-  {
+    status = ZSuccess;
     // check if joiner has install code, fixed by luoyiming 2019-12-24
     uint8_t  found = 0;
     APSME_TCLinkKeyNVEntry_t TCLKDevEntry;
     APSME_SearchTCLinkKeyEntry(device->extAddr, &found, &TCLKDevEntry);
-    if( found && (TCLKDevEntry.keyAttributes == ZG_PROVISIONAL_KEY) )
+    if( !( found && (TCLKDevEntry.keyAttributes == ZG_PROVISIONAL_KEY) ) )
     {
-      return ZSuccess;
-    }
-    else
-    {
-      defaultLinkKey = TRUE;
+      if( pZDSecMgrDeviceValidateCallback ) // Match valid join in application, fixed by luoyiming 2019-07-19
+      {
+        status = pZDSecMgrDeviceValidateCallback( device->nwkAddr, device->extAddr, device->parentAddr );
+      }
     }
   }
   else
   {
     status = ZNwkUnknownDevice;
-  }
-
-  // If joiner use default link to join or rejoin, match in pZDSecMgrDeviceValidateCallback, fixed by luoyimign 2019-12-25
-  if( defaultLinkKey )
-  {
-    status = ZSuccess;
-    if( pZDSecMgrDeviceValidateCallback ) // Match valid join in application, fixed by luoyiming 2019-07-19
-    {
-      status = pZDSecMgrDeviceValidateCallback( device->nwkAddr, device->extAddr, device->parentAddr, rejoin );
-    }
   }
 
   return status;
@@ -1175,8 +1131,8 @@ ZStatus_t ZDSecMgrDeviceJoin( ZDSecMgrDevice_t* device )
   ZStatus_t status = ZSuccess;
   uint16_t    ami;
 
-  //validate unsecured-rejoin moved into ZDSecMgrDeviceValidate, fix by Luoyiming 2019-07-12
-  if ( device->secure == FALSE )
+  // attempt to validate device that joined/rejoined without security
+  if ( device->secure == FALSE && (!(device->devStatus & DEV_SEC_AUTH_TC_REJOIN_STATUS)))
   {
     status = ZDSecMgrDeviceValidate( device );
   }
@@ -1189,11 +1145,59 @@ ZStatus_t ZDSecMgrDeviceJoin( ZDSecMgrDevice_t* device )
     // Send the nwk key if joining/rejoining has no nwk security
     if ( device->secure == FALSE )
     {
-        //These methods will use their respective APS key to validate sending nwk key.
-        if((device->devStatus & DEV_SEC_INIT_STATUS) || (device->devStatus & DEV_SEC_AUTH_TC_REJOIN_STATUS))
+        uint8_t sendNwkKey = FALSE;
+
+        if ( device->devStatus & DEV_SEC_AUTH_TC_REJOIN_STATUS )
+        {
+          // check if we recognize the device performing an unsecure rejoin. If we have
+          // previously authenticated it on the TC, we can consider that it is performing
+          // a trust center rejoin, and we can send it the nwk key using the unique TCLK
+          // that was previously established. If we do not recognize it, it is an unknown
+          // device performing an unsecure rejoin, so we would have to encrypt the nwk key
+          // using the well-known TCLK. zgAllowRejoinsWithWellKnownKey determines if we are allowed to
+          // encrypt the nwk key using the well-known TCLK or not, see zglobals.c definition for
+          // more info. Additionally, if the nwk is open (i.e. NLME_PermitJoining == TRUE), we
+          // should permit devices to unsecure TC rejoin anyways
+          if( (zgAllowRejoinsWithWellKnownKey == FALSE) && (NLME_PermitJoining == FALSE) )
+          {
+            uint8_t found = 0;
+            APSME_TCLinkKeyNVEntry_t TCLKDevEntry = {0};
+            APSME_SearchTCLinkKeyEntry(device->extAddr, &found, &TCLKDevEntry);
+
+            // if we found the device and its key is in the
+            // ZG_VERIFIED_KEY state, that means we have established a
+            // unique TCLK, so we can send it the NWK key using it
+            if( found && (TCLKDevEntry.keyAttributes == ZG_VERIFIED_KEY) )
+            {
+              sendNwkKey = TRUE;
+            }
+          }
+          // zgAllowRejoinsWithWellKnownKey == TRUE
+          else
+          {
+            sendNwkKey = TRUE;
+          }
+        }
+        else if ( device->devStatus & DEV_SEC_INIT_STATUS )
+        {
+          // initial join
+          sendNwkKey = TRUE;
+        }
+
+        if ( sendNwkKey == TRUE )
         {
           //send the nwk key data to the joining device
           status = ZDSecMgrSendNwkKey( device );
+        }
+        else if ( device->devStatus & DEV_SEC_AUTH_STATUS )
+        {
+          // device has already joined and been authenticated so we do not
+          // need to send it the key again
+          status = ZSuccess;
+        }
+        else
+        {
+          status = ZSecFailure;
         }
     }
 
@@ -3874,21 +3878,6 @@ void ZDSecMgrClearNVKeyValues(void)
   _NIB.nwkKeyLoaded = FALSE;
 }
 #endif // defined ( NV_RESTORE )
-
-/******************************************************************************
- * @fn          ZDSecMgrPermitJoiningStatus
- *
- * @brief       Check if ZDSecMgrPermitJoining is enabled, add by luoyiming 2019
- *              -08-22.
- *
- * @param       none
- *
- * @return      TRUE - enabled£¬ FALSE - disabled
- */
-bool ZDSecMgrPermitJoiningStatus(void)
-{
-  return ZDSecMgrPermitJoiningEnabled;
-}
 
 /******************************************************************************
 ******************************************************************************/

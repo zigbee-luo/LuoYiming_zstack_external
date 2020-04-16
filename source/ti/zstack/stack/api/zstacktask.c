@@ -6266,7 +6266,7 @@ static bool processSysConfigWriteReq( uint8_t srcServiceTaskId, void *pMsg )
       //Process all poll rate request from App if those are not application pollrates (POLL_RATE_TYPE_DEFAULT | POLL_RATE_TYPE_APP_1 | POLL_RATE_TYPE_APP_2)
       //If those are application poll rates, then make sure are bigger than MINIMUM_APP_POLL_RATE.
       if(! ((uint16_t)pPtr->pReq->pollRateType & (POLL_RATE_TYPE_DEFAULT | POLL_RATE_TYPE_APP_1 | POLL_RATE_TYPE_APP_2))  ||
-            ((uint32_t)pPtr->pReq->pollRate > MINIMUM_APP_POLL_RATE) )
+            ((uint32_t)pPtr->pReq->pollRate >= MINIMUM_APP_POLL_RATE) )
         {
           //Configure the pollrates enabled
           nwk_SetConfigPollRate((uint16_t)pPtr->pReq->pollRateType,(uint32_t)pPtr->pReq->pollRate );

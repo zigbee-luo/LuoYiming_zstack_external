@@ -98,18 +98,17 @@ uint8_t               extendedPanID[Z_EXTADDR_LEN];   //Extended pan Id associat
 }nwkSecMaterialDesc_t;
 
 
-// set callback to filter default-link-key-joining/rejoing, add by luoyiming
-// parameter is changed by luoyiming at 2019-12-25
+// set callback to filter default-link-key-joining, add by luoyiming
+// parameter is changed by luoyiming at 2020-04-16
 //
 // @param       nwkAddr - joiner's nwkAddr
 //              extAddr - joiner's extAddr
 //              parentAddr - joiner's parent nwkAddr
-//              rejoin - TRUE if joiner is unsecured-rejoin
 //              
 // @return      TRUE, allowd join/rejoin
 //              FALSE, denied join/rejoin
 //
-extern ZStatus_t (*pZDSecMgrDeviceValidateCallback)( uint16_t nwkAddr, uint8_t* extAddr, uint16_t parentAddr, bool rejoin );
+extern ZStatus_t (*pZDSecMgrDeviceValidateCallback)( uint16_t nwkAddr, uint8_t* extAddr, uint16_t parentAddr );
 
 //set Device Leave Notify Callback, add by luoyiming 2019-05-16
 extern void (*pZDSecMgrDeviceLeaveNotifyCallback)( uint16_t nwkAddr, uint8_t* extAddr, uint16_t parentAddr );
@@ -531,17 +530,6 @@ extern void ZDSecMgrFallbackNwkKey( void );
  */
 extern void ZDSecMgrUpdateTCAddress( uint8_t *extAddr );
 
-/******************************************************************************
- * @fn          ZDSecMgrPermitJoiningStatus
- *
- * @brief       Check if ZDSecMgrPermitJoining is enabled, add by luoyiming 2019
- *              -08-22.
- *
- * @param       none
- *
- * @return      TRUE - enabled, FALSE - disabled
- */
-bool ZDSecMgrPermitJoiningStatus(void);
 
 
 /******************************************************************************
