@@ -121,7 +121,7 @@ static uint8_t initiatorSeqNum;
 
 // Touch Link channel tracking
 static uint8_t numScanReqSent;
-static uint8_t  savedTXPower;
+static int8_t  savedTXPower;
 static uint8_t scanReqChannels;
 
 // Network key sent to the target to start the network with
@@ -451,7 +451,7 @@ uint32_t touchLinkInitiator_event_loop( uint8_t task_id, uint32_t events )
     }
     else // Channels scan is complete
     {
-      if((scanReqChannels == TOUCHLINK_SCAN_PRIMARY_CHANNELS) && (bdbAttributes.bdbNodeIsOnANetwork == FALSE))
+      if(scanReqChannels == TOUCHLINK_SCAN_PRIMARY_CHANNELS)
       {
         // Extended scan is required, lets scan secondary channels
         scanReqChannels = TOUCHLINK_SCAN_SECONDARY_CHANNELS;
@@ -1803,7 +1803,7 @@ static void initiatorSendScanReq( bool freshScan )
     if( freshScan )
     {
       // read + save current TX power
-      ZMacGetReq(ZMacPhyTransmitPowerSigned, &savedTXPower);
+      ZMacGetReq(ZMacPhyTransmitPowerSigned, (byte *) &savedTXPower);
 
       // set TX power to 0 per BDB v1.0 sec 8.7 (3)
       // TX power is restored after scan rsp is received
