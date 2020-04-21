@@ -705,7 +705,6 @@ afStatus_t ZDP_ParentAnnce( uint8_t *TransSeq,
   ZDO_ChildInfo_t *pChildInfo;
   uint8_t i, len;
   uint8_t *numOfChild;
-  uint8_t maxParentAnnceChild = MAX_PARENT_ANNCE_CHILD; //luoyiming fixed at 2020-02-27
 
   (void)SecurityEnable;  // Intentionally unreferenced parameter
 
@@ -723,14 +722,12 @@ afStatus_t ZDP_ParentAnnce( uint8_t *TransSeq,
     len += 1;
     // Set the status bit to success
     *pBuf++ = 0;
-    // 79 byte of ZDP_TmpBuf is not enough, fixed by luoyiming 2020-02-27
-    maxParentAnnceChild -= 1;
   }
 
   numOfChild = pBuf;
   *pBuf++ = numberOfChildren;
 
-  for ( i = 0; i < maxParentAnnceChild; i++ )
+  for ( i = 0; i < MAX_PARENT_ANNCE_CHILD; i++ )
   {
     pBuf = osal_cpyExtAddr( pBuf, pChildInfo[childIndex].extAddr );
     childIndex++;
@@ -748,7 +745,7 @@ afStatus_t ZDP_ParentAnnce( uint8_t *TransSeq,
   }
 
   pBuf = numOfChild;
-  *pBuf = maxParentAnnceChild;
+  *pBuf = MAX_PARENT_ANNCE_CHILD;
   if ( childIndex < numberOfChildren )
   {
     if ( clusterID == Parent_annce )

@@ -620,7 +620,11 @@ ZStatus_t bdb_TCAddJoiningDevice(uint16_t parentAddr, uint8_t* JoiningExtAddr)
     tempJoiningDescNode = tempJoiningDescNode->nextDev;
   }
 
-  OsalPort_memcpy(tempJoiningDescNode->bdbJoiningNodeEui64, JoiningExtAddr, Z_EXTADDR_LEN); //copy ExtAddr at first, fixed by luoyiming 2019-10-11
+  tempJoiningDescNode->nextDev = NULL;
+  tempJoiningDescNode->NodeJoinTimeout = bdbAttributes.bdbTrustCenterNodeJoinTimeout;
+  tempJoiningDescNode->parentAddr = parentAddr;
+  OsalPort_memcpy(tempJoiningDescNode->bdbJoiningNodeEui64, JoiningExtAddr, Z_EXTADDR_LEN);
+
   if(pfnTCLinkKeyExchangeProcessCB)
   {
     bdb_TCLinkKeyExchProcess_t bdb_TCLinkKeyExchProcess;
@@ -630,10 +634,6 @@ ZStatus_t bdb_TCAddJoiningDevice(uint16_t parentAddr, uint8_t* JoiningExtAddr)
 
     bdb_SendMsg(bdb_TaskID, BDB_TC_LINK_KEY_EXCHANGE_PROCESS, BDB_MSG_EVENT_SUCCESS,sizeof(bdb_TCLinkKeyExchProcess_t),(uint8_t*)&bdb_TCLinkKeyExchProcess);
   }
-
-  tempJoiningDescNode->nextDev = NULL;
-  tempJoiningDescNode->NodeJoinTimeout = bdbAttributes.bdbTrustCenterNodeJoinTimeout;
-  tempJoiningDescNode->parentAddr = parentAddr;
 
   return ZSuccess;
 }
@@ -1362,6 +1362,8 @@ void bdb_reportCommissioningState(uint8_t bdbCommissioningState,bool didSuccess)
             bdbAttributes.bdbCommissioningStatus = BDB_COMMISSIONING_TCLK_EX_FAILURE;
 
             OsalPortTimers_stopTimer( bdb_TaskID, BDB_PROCESS_TIMEOUT);
+
+            bdb_setNodeIsOnANetwork(FALSE);
 
             //No process shall be attempted after this fail
             bdbAttributes.bdbCommissioningMode = 0;
@@ -2749,8 +2751,6 @@ uint32_t bdb_event_loop(byte task_id, uint32_t events)
       // Set every field to 0
       memset( &leaveReq, 0, sizeof( NLME_LeaveReq_t ) );
 
-      bdb_setNodeIsOnANetwork(FALSE);
-
       if ( NLME_LeaveReq( &leaveReq ) != ZSuccess )
       {
         OsalPort_setEvent( bdb_TaskID,BDB_TC_LINK_KEY_EXCHANGE_FAIL);
@@ -2952,20 +2952,22 @@ static void bdb_ProcessNodeDescRsp(zdoIncomingMsg_t *pMsg)
         else
         {
           APSME_TCLinkKeyNVEntry_t TCLKDevEntry;
+          uint8_t entryFound;
+          uint16_t entryIndex;
+          // Find TCLK entry with TC extAddr
+          entryIndex = APSME_SearchTCLinkKeyEntry(AIB_apsTrustCenterAddress,&entryFound,&TCLKDevEntry);
 
-          // Read current TCLK Device entry and update locally
-          osal_nv_read_ex(ZCD_NV_EX_TCLK_TABLE, 0, 0,
-                          sizeof(APSME_TCLinkKeyNVEntry_t),
-                          &TCLKDevEntry);
+          if(entryIndex < gZDSECMGR_TC_DEVICE_MAX)
+          {
+            TCLKDevEntry.keyAttributes = ZG_NON_R21_NWK_JOINED;
 
-          TCLKDevEntry.keyAttributes = ZG_NON_R21_NWK_JOINED;
+            //Save the KeyAttribute for joining device that it has joined non-R21 nwk
+            osal_nv_write_ex(ZCD_NV_EX_TCLK_TABLE, entryIndex,
+                            sizeof(APSME_TCLinkKeyNVEntry_t),
+                            &TCLKDevEntry);
 
-          //Save the KeyAttribute for joining device that it has joined non-R21 nwk
-          osal_nv_write_ex(ZCD_NV_EX_TCLK_TABLE, 0,
-                          sizeof(APSME_TCLinkKeyNVEntry_t),
-                          &TCLKDevEntry);
-
-          TCLinkKeyRAMEntry[0].entryUsed = TRUE;
+            TCLinkKeyRAMEntry[entryIndex].entryUsed = TRUE;
+          }
 
           bdb_setNodeJoinLinkKeyType(BDB_DEFAULT_GLOBAL_TRUST_CENTER_LINK_KEY);
           bdb_reportCommissioningState(BDB_COMMISSIONING_STATE_TC_LINK_KEY_EXCHANGE, TRUE);

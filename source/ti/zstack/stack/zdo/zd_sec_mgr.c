@@ -2148,6 +2148,8 @@ void ZDSecMgrGenerateKeyFromSeed(uint8_t *extAddr, uint8_t shift, uint8_t *key)
 {
   uint8_t i;
   uint8_t tempKey[SEC_KEY_LEN];
+  //shift must be less than SEC_KEY_LEN. This is to handle the cases where SeedShift_IcIndex is >= SEC_KEY_LEN.
+  shift &= 0x0F;
 
   if((key != NULL) && (extAddr != NULL))
   {

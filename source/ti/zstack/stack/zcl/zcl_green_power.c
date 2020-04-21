@@ -1432,11 +1432,14 @@ gpNotificationMsg_t* gp_AddNotificationMsgNode( gpNotificationMsg_t **pHead, gpC
 
   *pCurr = (gpNotificationMsg_t*)zcl_mem_alloc(sizeof(gpNotificationMsg_t));
 
-  if ( *pCurr && (*pCurr)->pNext != NULL )
+  if ( *pCurr )
   {
-    (*pCurr)->pNext = NULL;
+    if (  (*pCurr)->pNext != NULL )
+    {
+      (*pCurr)->pNext = NULL;
+    }
+    ((gpNotificationMsg_t*)*pCurr)->pMsg = (uint8_t*)pMsg;
   }
-  ((gpNotificationMsg_t*)*pCurr)->pMsg = (uint8_t*)pMsg;
   return *pCurr;
 }
 
@@ -1479,12 +1482,15 @@ gpCmdPayloadMsg_t* gp_AddCmdPayloadMsgNode( gpCmdPayloadMsg_t **pHead, uint8_t* 
 
   *pCurr = (gpCmdPayloadMsg_t*)zcl_mem_alloc(sizeof(gpCmdPayloadMsg_t));
 
-  if ( *pCurr && (*pCurr)->pNext != NULL )
+  if ( *pCurr )
   {
-    (*pCurr)->pNext = NULL;
+    if ( (*pCurr)->pNext != NULL )
+    {
+      (*pCurr)->pNext = NULL;
+    }
+    (((gpCmdPayloadMsg_t*) *pCurr)->lenght) = len;
+    (((gpCmdPayloadMsg_t*) *pCurr)->pMsg) = (uint8_t*)pBuf;
   }
-  (((gpCmdPayloadMsg_t*) *pCurr)->lenght) = len;
-  (((gpCmdPayloadMsg_t*) *pCurr)->pMsg) = (uint8_t*)pBuf;
 
   return *pCurr;
 }

@@ -804,7 +804,8 @@ uint8_t INTERP_DataReqMTU( void )
            APS_CLUSTERID_FIELD_LEN  +
            APS_PROFILEID_FIELD_LEN;
 
-  mtu = MAC_A_MAX_FRAME_SIZE - STUB_NWK_HDR_LEN - hdrLen;
+  mtu = (macCfg.macMaxFrameSize - MAC_A_MAX_FRAME_OVERHEAD) -
+        STUB_NWK_HDR_LEN - hdrLen;
 
   return ( mtu );
 
