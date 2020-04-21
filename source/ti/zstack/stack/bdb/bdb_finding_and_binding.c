@@ -57,9 +57,8 @@
  * MACROS
  */
 
-#ifndef  BDB_ZCL_TYPE_CLUSTER
-#define  BDB_ZCL_TYPE_CLUSTER  "bdb_zcl_type_cluster.c"
-#endif
+
+
 
 /*********************************************************************
  * CONSTANTS
@@ -95,8 +94,12 @@ SimpleDescriptionFormat_t  bdb_FindingBindingTargetSimpleDesc;
 
 uint8_t bdbIndentifyActiveEndpoint  = 0xFF;
 
-// bdb_ZclType1Clusters & bdb_ZclType2Clusters has been moved into file BDB_ZCL_TYPE_CLUSTER, luoyiming 2020-02-26
-#include BDB_ZCL_TYPE_CLUSTER
+// bdb_ZclType1Clusters & bdb_ZclType2Clusters can be defined in bdb_ZclTypeClustersCustom, luoyiming 2020-04-21
+#ifdef   BDB_ZCL_TYPE_CLUSTER_CUSTOM
+#include "bdb_ZclTypeClustersCustom.c"
+#else
+#include "bdb_ZclTypeClusters.c"
+#endif
 
 #ifdef ZCL_GROUPS
 static zclOptionRec_t zcl_Groups_Options[] =
