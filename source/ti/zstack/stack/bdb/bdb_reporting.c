@@ -1334,6 +1334,12 @@ static uint8_t bdb_repAttrCfgRecordsArrayCreate( uint8_t maxNumRepAttrConfRecord
     return BDBREPORTING_SUCCESS;
   }
 
+  // free and re-malloc, fixed by luoyiming 2020-05-29
+  if( bdb_reportingAttrCfgRecordsArray != NULL )
+  {
+    bdb_repAttrCfgRecordsArrayFreeAll();
+  }
+
   bdb_reportingAttrCfgRecordsArrayMaxSize = maxNumRepAttrConfRecords;
   bdb_reportingAttrCfgRecordsArray = (bdbReportAttrCfgData_t *)OsalPort_malloc( sizeof( bdbReportAttrCfgData_t )*bdb_reportingAttrCfgRecordsArrayMaxSize );
   bdb_reportingAttrCfgRecordsArrayCount = 0;
