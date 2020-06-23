@@ -54,6 +54,7 @@ extern "C"
 #include "zcl_ota.h"
 #include "zd_object.h"
 #include "cui.h"
+#include "zcl_port.h" // fixed by luoyiming 2020-06-23
 
 /******************************************************************************
  * CONSTANTS
@@ -274,10 +275,11 @@ extern void OTAClient_InitializeSettings( void );//uint8_t task_id);
  * @brief   Set OTA endpoint.
  *
  * @param   endpoint - endpoint ID from which OTA functions can be accessed
+ * @param   pfnCB - Register the Application to receive the unprocessed Foundation command/response messages
  *
  * @return  true if endpoint set, else false
  */
-extern bool OTAClient_SetEndpoint( uint8_t endpoint);
+extern bool OTAClient_SetEndpoint(  uint8_t endpoint, zclport_pFnZclHandleExternal pfnCB );
 
 
 /******************************************************************************

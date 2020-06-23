@@ -190,6 +190,8 @@ uint8_t zclOTA_ImageBlockFC = OTA_BLOCK_FC_REQ_DELAY_PRESENT; // set bitmask fie
 CUI_clientHandle_t gOTAClientCuiHandle;
 static uint32_t gOTAClientInfoLine;
 
+uint8_t (*zclOTAClientUserMsgCB)(zclIncoming_t *pInMsg) = NULL;
+
 /******************************************************************************
  * LOCAL FUNCTIONS
  */
@@ -452,7 +454,7 @@ static void zclOTA_StartTimer ( Clock_Handle cHandle, Clock_Struct *cStruct,  ui
   ZStatus_t stat = ZSuccess;
   uint8_t endpointStatus= FALSE;
 
-  endpointStatus = OTAClient_SetEndpoint( zcl_getRawAFMsg()->endPoint );
+  endpointStatus = OTAClient_SetEndpoint( zcl_getRawAFMsg()->endPoint, NULL );
 
   if( endpointStatus == TRUE )
   {
@@ -1058,7 +1060,7 @@ static ZStatus_t zclOTA_ProcessImageBlockRsp ( zclIncoming_t *pInMsg )
     // download aborted; set state to 'normal' state
     zclOTA_ImageUpgradeStatus = OTA_STATUS_NORMAL;
     //reset endpoint
-    OTAClient_SetEndpoint(0);
+    OTAClient_SetEndpoint(0, NULL);
     // Stop the timer and clear the retry count
     zclOTA_BlockRetry = 0;
     //OsalPortTimers_stopTimer ( zclOTA_TaskID, ZCL_OTA_BLOCK_RSP_TO_EVT );
@@ -1081,7 +1083,7 @@ static ZStatus_t zclOTA_ProcessImageBlockRsp ( zclIncoming_t *pInMsg )
     // download failed; set state to 'normal'
     zclOTA_ImageUpgradeStatus = OTA_STATUS_NORMAL;
 
-    OTAClient_SetEndpoint(0);
+    OTAClient_SetEndpoint(0, NULL);
 
     // send upgrade end req with failure status
     //OsalPort_memcpy ( &req.fileId, &param.rsp.success.fileId, sizeof ( zclOTA_FileID_t ) );
@@ -1501,11 +1503,12 @@ void OTAClient_InitializeSettings( void )
  * @brief   Set OTA endpoint.
  *
  * @param   endpoint - endpoint ID from which OTA functions can be accessed
+ * @param   pfnCB - Register the Application to receive the unprocessed Foundation command/response messages
  *
  * @return  TRUE if endpoint set, else FALSE
  */
 
-bool OTAClient_SetEndpoint( uint8_t endpoint )
+bool OTAClient_SetEndpoint( uint8_t endpoint, zclport_pFnZclHandleExternal pfnCB )
 {
   if( currentOtaEndpoint == OTA_UNUSED_ENDPOINT )
   {
@@ -1514,6 +1517,7 @@ bool OTAClient_SetEndpoint( uint8_t endpoint )
 
     //zcl_registerForMsgExt( zclOTA_TaskID, currentOtaEndpoint ); // use zclport_registerZclHandleExternal
     zclport_registerZclHandleExternal( endpoint, OTA_ProcessUnhandledFoundationZCLMsgs );
+    zclOTAClientUserMsgCB = pfnCB;
     return TRUE;
   }
   else if( endpoint == currentOtaEndpoint )
@@ -1742,6 +1746,11 @@ static uint8_t OTA_ProcessUnhandledFoundationZCLMsgs ( zclIncoming_t *pMsg )
 {
   zclIncomingMsg_t *pCmd;
 
+  if( zclOTAClientUserMsgCB )
+  {
+    zclOTAClientUserMsgCB( pMsg );
+  }
+
   pCmd = (zclIncomingMsg_t *)OsalPort_msgAllocate( sizeof ( zclIncomingMsg_t ) );
   if ( pCmd != NULL )
   {
@@ -1767,7 +1776,6 @@ static uint8_t OTA_ProcessUnhandledFoundationZCLMsgs ( zclIncoming_t *pMsg )
 
   if ( pMsg->attrCmd )
   {
-    //OsalPort_free( pMsg->attrCmd );
     OsalPort_free(pMsg->attrCmd);
     pMsg->attrCmd = NULL;
   }
