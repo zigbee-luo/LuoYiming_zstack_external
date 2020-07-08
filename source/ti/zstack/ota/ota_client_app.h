@@ -71,6 +71,16 @@ extern "C"
 #define ST_STACK_ONLY_IMAGE                           0x03
 #define ST_FULL_FACTORY_IMAGE                         0x04
 
+// OTA_Storage_Status_t status codes
+typedef enum {
+    OTA_Storage_Status_Success, ///< Success
+    OTA_Storage_Failed,         ///< Fail
+    OTA_Storage_CrcError,       ///< Acknowledgment or Response Timed out
+    OTA_Storage_FlashError,     ///< flash access error
+    OTA_Storage_Aborted,        ///< Canceled by application
+    OTA_Storage_Rejected,       ///< OAD request rejected by application
+} OTA_Storage_Status_t;
+
 // OTA attribute macro definitions
 
 #define OTA_ATTR_UPGRADE_SERVERID  { ZCL_CLUSTER_ID_OTA, \
@@ -82,7 +92,7 @@ extern "C"
  } \
 }
 
-#define OTA_ATTR_FILE_OFFSET       { ZCL_CLUSTER_ID_OTA, \
+#define OTA_ATTR_FILE_OFFSET       { ZCL_CLUSTER_ID_OTA,  \
   { \
       ATTRID_FILE_OFFSET, \
       ZCL_DATATYPE_UINT32, \
@@ -91,7 +101,7 @@ extern "C"
     } \
   }
 
-#define OTA_ATTR_CURR_FILE_VERSION  { ZCL_CLUSTER_ID_OTA, \
+#define OTA_ATTR_CURR_FILE_VERSION  { ZCL_CLUSTER_ID_OTA,   \
     { \
       ATTRID_CURRENT_FILE_VERSION,\
       ZCL_DATATYPE_UINT32, \
@@ -118,7 +128,7 @@ extern "C"
     }\
    }
 
-#define OTA_ATTR_DOWNLOADED_ZIGBEESTACK_VERSION  { ZCL_CLUSTER_ID_OTA, \
+#define OTA_ATTR_DOWNLOADED_ZIGBEESTACK_VERSION  { ZCL_CLUSTER_ID_OTA,\
     { \
       ATTRID_DOWNLOADED_ZIGBEE_STACK_VERSION, \
       ZCL_DATATYPE_UINT16, \
@@ -293,5 +303,44 @@ extern bool OTAClient_SetEndpoint(  uint8_t endpoint, zclport_pFnZclHandleExtern
  * @return      none
  */
 extern void OTA_loadExtImage(uint8_t imageSelect);
+
+
+/*********************************************************************
+ * @fn          OTA_UpdateStatusLine
+ *
+ * @brief       Generate part of the OTA Info string
+ *
+ * @param       none
+ *
+ * @return      none
+ */
+extern void OTA_UpdateStatusLine(void);
+
+
+
+#ifdef FACTORY_IMAGE
+/******************************************************************************
+ * @fn          OTA_hasFactoryImage
+ *
+ * @brief   This function check if the valid factory image exists on external
+ *          flash
+ *
+ * @param   None
+ *
+ * @return  TRUE If factory image exists on external flash, else FALSE
+ *
+ */
+extern bool OTA_hasFactoryImage(void);
+
+
+/*******************************************************************************
+ * @fn      OTA_saveFactoryImage
+ *
+ * @brief   This function creates factory image backup of current running image
+ *
+ * @return  rtn  OTA_Storage_Status_Success/OTA_Storage_FlashError
+ */
+extern uint8_t OTA_saveFactoryImage(void);
+#endif
 
 #endif /*OTA_CLIENT_APP_H*/

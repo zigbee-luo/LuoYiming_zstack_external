@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2006-2019, Texas Instruments Incorporated
+ Copyright (c) 2006-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -83,8 +83,8 @@
 #define MAC_ASSERT_STATEMENT(statement)
 #define MAC_ASSERT_DECLARATION(declaration)
 #else
-#define MAC_ASSERT(expr)                     st( if (!(expr)) MAP_halAssertHandler(); )
-#define MAC_ASSERT_FORCED()                  MAP_halAssertHandler();
+#define MAC_ASSERT(expr)                     st( if (!(expr)) MAP_assertHandler(); )
+#define MAC_ASSERT_FORCED()                  MAP_assertHandler();
 #define MAC_ASSERT_STATEMENT(statement)      st( statement )
 #define MAC_ASSERT_DECLARATION(declaration)  declaration
 #endif

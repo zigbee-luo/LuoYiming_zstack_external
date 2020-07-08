@@ -95,7 +95,7 @@ const config = {
         {
             name: "collectorTestRampDataSize",
             displayName: "Collector Test Ramp Data Size",
-            default: 0,
+            default: 20,
             hidden: true,
             description: Docs.collectorTestRampDataSize.description,
             longDescription: Docs.collectorTestRampDataSize.longDescription

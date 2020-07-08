@@ -29,10 +29,10 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-// @cliArgs --board /ti/boards/CC26X2R1_LAUNCHXL
+// @cliArgs --board /ti/boards/CC1352P_2_LAUNCHXL
 
 /*
- *  zc_genericapp.syscfg
+ *  generic.syscfg
  */
 
 /* Modules */

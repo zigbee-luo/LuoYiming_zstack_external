@@ -2,7 +2,7 @@
  *  Do not modify this file; it is automatically 
  *  generated and any modifications will be overwritten.
  *
- * @(#) xdc-H32
+ * @(#) xdc-I11
  */
 
 #ifndef ti_uia_family_c64p_GemTraceSync__INTERNAL__

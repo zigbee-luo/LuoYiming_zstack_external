@@ -70,19 +70,9 @@
 #define ZCL_OTA_MAX_ATTRIBUTES          11
  // Cluster ID list for match descriptor of the OTA Server.
 #define ZCL_OTA_MAX_INCLUSTERS       1
-
-#define ZCL_OTA_MAX_CLIENT           4
-
 /*********************************************************************
  * TYPEDEFS
  */
-typedef struct
-{
-  uint16_t srcAddr;
-  uint8_t  srcEp;
-  uint8_t  seqNo;
-}zclOTA_ClientSeqNo_t;
-
 /******************************************************************************
  * GLOBAL VARIABLES
  */
@@ -92,7 +82,9 @@ typedef struct
  */
 static uint8_t stAppID = 0xFF;
 static endPointDesc_t  zclOTA_Ep = {0};
-static zclOTA_ClientSeqNo_t zclOTA_ClientSeqNoTable[ZCL_OTA_MAX_CLIENT];
+
+// Table used to match transaction sequence numbers in ota responses
+static otaSeqNumEntry_t SeqNumEntryTable[SEQ_NUM_ENTRY_MAX];
 
 #define ZCL_OTA_MAX_ATTRIBUTES          11
 
@@ -211,22 +203,24 @@ SimpleDescriptionFormat_t zclOTA_SimpleDesc =
  */
 ZStatus_t zclOTA_ServerHdlIncoming ( zclIncoming_t *pInMsg );
 static ZStatus_t zclOTA_HdlIncoming ( zclIncoming_t *pInMsg );
-static ZStatus_t zclOTA_Srv_QueryNextImageReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclOTA_QueryNextImageReqParams_t *pParam );
-static ZStatus_t zclOTA_Srv_ImageBlockReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclOTA_ImageBlockReqParams_t *pParam );
-static ZStatus_t zclOTA_Srv_ImagePageReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclOTA_ImagePageReqParams_t *pParam );
-static ZStatus_t zclOTA_Srv_UpgradeEndReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclOTA_UpgradeEndReqParams_t *pParam );
-static ZStatus_t zclOTA_Srv_QuerySpecificFileReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclOTA_QuerySpecificFileReqParams_t *pParam );
+static ZStatus_t zclOTA_Srv_QueryNextImageReq ( afAddrType_t *pSrcAddr, zclOTA_QueryNextImageReqParams_t *pParam, uint8_t transSeqNum );
+static ZStatus_t zclOTA_Srv_ImageBlockReq ( afAddrType_t *pSrcAddr, zclOTA_ImageBlockReqParams_t *pParam, uint8_t transSeqNum );
+static ZStatus_t zclOTA_Srv_ImagePageReq ( afAddrType_t *pSrcAddr, zclOTA_ImagePageReqParams_t *pParam, uint8_t transSeqNum );
+static ZStatus_t zclOTA_Srv_UpgradeEndReq ( afAddrType_t *pSrcAddr, zclOTA_UpgradeEndReqParams_t *pParam, uint8_t transSeqNum );
+static ZStatus_t zclOTA_Srv_QuerySpecificFileReq ( afAddrType_t *pSrcAddr, zclOTA_QuerySpecificFileReqParams_t *pParam, uint8_t transSeqNum );
 static ZStatus_t zclOTA_ProcessQuerySpecificFileReq ( zclIncoming_t *pInMsg );
-static void zclOTA_ProcessNextImgRsp ( uint8_t* pMSGpkt, zclOTA_FileID_t *pFileId, afAddrType_t *pAddr, uint8_t seqNo );
-static void zclOTA_ProcessFileReadRsp ( uint8_t* pMSGpkt, zclOTA_FileID_t *pFileId, afAddrType_t *pAddr, uint8_t seqNo );
+static void zclOTA_ProcessNextImgRsp ( uint8_t* pMSGpkt, zclOTA_FileID_t *pFileId, afAddrType_t *pAddr );
+static void zclOTA_ProcessFileReadRsp ( uint8_t* pMSGpkt, zclOTA_FileID_t *pFileId, afAddrType_t *pAddr );
 
 static ZStatus_t zclOTA_ProcessImageBlockReq ( zclIncoming_t *pInMsg );
 static ZStatus_t zclOTA_ProcessQueryNextImageReq ( zclIncoming_t *pInMsg );
 static ZStatus_t zclOTA_ProcessImagePageReq ( zclIncoming_t *pInMsg );
 static ZStatus_t zclOTA_ProcessUpgradeEndReq ( zclIncoming_t *pInMsg );
 
-static uint8_t zclOTA_GetClientSeqNumber( afAddrType_t addr );
-static bool zclOTA_UpdateClientSeqNumber( afAddrType_t addr, uint8_t seqNo );
+static void zclOTA_AddSeqNumEntry(uint8_t transSeqNum, uint16_t shortAddr);
+static uint16_t zclOTA_FindSeqNumEntry(uint16_t shortAddr);
+
+
 
   /******************************************************************************
  * @fn      OTA_Server_Init
@@ -239,6 +233,7 @@ static bool zclOTA_UpdateClientSeqNumber( afAddrType_t addr, uint8_t seqNo );
  */
 void OTA_Server_Init( uint8_t stEnt )
 {
+  uint16_t i;
   stAppID = stEnt;
   zclOTA_Permit = TRUE;
 
@@ -265,13 +260,72 @@ void OTA_Server_Init( uint8_t stEnt )
   // The default upgradeServerID is FF:FF:FF:FF:FF:FF:FF:FF
   memset ( zclOTA_UpgradeServerID, 0xFF, sizeof ( zclOTA_UpgradeServerID ) );
 
-  uint8_t n;
-  for( n = 0; n < ZCL_OTA_MAX_CLIENT; n++ )
+  // Initialize SeqNumEntryTable
+  for(i = 0; i < SEQ_NUM_ENTRY_MAX; i++)
   {
-    zclOTA_ClientSeqNoTable[n].seqNo = 0;
-    zclOTA_ClientSeqNoTable[n].srcEp = 0xFF;
-    zclOTA_ClientSeqNoTable[n].srcAddr = 0xFFFE;
+    memset(&SeqNumEntryTable[i], 0xFF, sizeof (otaSeqNumEntry_t));
   }
+}
+
+
+ /******************************************************************************
+ * @fn      zclOTA_AddSeqNumEntry
+ *
+ * @brief   Add an entry to SeqNumEntryTable
+ *
+ * @param   transSeqNum
+ * @param   shortAddr
+ *
+ * @return  none
+ */
+static void zclOTA_AddSeqNumEntry(uint8_t transSeqNum, uint16_t shortAddr)
+{
+  uint16_t i;
+  for(i = 0; i < SEQ_NUM_ENTRY_MAX; i++)
+  {
+    if((SeqNumEntryTable[i].shortAddr == 0xFFFF && SeqNumEntryTable[i].transSeqNum == 0xFF) ||
+      (SeqNumEntryTable[i].shortAddr == shortAddr))
+    {
+      SeqNumEntryTable[i].shortAddr = shortAddr;
+      SeqNumEntryTable[i].transSeqNum = transSeqNum;
+      break;
+    }
+  }
+}
+
+
+ /******************************************************************************
+ * @fn      zclOTA_FindSeqNumEntry
+ *
+ * @brief   Find an entry to SeqNumEntryTable with matching shortAddr
+ *
+ * @param   transSeqNum - Transaction sequence number
+ * @param   shortAddr - Short address
+ *
+ * @return  uint16_t
+ */
+static uint16_t zclOTA_FindSeqNumEntry(uint16_t shortAddr)
+{
+  uint16_t i;
+  uint8_t transSeqNum;
+  bool found = FALSE;
+  for(i = 0; i < SEQ_NUM_ENTRY_MAX; i++)
+  {
+    if(SeqNumEntryTable[i].shortAddr == shortAddr)
+    {
+      transSeqNum = SeqNumEntryTable[i].transSeqNum;
+      SeqNumEntryTable[i].shortAddr = 0xFFFF;
+      SeqNumEntryTable[i].transSeqNum = 0xFF;
+      found = TRUE;
+      break;
+    }
+  }
+
+  if(found){
+    return transSeqNum;
+  }
+  // Return internal frame counter if no match is found
+  return zclOTA_getSeqNo();
 }
 
 /******************************************************************************
@@ -359,12 +413,13 @@ ZStatus_t zclOTA_ServerHdlIncoming ( zclIncoming_t *pInMsg )
  * @brief   Handle an Image Block Request.
  *
  * @param   pSrcAddr - The source of the message
- *          seqNo - seq number for OTA response, add by luoyiming 2020-01-31
  *          pParam - message parameters
+ *          transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  */
-ZStatus_t zclOTA_Srv_ImageBlockReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclOTA_ImageBlockReqParams_t *pParam )
+ZStatus_t zclOTA_Srv_ImageBlockReq ( afAddrType_t *pSrcAddr, zclOTA_ImageBlockReqParams_t *pParam,
+    uint8_t transSeqNum )
 {
   uint8_t status = ZFailure;
 
@@ -398,15 +453,12 @@ ZStatus_t zclOTA_Srv_ImageBlockReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclO
         blockRsp.rsp.wait.blockReqDelay = zclOTA_MinBlockReqDelay;
 
         // Send a wait response with updated rate limit timing
-        zclOTA_SendImageBlockRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, seqNo, &blockRsp );
+        zclOTA_SendImageBlockRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, &blockRsp, transSeqNum );
       }
       else
       {
         // Read the data from the OTA Console
-        if( zclOTA_UpdateClientSeqNumber( *pSrcAddr, seqNo ) )
-        {
-          status = MT_OtaFileReadReq ( pSrcAddr, seqNo, &pParam->fileId, len, pParam->fileOffset );
-        }
+        status = MT_OtaFileReadReq ( pSrcAddr, &pParam->fileId, len, pParam->fileOffset );
 
         // Send a wait response to the client
         if ( status != ZSuccess )
@@ -421,7 +473,12 @@ ZStatus_t zclOTA_Srv_ImageBlockReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclO
           blockRsp.rsp.wait.blockReqDelay = zclOTA_MinBlockReqDelay;
 
           // Send the block to the peer
-          zclOTA_SendImageBlockRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, seqNo, &blockRsp );
+          zclOTA_SendImageBlockRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, &blockRsp, transSeqNum );
+        }
+        else
+        {
+          // Add transSeqNum to SeqNumEntryTable for use in response
+          zclOTA_AddSeqNumEntry( transSeqNum, pSrcAddr->addr.shortAddr );
         }
       }
 
@@ -446,6 +503,7 @@ static ZStatus_t zclOTA_ProcessQueryNextImageReq ( zclIncoming_t *pInMsg )
 {
   zclOTA_QueryNextImageReqParams_t  param;
   uint8_t *pData;
+  uint8_t transSeqNum = pInMsg->hdr.transSeqNum;
 
   /* verify message length */
   if ( ( pInMsg->pDataLen != PAYLOAD_MAX_LEN_QUERY_NEXT_IMAGE_REQ ) &&
@@ -470,7 +528,7 @@ static ZStatus_t zclOTA_ProcessQueryNextImageReq ( zclIncoming_t *pInMsg )
   }
 
   /* call callback */
-  return zclOTA_Srv_QueryNextImageReq ( &pInMsg->msg->srcAddr, pInMsg->hdr.transSeqNum, &param );
+  return zclOTA_Srv_QueryNextImageReq ( &pInMsg->msg->srcAddr, &param, transSeqNum );
 }
 
 /******************************************************************************
@@ -486,6 +544,7 @@ static ZStatus_t zclOTA_ProcessImageBlockReq ( zclIncoming_t *pInMsg )
 {
   zclOTA_ImageBlockReqParams_t  param;
   uint8_t *pData;
+  uint8_t transSeqNum = pInMsg->hdr.transSeqNum;
 
   /* verify message length */
   if ( ( pInMsg->pDataLen > PAYLOAD_MAX_LEN_IMAGE_BLOCK_REQ ) &&
@@ -518,7 +577,7 @@ static ZStatus_t zclOTA_ProcessImageBlockReq ( zclIncoming_t *pInMsg )
   }
 
   /* call callback */
-  return zclOTA_Srv_ImageBlockReq ( &pInMsg->msg->srcAddr, pInMsg->hdr.transSeqNum, &param );
+  return zclOTA_Srv_ImageBlockReq ( &pInMsg->msg->srcAddr, &param, transSeqNum );
 }
 
 /******************************************************************************
@@ -534,6 +593,7 @@ static ZStatus_t zclOTA_ProcessImagePageReq ( zclIncoming_t *pInMsg )
 {
   zclOTA_ImagePageReqParams_t  param;
   uint8_t *pData;
+  uint8_t transSeqNum = pInMsg->hdr.transSeqNum;
 
   /* verify message length */
   if ( ( pInMsg->pDataLen != PAYLOAD_MAX_LEN_IMAGE_PAGE_REQ ) &&
@@ -565,7 +625,7 @@ static ZStatus_t zclOTA_ProcessImagePageReq ( zclIncoming_t *pInMsg )
   }
 
   /* call callback */
-  return zclOTA_Srv_ImagePageReq ( &pInMsg->msg->srcAddr, pInMsg->hdr.transSeqNum, &param );
+  return zclOTA_Srv_ImagePageReq ( &pInMsg->msg->srcAddr, &param, transSeqNum );
 }
 
 /******************************************************************************
@@ -574,15 +634,16 @@ static ZStatus_t zclOTA_ProcessImagePageReq ( zclIncoming_t *pInMsg )
  * @brief   Handle a Query Next Image Request.
  *
  * @param   pSrcAddr - The source of the message
- *          seqNo - seq number for OTA response, add by luoyiming 2020-01-31
- *          pParam - message parameters
+ * @param   pParam - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  *
  * @note    On a query next image, we must request a file listing
  *          from the File Server.  Then open a file if
  */
-ZStatus_t zclOTA_Srv_QueryNextImageReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclOTA_QueryNextImageReqParams_t *pParam )
+ZStatus_t zclOTA_Srv_QueryNextImageReq ( afAddrType_t *pSrcAddr, zclOTA_QueryNextImageReqParams_t *pParam,
+    uint8_t transSeqNum )
 {
   uint8_t options = 0;
   uint8_t status;
@@ -595,10 +656,7 @@ ZStatus_t zclOTA_Srv_QueryNextImageReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, 
     }
 
     // Request the next image for this device from the console via the MT File System
-    if( zclOTA_UpdateClientSeqNumber( *pSrcAddr, seqNo ) )
-    {
-      status = MT_OtaGetImage ( pSrcAddr, seqNo, &pParam->fileId, pParam->hardwareVersion, NULL, options );
-    }
+    status = MT_OtaGetImage ( pSrcAddr, &pParam->fileId, pParam->hardwareVersion, NULL, options );
   }
   else
   {
@@ -615,7 +673,12 @@ ZStatus_t zclOTA_Srv_QueryNextImageReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, 
     queryRsp.imageSize = 0;
 
     // Send a failure response to the client
-    zclOTA_SendQueryNextImageRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, seqNo, &queryRsp );
+    zclOTA_SendQueryNextImageRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, &queryRsp, transSeqNum );
+  }
+  else
+  {
+    // Add transSeqNum to SeqNumEntryTable for use in response
+    zclOTA_AddSeqNumEntry( transSeqNum, pSrcAddr->addr.shortAddr );
   }
 
   return ZCL_STATUS_CMD_HAS_RSP;
@@ -627,12 +690,13 @@ ZStatus_t zclOTA_Srv_QueryNextImageReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, 
  * @brief   Handle an Image Page Request.  Note: Not currently supported.
  *
  * @param   pSrcAddr - The source of the message
- *          seqNo - seq number for OTA response, add by luoyiming 2020-01-31
- *          pParam - message parameters
+ * @param   pParam - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  */
-ZStatus_t zclOTA_Srv_ImagePageReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclOTA_ImagePageReqParams_t *pParam )
+ZStatus_t zclOTA_Srv_ImagePageReq ( afAddrType_t *pSrcAddr, zclOTA_ImagePageReqParams_t *pParam,
+    uint8_t transSeqNum )
 {
   // Send not supported resposne
   return ZUnsupClusterCmd;
@@ -651,6 +715,7 @@ static ZStatus_t zclOTA_ProcessUpgradeEndReq ( zclIncoming_t *pInMsg )
 {
   zclOTA_UpgradeEndReqParams_t  param;
   uint8_t *pData;
+  uint8_t transSeqNum = pInMsg->hdr.transSeqNum;
 
   /* verify message length */
   if ( ( pInMsg->pDataLen != PAYLOAD_MAX_LEN_UPGRADE_END_REQ ) &&
@@ -673,7 +738,7 @@ static ZStatus_t zclOTA_ProcessUpgradeEndReq ( zclIncoming_t *pInMsg )
   }
 
   /* call callback */
-  return zclOTA_Srv_UpgradeEndReq ( &pInMsg->msg->srcAddr, pInMsg->hdr.transSeqNum, &param );
+  return zclOTA_Srv_UpgradeEndReq ( &pInMsg->msg->srcAddr, &param, transSeqNum );
 }
 
 /******************************************************************************
@@ -682,12 +747,13 @@ static ZStatus_t zclOTA_ProcessUpgradeEndReq ( zclIncoming_t *pInMsg )
  * @brief   Handle an Upgrade End Request.
  *
  * @param   pSrcAddr - The source of the message
- *          seqNo - seq number for OTA response, add by luoyiming 2020-01-31
  *          pParam - message parameters
+ *          transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  */
-ZStatus_t zclOTA_Srv_UpgradeEndReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclOTA_UpgradeEndReqParams_t *pParam )
+ZStatus_t zclOTA_Srv_UpgradeEndReq ( afAddrType_t *pSrcAddr, zclOTA_UpgradeEndReqParams_t *pParam,
+    uint8_t transSeqNum )
 {
   uint8_t status = ZFailure;
 
@@ -702,78 +768,21 @@ ZStatus_t zclOTA_Srv_UpgradeEndReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclO
       rspParms.upgradeTime = rspParms.currentTime + OTA_UPGRADE_DELAY;
 
       // Send the response to the peer
-      zclOTA_SendUpgradeEndRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, seqNo, &rspParms );
+      zclOTA_SendUpgradeEndRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, &rspParms, transSeqNum );
+
+      status = ZCL_STATUS_CMD_HAS_RSP;
+    }
+    else
+    {
+      // When non success status is received, send default rsp with success status
+      status = ZSuccess;
     }
 
     // Notify the Console Tool
     MT_OtaSendStatus ( pSrcAddr->addr.shortAddr, MT_OTA_DL_COMPLETE, pParam->status, 0 );
-
-    status = ZCL_STATUS_CMD_HAS_RSP;
   }
 
   return status;
-}
-
-/******************************************************************************
- * @fn      zclOTA_GetClientSeqNumber
- *
- * @brief   get sequence number for response.
- *
- * @param   addr - cilent's address.
- *
- * @return  sequence number
- */
-uint8_t zclOTA_GetClientSeqNumber( afAddrType_t addr )
-{
-  uint8_t n;
-  for( n = 0; n < ZCL_OTA_MAX_CLIENT; n++ )
-  {
-    if( (zclOTA_ClientSeqNoTable[n].srcAddr == addr.addr.shortAddr) &&
-        (zclOTA_ClientSeqNoTable[n].srcEp == addr.endPoint) )
-    {
-      return zclOTA_ClientSeqNoTable[n].seqNo;
-    }
-  }
-  return 0;
-}
-
-/******************************************************************************
- * @fn      zclOTA_UpdateClientSeqNumber
- *
- * @brief   update sequence number for request.
- *
- * @param   addr - cilent's address.
- *          seqNo - sequence number
- *
- * @return  none
- */
-bool zclOTA_UpdateClientSeqNumber( afAddrType_t addr, uint8_t seqNo )
-{
-  uint8_t n;
-  uint8_t x = 0xFF;
-  for( n = 0; n < ZCL_OTA_MAX_CLIENT; n++ )
-  {
-    if( (zclOTA_ClientSeqNoTable[n].srcAddr == 0xFFFE) &&
-        (zclOTA_ClientSeqNoTable[n].srcEp == 0xFF) &&
-        (x == 0xFF) )
-    {
-      x = n;
-    }
-    if( (zclOTA_ClientSeqNoTable[n].srcAddr == addr.addr.shortAddr) &&
-        (zclOTA_ClientSeqNoTable[n].srcEp == addr.endPoint) )
-    {
-      zclOTA_ClientSeqNoTable[n].seqNo = seqNo;
-      return TRUE;
-    }
-  }
-  if( x < ZCL_OTA_MAX_CLIENT )
-  {
-    zclOTA_ClientSeqNoTable[n].srcAddr = addr.addr.shortAddr;
-    zclOTA_ClientSeqNoTable[n].srcEp = addr.endPoint;
-    zclOTA_ClientSeqNoTable[x].seqNo = seqNo;
-    return TRUE;
-  }
-  return FALSE;
 }
 
 /******************************************************************************
@@ -790,7 +799,6 @@ void zclOTA_ServerHandleFileSysCb ( uint8_t* pMSGpkt )
   zclOTA_FileID_t pFileId;
   afAddrType_t pAddr;
   uint8_t *pMsg;
-  uint8_t seqNo;
 
   if ( pMSGpkt != NULL )
   {
@@ -798,16 +806,15 @@ void zclOTA_ServerHandleFileSysCb ( uint8_t* pMSGpkt )
     pMsg = ((OTA_MtMsg_t*)pMSGpkt)->data;
     pMsg = OTA_StreamToFileId ( &pFileId, pMsg );
     pMsg = OTA_StreamToAfAddr ( &pAddr, pMsg );
-    seqNo = zclOTA_GetClientSeqNumber( pAddr );
 
     switch ( ((OTA_MtMsg_t*)pMSGpkt)->cmd )
     {
       case MT_OTA_NEXT_IMG_RSP:
-        zclOTA_ProcessNextImgRsp ( pMsg, &pFileId, &pAddr, seqNo );
+        zclOTA_ProcessNextImgRsp ( pMsg, &pFileId, &pAddr );
         break;
 
       case MT_OTA_FILE_READ_RSP:
-        zclOTA_ProcessFileReadRsp ( pMsg, &pFileId, &pAddr, seqNo );
+        zclOTA_ProcessFileReadRsp ( pMsg, &pFileId, &pAddr );
         break;
 
       default:
@@ -822,18 +829,18 @@ void zclOTA_ServerHandleFileSysCb ( uint8_t* pMSGpkt )
  * @brief   Handles a response to a MT_OTA_NEXT_IMG_RSP.
  *
  * @param   pMsg - The data from the server.
- *          pFileId - The ID of the OTA File.
- *          pAddr - The source of the message.
- *          seqNo - seq number for OTA response, add by luoyiming 2020-01-31
+ * @param   pFileId - The ID of the OTA File.
+ * @param   pAddr - The source of the message.
  *
  * @return  none
  */
 void zclOTA_ProcessNextImgRsp ( uint8_t* pMsg, zclOTA_FileID_t *pFileId,
-                                afAddrType_t *pAddr, uint8_t seqNo )
+                                afAddrType_t *pAddr )
 {
   zclOTA_QueryImageRspParams_t queryRsp;
   uint8_t options;
   uint8_t status;
+  uint8_t transSeqNum = zclOTA_FindSeqNumEntry(pAddr->addr.shortAddr);
 
   // Get the status of the operation
   status = *pMsg++;
@@ -861,11 +868,11 @@ void zclOTA_ProcessNextImgRsp ( uint8_t* pMsg, zclOTA_FileID_t *pFileId,
   // Send a response to the client
   if ( options & MT_OTA_QUERY_SPECIFIC_OPTION )
   {
-    zclOTA_SendQuerySpecificFileRsp ( ZCL_OTA_ENDPOINT, pAddr, seqNo, &queryRsp );
+    zclOTA_SendQuerySpecificFileRsp ( ZCL_OTA_ENDPOINT, pAddr, &queryRsp, transSeqNum );
   }
   else
   {
-    zclOTA_SendQueryNextImageRsp ( ZCL_OTA_ENDPOINT, pAddr, seqNo, &queryRsp );
+    zclOTA_SendQueryNextImageRsp ( ZCL_OTA_ENDPOINT, pAddr, &queryRsp, transSeqNum );
   }
 }
 
@@ -877,14 +884,14 @@ void zclOTA_ProcessNextImgRsp ( uint8_t* pMsg, zclOTA_FileID_t *pFileId,
  * @param   pMsg - The data from the server.
  *          pFileId - The ID of the OTA File.
  *          pAddr - The source of the message.
- *          seqNo - seq number for OTA response, add by luoyiming 2020-01-31
  *
  * @return  none
  */
 void zclOTA_ProcessFileReadRsp ( uint8_t* pMsg, zclOTA_FileID_t *pFileId,
-                                 afAddrType_t *pAddr, uint8_t seqNo )
+                                 afAddrType_t *pAddr )
 {
   zclOTA_ImageBlockRspParams_t blockRsp;
+  uint8_t transSeqNum = zclOTA_FindSeqNumEntry(pAddr->addr.shortAddr);
 
   // Set the status
   blockRsp.status = *pMsg++;
@@ -905,7 +912,7 @@ void zclOTA_ProcessFileReadRsp ( uint8_t* pMsg, zclOTA_FileID_t *pFileId,
   }
 
   // Send the block response to the peer
-  zclOTA_SendImageBlockRsp ( ZCL_OTA_ENDPOINT, pAddr, seqNo, &blockRsp );
+  zclOTA_SendImageBlockRsp ( ZCL_OTA_ENDPOINT, pAddr, &blockRsp, transSeqNum );
 }
 
 /******************************************************************************
@@ -921,6 +928,7 @@ static ZStatus_t zclOTA_ProcessQuerySpecificFileReq ( zclIncoming_t *pInMsg )
 {
   zclOTA_QuerySpecificFileReqParams_t  param;
   uint8_t *pData;
+  uint8_t transSeqNum = pInMsg->hdr.transSeqNum;
 
   /* verify message length */
   if ( pInMsg->pDataLen != PAYLOAD_MAX_LEN_QUERY_SPECIFIC_FILE_REQ )
@@ -942,7 +950,7 @@ static ZStatus_t zclOTA_ProcessQuerySpecificFileReq ( zclIncoming_t *pInMsg )
   param.stackVersion = BUILD_UINT16 ( pData[0], pData[1] );
 
   /* call callback */
-  return zclOTA_Srv_QuerySpecificFileReq ( &pInMsg->msg->srcAddr, pInMsg->hdr.transSeqNum, &param );
+  return zclOTA_Srv_QuerySpecificFileReq ( &pInMsg->msg->srcAddr, &param, transSeqNum );
 }
 
 /******************************************************************************
@@ -951,22 +959,20 @@ static ZStatus_t zclOTA_ProcessQuerySpecificFileReq ( zclIncoming_t *pInMsg )
  * @brief   Handles a Query Specific File Request.
  *
  * @param   pSrcAddr - The source of the message
- *          pParam - message parameters
- *          seqNo - seq number for OTA response, add by luoyiming 2020-01-31
+ * @param   pParam - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  */
-ZStatus_t zclOTA_Srv_QuerySpecificFileReq ( afAddrType_t *pSrcAddr, uint8_t seqNo, zclOTA_QuerySpecificFileReqParams_t *pParam )
+ZStatus_t zclOTA_Srv_QuerySpecificFileReq ( afAddrType_t *pSrcAddr, zclOTA_QuerySpecificFileReqParams_t *pParam,
+    uint8_t transSeqNum )
 {
   uint8_t status;
 
   // Request the image from the console
   if ( zclOTA_Permit )
   {
-    if( zclOTA_UpdateClientSeqNumber( *pSrcAddr, seqNo ) )
-    {
-      status = MT_OtaGetImage ( pSrcAddr, seqNo, &pParam->fileId, 0,  pParam->nodeAddr, MT_OTA_QUERY_SPECIFIC_OPTION );
-    }
+    status = MT_OtaGetImage ( pSrcAddr, &pParam->fileId, 0,  pParam->nodeAddr, MT_OTA_QUERY_SPECIFIC_OPTION );
   }
   else
   {
@@ -983,7 +989,12 @@ ZStatus_t zclOTA_Srv_QuerySpecificFileReq ( afAddrType_t *pSrcAddr, uint8_t seqN
     queryRsp.imageSize = 0;
 
     // Send a failure response to the client
-    zclOTA_SendQuerySpecificFileRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, seqNo, &queryRsp );
+    zclOTA_SendQuerySpecificFileRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, &queryRsp, transSeqNum );
+  }
+  else
+  {
+    // Add transSeqNum to SeqNumEntryTable for use in response
+    zclOTA_AddSeqNumEntry( transSeqNum, pSrcAddr->addr.shortAddr );
   }
 
   return ZCL_STATUS_CMD_HAS_RSP;

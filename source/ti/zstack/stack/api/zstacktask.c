@@ -50,6 +50,7 @@
 #include "nwk_util.h"
 #include "aps_groups.h"
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
 #include "zstack.h"
 #include "zstackmsg.h"
@@ -149,9 +150,6 @@
                                         receiving secured frames */
 #define CAPABLE_ALLOC_ADDR      0x80  /* Request allocation of a short address
                                         in the associate procedure */
-
-// TODO: make this a sysconfig parameter
-#define MINIMUM_APP_POLL_RATE 100
 
 /* ------------------------------------------------------------------------------------------------
  * Typedefs
@@ -6136,7 +6134,7 @@ static bool processSysConfigReadReq( uint8_t srcServiceTaskId, void *pMsg )
     if ( pPtr->pReq->extendedPANID )
     {
       pPtr->pRsp->has_extendedPANID = TRUE;
-      OsalPort_memcpy( &pPtr->pRsp->extendedPANID, zgApsUseExtendedPANID, Z_EXTADDR_LEN );
+      OsalPort_memcpy( &pPtr->pRsp->extendedPANID, _NIB.extendedPANID, Z_EXTADDR_LEN );
     }
 
     if ( pPtr->pReq->ieeeAddr )

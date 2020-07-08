@@ -230,7 +230,7 @@ all: `ROM_EXEC`
 `romAsmObj`: `s` romExternFuncs.txt
 	@-$(call RM, $@)
 	@$(CP) $(BIOS_ROOT)`s` `romAsmFile`
-	@$(XDC_ROOT)/../xs -c `RomModule.libDir`../../mangleAsmFile.xs `romAsmFile` `romAsmFile` romExternFuncs.txt
+	@$(XDC_ROOT)/../xs -c `RomModule.libDir`../mangleAsmFile.xs `romAsmFile` `romAsmFile` romExternFuncs.txt
 	@$(ASM) --output_file=`romAsmObj` -i$(BIOS_ROOT)`asmDir` $(BIOS_DEFS) $(XOPTS) $(INCS) `romAsmFile`
 
 %}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Texas Instruments Incorporated
+ * Copyright (c) 2012-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,14 +68,14 @@ function queryMeta(qual)
     switch (qual) {
         case IGateProvider.Q_BLOCKING:
         case IGateProvider.Q_PREEMPTING:
-            rc = true; 
+            rc = true;
             break;
-           
+
         default:
-           GateMutexPri.$logWarning("Invalid quality. Returning false", this, qual);
-           break;  
+            this.$logWarning("Invalid quality. Returning false", this, qual);
+            break;
     }
-   
+
     return (rc);
 }
 
@@ -158,12 +158,12 @@ function viewInitDetailed(view, obj)
         catch (e) {
             view.$status["pendElems"] =
                     "Error: Problem scanning pending Task 0x" +
-                    Number(currTaskHandle).toString(16) + 
+                    Number(currTaskHandle).toString(16) +
                     ": " + e.toString();
             return;
         }
 
-        var pendElemString = Task.getNickName(currTaskView) + 
+        var pendElemString = Task.getNickName(currTaskView) +
                              ", priority: " + currTaskView.priority;
         view.pendedTasks.$add(pendElemString);
     }

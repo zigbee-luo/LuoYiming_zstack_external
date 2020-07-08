@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -244,12 +244,12 @@ extern void Csf_toggleResponseReceived(ApiMac_sAddr_t *pSrcAddr, bool ledState);
 extern void Csf_toggleResponseReceived(ApiMac_sAddr_t *pSrcAddr, bool ledState);
 
 /*!
- * @brief       The application calls this function to blink o idenify LED.
+ * @brief       The application calls this function to blink the identify LED.
  *
- * @param       identifyTime - time in seconds to identify for
+ * @param       identifyTime - time in seconds for which to identify
  */
 #ifndef __unix__
-extern void Csf_identifyLED(uint16_t identifyTime);
+extern void Csf_identifyLED(uint8_t identifyTime);
 #endif
 
 /*!
@@ -467,7 +467,13 @@ extern void Csf_SmPasskeyEntry(SM_passkeyEntry_t passkeyAction);
 /*!
  * @brief       The application calls this function to disassociate from a sensor.
  */
-extern int Csf_removeDevice(uint16_t deviceShortAddr);
+extern int Csf_sendDisassociateMsg(uint16_t deviceShortAddr);
+
+/*!
+ * @brief       The application calls this function to get device ext. address.
+ */
+extern int Csf_getDeviceExtAdd(uint16_t deviceShortAddr, ApiMac_sAddrExt_t * extAddr);
+
 
 #ifdef USE_DMM
 /*!

@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -111,12 +111,15 @@ macUserCfg_t macUser0Cfg[] = MAC_USER_CFG;
 
 #include "cui.h"
 
+#ifdef USE_ITM_DBG
+#include "itm.h"
+#endif
+
 /******************************************************************************
  Constants
  *****************************************************************************/
 
 /* Assert Reasons */
-#define MAIN_ASSERT_ICALL        2
 #define MAIN_ASSERT_MAC          3
 #define MAIN_ASSERT_HWI_TIRTOS   4
 
@@ -157,9 +160,7 @@ static uint8_t _macTaskId;
 
 /*
  When assert happens, this field will be filled with the reason:
-       MAIN_ASSERT_HWI_TIRTOS,
-       MAIN_ASSERT_ICALL,
-       MAIN_ASSERT_MAC
+       MAIN_ASSERT_HWI_TIRTOS or MAIN_ASSERT_MAC
  */
 uint8 Main_assertReason = 0;
 
@@ -176,7 +177,7 @@ static const uint8_t dummyExtAddr[] =
     { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 extern void Board_init(void);
-    
+
 #ifdef NV_RESTORE
 #ifdef ONE_PAGE_NV
 /* NVOCOP load API pointers */
@@ -218,8 +219,7 @@ static inline void CCFGRead_IEEE_MAC(ApiMac_sAddrExt_t addr)
 /*!
  * @brief       Fill in your own assert function.
  *
- * @param       assertReason - reason: MAIN_ASSERT_HWI_TIRTOS,
- *                                     MAIN_ASSERT_ICALL, or
+ * @param       assertReason - reason: MAIN_ASSERT_HWI_TIRTOS or
  *                                     MAIN_ASSERT_MAC
  */
 void Main_assertHandler(uint8_t assertReason)
@@ -331,16 +331,7 @@ xdc_Void Main_excHandler(UInt *excStack, UInt lr)
 /*!
  * @brief       HAL assert handler required by OSAL memory module.
  */
-void halAssertHandler(void)
-{
-    /* User defined function */
-    Main_assertHandler(MAIN_ASSERT_ICALL);
-}
-
-/*!
- * @brief       MAC HAL assert handler.
- */
-void macHalAssertHandler(void)
+void assertHandler(void)
 {
     /* User defined function */
     Main_assertHandler(MAIN_ASSERT_MAC);
@@ -354,7 +345,7 @@ int main(void)
     Task_Params taskParams;
 
 #ifndef USE_DEFAULT_USER_CFG
-    macUser0Cfg[0].pAssertFP = macHalAssertHandler;
+    macUser0Cfg[0].pAssertFP = assertHandler;
 #endif
 
     /*
@@ -364,7 +355,7 @@ int main(void)
     Board_init();
 
 #ifndef POWER_MEAS
-    /* Initialize UI for key, LED and UART*/
+    /* Initialize CUI UART*/
     CUI_params_t cuiParams;
     CUI_paramsInit(&cuiParams);
 #ifdef MT_CSF
@@ -372,6 +363,7 @@ int main(void)
 #endif //MT_CSF
 
     // One-time initialization of the CUI
+    // All later CUI_* functions will be ignored if this isn't called
     CUI_init(&cuiParams);
 #endif
 
@@ -386,10 +378,15 @@ int main(void)
     taskParams.priority = APP_TASK_PRIORITY;
     Task_construct(&appTask, appTaskFxn, &taskParams, NULL);
 
-#ifdef DEBUG_SW_TRACE
-    IOCPortConfigureSet(IOID_8, IOC_PORT_RFC_TRC, IOC_STD_OUTPUT
-                    | IOC_CURRENT_4MA | IOC_SLEW_ENABLE);
-#endif /* DEBUG_SW_TRACE */
+#ifdef USE_ITM_DBG
+    ITM_config itm_config =
+    {
+      48000000,
+      ITM_6000000
+    };
+    ITM_initModule(itm_config);
+    ITM_enableModule();
+#endif /* USE_ITM_DBG */
 
     BIOS_start(); /* enable interrupts and start SYS/BIOS */
 

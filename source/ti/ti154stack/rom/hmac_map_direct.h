@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -52,7 +52,6 @@
 #include "mac_api.h"
 #include "mac_main.h"
 #include "hal_types.h"
-#include "hal_assert.h"
 #include "mac_coord.h"
 #include "mac_data.h"
 #include "mac_device.h"
@@ -199,7 +198,7 @@ extern macMgmt_t macMgmt;
 extern bool macPanCoordinator;
 
 /* Action set 1 */
-extern macAction_t macMgmtAction1[10];
+extern macAction_t macMgmtAction1[12];
 
 /* Action set 2 */
 extern macAction_t macMgmtAction2[5];
@@ -305,6 +304,8 @@ extern uint8 macBeaconPayload[MAC_PIB_MAX_BEACON_PAYLOAD_LEN];
 #endif
 
 extern uint16 *macTasksEvents;
+
+extern void assertHandler(void);
 /*
 **  HMAC API directly map to implementation
 **  This is used in CC131X/CC135X project with using any TIMAC 15.4 ROM image
@@ -629,7 +630,7 @@ extern uint16 *macTasksEvents;
 #define MAP_copyApiMacAddrToMacAddr                    copyApiMacAddrToMacAddr
 #define MAP_convertTxOptions                           convertTxOptions
 
-#define MAP_halAssertHandler                           halAssertHandler
+#define MAP_assertHandler                              assertHandler
 
 #define MAP_macMcuLongDiv                              macMcuLongDiv
 

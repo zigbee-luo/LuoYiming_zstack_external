@@ -58,36 +58,30 @@ const config = {
             longDescription: Docs.panID.longDescription
         },
         {
-            name: "channelMask",
+            name: "channels",
             displayName: "Channel Mask",
-            default: getDefaultChannelMask(Common.IS_SUB1GHZ_DEVICE()),
-            options: getChannelOptions(),
-            getDisabledOptions: getDisabledNetworkOptions(),
-            minSelections: 0,
-            description: Docs.channelMask.description,
-            longDescription: Docs.channelMask.longDescription
+            default: getDefaultChannelMask(null),
+            options: (inst) => getChannelOptions(inst, false),
+            description: Docs.channels.description,
+            longDescription: Docs.channels.longDescription
         },
         {
-            name: "fhChannelMask",
+            name: "fhChannels",
             displayName: "FH Channel Mask",
-            default: selectAllOptions(getChannelOptions()),
-            options: getChannelOptions(),
-            getDisabledOptions: getDisabledNetworkOptions(),
-            minSelections: 0,
+            default: selectAllOptions(getChannelOptions(null, false)),
+            options: (inst) => getChannelOptions(inst, false),
             hidden: true,
-            description: Docs.fhChannelMask.description,
-            longDescription: Docs.fhChannelMask.longDescription
+            description: Docs.fhChannels.description,
+            longDescription: Docs.fhChannels.longDescription
         },
         {
-            name: "fhAsyncChannelMask",
+            name: "fhAsyncChannels",
             displayName: "FH Async Channel Mask",
-            default: selectAllOptions(getChannelOptions()),
-            options: getChannelOptions(),
-            getDisabledOptions: getDisabledNetworkOptions(),
-            minSelections: 0,
+            default: selectAllOptions(getChannelOptions(null, false)),
+            options: (inst) => getChannelOptions(inst, false),
             hidden: true,
-            description: Docs.fhAsyncChannelMask.description,
-            longDescription: Docs.fhAsyncChannelMask.longDescription
+            description: Docs.fhAsyncChannels.description,
+            longDescription: Docs.fhAsyncChannels.longDescription
         },
         {
             name: "fhNetname",
@@ -205,6 +199,50 @@ const config = {
                     longDescription: Docs.fhBroadcastDwellTime.longDescription
                 }
             ]
+        },
+        /* Note: channelMask, fhChannelMask and fhAsyncChannelMask are legacy
+         * configs. In order to seamlessly handle custom board changes at
+         * runtime, the new channel configs (channels, fhChannels,
+         * fhAsyncChannels) are dynamically updated with the correct channel
+         * options based on the user's selected RF reference board, frequency
+         * band, and data-rate
+         *
+         * For backwards compatibility, any changes to legacy channel mask
+         * configs (from legacy files) that are valid in the new configs will
+         * trigger updates to the corresponding new config.
+         */
+        {
+            name: "channelMask",
+            displayName: "Legacy Channel Mask",
+            default: selectAllOptions(getChannelOptions(null, true)),
+            options: getChannelOptions(null, true),
+            hidden: true,
+            description: "Legacy configurable that should always be hidden",
+            longDescription: "Legacy configurable that should always be hidden",
+            onChange: (inst) => onLegacyChannelMaskChange(inst, "channelMask",
+                "channels")
+        },
+        {
+            name: "fhChannelMask",
+            displayName: "Legacy FH Channel Mask",
+            default: selectAllOptions(getChannelOptions(null, true)),
+            options: getChannelOptions(null, true),
+            hidden: true,
+            description: "Legacy configurable that should always be hidden",
+            longDescription: "Legacy configurable that should always be hidden",
+            onChange: (inst) => onLegacyChannelMaskChange(inst, "fhChannelMask",
+                "fhChannels")
+        },
+        {
+            name: "fhAsyncChannelMask",
+            displayName: "Legacy FH Async Channel Mask",
+            default: selectAllOptions(getChannelOptions(null, true)),
+            options: getChannelOptions(null, true),
+            hidden: true,
+            description: "Legacy configurable that should always be hidden",
+            longDescription: "Legacy configurable that should always be hidden",
+            onChange: (inst) => onLegacyChannelMaskChange(inst,
+                "fhAsyncChannelMask", "fhAsyncChannels")
         }
     ]
 };
@@ -215,18 +253,52 @@ const config = {
  *******************************************************************************
  */
 
-/*!
- *  ======== getDefaultChannelMask ========
- *  Returns the default channel mask config based on default frequency band
- *  (sub-1 GHz if supported)
+/*
+ * ======== onLegacyChannelMaskChange ========
+ * On change function to ensure backwards compatibility between former channel
+ * mask configs (channelMask, fhChannelMask, fhAsyncChannelMask) and current,
+ * dynamically updated channel masks (channels, fhChannels, fhAsyncChannels).
  *
- * @param subGSelected  - Sub-1 GHz band currently selected
- * @returns             - default channel mask config
+ * New channel mask configs will only be updated if legacy channel setting is
+ * valid.
+ *
+ * @param inst - 15.4 module instance
+ * @param legacyCfgName - name of legacy config
+ * @param inst - name of new config to which legacy config is mapped
+
  */
-function getDefaultChannelMask(subGSelected)
+function onLegacyChannelMaskChange(inst, legacyCfgName, newCfgName)
 {
-    const channels = subGSelected ? [0, 1, 2, 3] : [11, 12, 13, 14];
-    return(channels);
+    // Retrieve list of valid channels from new mask config
+    const currChannelOptions = getChannelOptions(inst, true);
+
+    // Accept only channel levels from legacy config that are valid
+    const currLegacyChannels = inst[legacyCfgName];
+    const validLegacyChannels = Common.validateDynamicMultiEnum(inst, null,
+        null, currLegacyChannels, currChannelOptions).validOptsSelected;
+
+    // Update current channel config with values from legacy config
+    if(!_.isEmpty(validLegacyChannels))
+    {
+        inst[newCfgName] = _.map(validLegacyChannels, String);
+    }
+}
+
+/*!
+ * ======== getDefaultChannelMask ========
+ * Returns the default channel mask config based on default frequency band.
+ * Default channel mask is first four supported channels
+ *
+ * @param inst - 15.4 module instance (null during initialization)
+ * @returns - default channel mask config
+ */
+function getDefaultChannelMask(inst)
+{
+    const channels = getSupportedChannels(inst);
+    const defaultChannels = channels.slice(0, 4);
+
+    // Return list of channels as strings
+    return(defaultChannels.map(String));
 }
 
 /*!
@@ -242,98 +314,63 @@ function selectAllOptions(options)
 }
 
 /*!
- *  ======== setDefaultChannelMasks ========
- *  Sets the default channel mask config based on default frequency band
- *  (sub-1 GHz if supported)
+ * ======== setDefaultChannelMasks ========
+ * Sets the default channel mask config based on default frequency band
+ * (sub-1 GHz if supported)
  *
- * @param inst   - module instance containing the config to be changed
- * @param freqBandSelected  - frequency band currently selected
+ * @param inst - 15.4 module instance (null during initialization)
  */
-function setDefaultChannelMasks(inst, freqBandSelected)
+function setDefaultChannelMasks(inst)
 {
-    const subGSelected = (freqBandSelected === "freqBandSub1");
-    inst.channelMask = getDefaultChannelMask(subGSelected);
+    // Set default channel mask for regular channel mask config
+    inst.channels = getDefaultChannelMask(inst);
 
-    const currSupportedChannels = getCurrSupportedChannels(inst.freqBand,
-        inst.freqSub1, inst.phyType);
-    inst.fhChannelMask = currSupportedChannels;
-    inst.fhAsyncChannelMask = currSupportedChannels;
+    // Select all channels supported for FH channel mask configs
+    const allSupportedChannels = getChannelOptions(inst, false);
+    inst.fhChannels = selectAllOptions(allSupportedChannels);
+    inst.fhAsyncChannels = selectAllOptions(allSupportedChannels);
 }
 
 /*
- * ======== getDeviceChannelRange ========
- * Generate and return array of channels supported by device
- *
- * @returns array - array of ints
- */
-function getDeviceChannelRange()
-{
-    let range = [];
-    if(Common.IS_433MHZ_DEVICE())
-    {
-        range = _.range(0, 7); // Range not inclusive
-    }
-    else if(Common.IS_SUB1GHZ_DEVICE())
-    {
-        range = _.range(0, 129);
-    }
-    else
-    {
-        // Only supports 2.4 GHz
-        range = _.range(11, 27);
-    }
-
-    return(range);
-}
-
-/*
- * ======== getCurrSupportedChannels ========
+ * ======== getSupportedChannels ========
  * Generate and return array of channels currently supported based on
  * frequency band and phy type currently selected
  *
- * freqBand - frequency band selected
- * freqSub1 - Sub-1 GHz frequency selected (if any)
- * phyType - phy type selected
- *
+ * @param inst - 15.4 module instance (null during initialization)
  * @returns array - array of ints
  */
-function getCurrSupportedChannels(freqBand, freqSub1, phyType)
+function getSupportedChannels(inst)
 {
     let range = [];
-    if(freqBand === "freqBand24")
+
+    if((inst == null && !Common.isSub1GHzDevice())
+        || (inst != null && inst.freqBand === "freqBand24"))
     {
         range = _.range(11, 27); // Channels 11 - 26
     }
+    else if(inst != null && inst.freqSub1 === "freq433")
+    {
+        range = _.range(0, 7); // Channels 0 - 6
+    }
+    else if(inst != null && inst.freqSub1 === "freq863")
+    {
+        if(inst.phyType === "phy5kbps" || inst.phyType === "phy50kbps")
+        {
+            range = _.range(0, 34); // Channels 0 - 33
+        }
+        else
+        {
+            range = _.range(0, 17); // Channels 0 - 16
+        }
+    }
+    else if(inst != null && inst.phyType === "phy200kbps")
+    {
+        range = _.range(0, 64); // Channels 0 - 63
+    }
     else
     {
-        if(freqSub1 === "freq433")
-        {
-            range = getDeviceChannelRange(); // Channels 0 - 6
-        }
-
-        if(freqSub1 === "freq863")
-        {
-            if(phyType === "phy5kbps" || phyType === "phy50kbps")
-            {
-                range = _.range(0, 34); // Channels 0 - 33
-            }
-            else
-            {
-                range = _.range(0, 17); // Channels 0 - 16
-            }
-        }
-
-        if(freqSub1 === "freq915")
-        {
-            if(phyType === "phy5kbps" || phyType === "phy50kbps")
-            {
-                range = getDeviceChannelRange(); // Channels 0 - 128
-            }
-            else
-            {
-                range = _.range(0, 64); // Channels 0 - 64
-            }
-        }
+        // Default case at module initialization (when inst is null)
+        range = _.range(0, 129); // Channels 0 - 128
     }
 
     return(range);
@@ -343,20 +380,34 @@ function getCurrSupportedChannels(freqBand, freqSub1, phyType)
  * ======== getChannelOptions ========
  * Generate and return options array for channel configs drop down menu
  *
+ * @param inst - 15.4 module instance (null during initialization)
+ * @param inst - Boolean. True if function called to populate legacy configs
  * @returns array - array of name and display name objects for each channel
  */
-function getChannelOptions()
+function getChannelOptions(inst, isLegacyConfig)
 {
     const options = [];
 
     // Get largest subset of channels allowed by device
-    const allowedRange = getDeviceChannelRange();
+    const allowedRange = getSupportedChannels(inst);
 
     // Create an array of drop down options for channel configs
     _.each(allowedRange, (channel) =>
     {
+        // Dynamically populated configs only accept arrays of strings, not ints
+        // (as used in legacy configs)
+        let optionName;
+        if(!isLegacyConfig)
+        {
+            optionName = String(channel);
+        }
+        else
+        {
+            optionName = channel;
+        }
+
         options.push({
-            name: channel,
+            name: optionName,
             displayName: `Channel ${channel}`
         });
     });
@@ -391,41 +442,6 @@ function setBeaconSuperFrameOrders(inst, ui)
 }
 
 /*
- *  ======== getDisabledNetworkOptions ========
- *  Generates a list of channel options that should be disabled based on
- *  frequency band and data rate selected
- *
- * @returns Array - array of channel options that should be disabled
- */
-function getDisabledNetworkOptions()
-{
-    return(inst) =>
-    {
-        const disabledOptions = [];
-
-        const allChannelsSupportedByDevice = getDeviceChannelRange();
-        const currSupportedChannels = getCurrSupportedChannels(inst.freqBand,
-            inst.freqSub1, inst.phyType);
-
-        // Disable any channels supported by device but not by current
-        // frequency band and data-rate selections
-        const disableChannels = _.difference(allChannelsSupportedByDevice,
-            currSupportedChannels);
-        _.each(disableChannels, (channel) =>
-        {
-            disabledOptions.push({
-                name: channel,
-                reason: "Not supported by device, frequency band or data rate "
-                + "selected",
-                displayName: `Channel ${channel}`
-            });
-        });
-
-        return(disabledOptions);
-    };
-}
-
-/*
  * ======== getNetworkConfigHiddenState ========
  * Get the expected visibility of the selected config
  *
@@ -443,13 +459,21 @@ function getNetworkConfigHiddenState(inst, cfgName)
     switch(cfgName)
     {
         case "channelMask":
+        case "fhChannelMask":
+        case "fhAsyncChannelMask":
+        {
+            // Legacy channel mask configs that should always remain hidden
+            isVisible = false;
+            break;
+        }
+        case "channels":
         {
             isVisible = !freqHoppingSelected;
             break;
         }
         case "fhNetname":
-        case "fhChannelMask":
-        case "fhAsyncChannelMask":
+        case "fhChannels":
+        case "fhAsyncChannels":
         {
             isVisible = freqHoppingSelected;
             break;
@@ -588,10 +612,32 @@ function validate(inst, validation)
     // Validate PAN ID range -- always visible
     Common.validateRangeHex(inst, validation, "panID", 0, 0xffff);
 
-    // Verify that at least one channel is selected
-    validateOneChannelSelected(inst, validation, "channelMask");
-    validateOneChannelSelected(inst, validation, "fhChannelMask");
-    validateOneChannelSelected(inst, validation, "fhAsyncChannelMask");
+    // Validate dynamic channel configs
+    const validOptions = getChannelOptions(inst, false);
+
+    if(!getNetworkConfigHiddenState(inst, "channels"))
+    {
+        // Verify that at least one channel is selected
+        validateOneChannelSelected(inst, validation, "channels");
+        Common.validateDynamicMultiEnum(inst, validation, "channels",
+            inst.channels, validOptions);
+    }
+
+    if(!getNetworkConfigHiddenState(inst, "fhChannels"))
+    {
+        // Verify that at least one channel is selected
+        validateOneChannelSelected(inst, validation, "fhChannels");
+        Common.validateDynamicMultiEnum(inst, validation, "fhChannels",
+            inst.fhChannels, validOptions);
+    }
+
+    if(!getNetworkConfigHiddenState(inst, "fhAsyncChannels"))
+    {
+        // Verify that at least one channel is selected
+        validateOneChannelSelected(inst, validation, "fhAsyncChannels");
+        Common.validateDynamicMultiEnum(inst, validation, "fhAsyncChannels",
+            inst.fhAsyncChannels, validOptions);
+    }
 
     // Validate FH net name if not hidden
     if(!getNetworkConfigHiddenState(inst, "fhNetname"))
@@ -704,6 +750,20 @@ function validate(inst, validation)
         Common.validateRangeInt(inst, validation, "fhBroadcastDwellTime", 0,
             Common.cTypeMax.u_int8);
     }
+
+    // Validate FH broadcast dwell time range if not hidden
+    if(!getNetworkConfigHiddenState(inst, "fhBroadcastDwellTime"))
+    {
+        Common.validateRangeInt(inst, validation, "fhBroadcastDwellTime", 0,
+            Common.cTypeMax.u_int8);
+    }
+
+    // Validate FH broadcast dwell time range if not hidden
+    if(!getNetworkConfigHiddenState(inst, "fhBroadcastDwellTime"))
+    {
+        Common.validateRangeInt(inst, validation, "fhBroadcastDwellTime", 0,
+            Common.cTypeMax.u_int8);
+    }
 }
 
 /*
@@ -716,10 +776,10 @@ function validate(inst, validation)
 exports = {
     config: config,
     validate: validate,
+    selectAllOptions: selectAllOptions,
     setNetworkConfigHiddenState: setNetworkConfigHiddenState,
     getNetworkConfigHiddenState: getNetworkConfigHiddenState,
     setDefaultChannelMasks: setDefaultChannelMasks,
     setBeaconSuperFrameOrders: setBeaconSuperFrameOrders,
-    getChannelOptions: getChannelOptions,
-    getDisabledNetworkOptions: getDisabledNetworkOptions
+    getChannelOptions: getChannelOptions
 };

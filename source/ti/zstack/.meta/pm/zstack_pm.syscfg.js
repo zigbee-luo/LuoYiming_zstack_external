@@ -39,6 +39,7 @@
 const Common = system.getScript("/ti/zstack/zstack_common.js");
 
 /* Description text for configurables */
+
 const powerModeLongDescription = `Specify whether the radio should always be \
 on or be allowed to sleep.
 
@@ -53,6 +54,13 @@ Guide.
 
 **Default:** Sleepy (Low Power Mode enabled)`;
 
+const minPollPeriodDescription = `The minimal poll period (in milliseconds).`;
+
+const minPollPeriodLongDescription = `The minimal poll period (in milliseconds).
+
+**Default:** 100 ms
+
+**Range:** 1 -  ${Common.POLL_PERIOD_MAX - 1}  ms`;
 const pollPeriodDescription = `The period (in milliseconds) between poll \
 messages.`;
 
@@ -61,7 +69,7 @@ messages.
 
 **Default:** 3000 ms
 
-**Range:** 0 - ${Common.POLL_PERIOD_MAX} ms`;
+**Range:** Minimal Poll Period - ${Common.POLL_PERIOD_MAX} ms`;
 
 /* Description text for configurables */
 const queuedMessageDescription = `The period (in milliseconds) between \
@@ -90,8 +98,6 @@ const rejoinMessageLongDescription = rejoinMessageDescription + `\n\n\
 **Default:** 440 ms
 
 **Range:** 0 - 65535 ms`;
-
-let isntZedDevice = true;
 
 /* Power management submodule for zstack module */
 const pmModule = {
@@ -124,6 +130,14 @@ const pmModule = {
             onChange: onPowerModeChange
         },
         {
+            name: "minPollPeriod",
+            displayName: "Minimal Poll Period (ms)",
+            description: minPollPeriodDescription,
+            longDescription: minPollPeriodLongDescription,
+            default: 100,
+            hidden: false
+        },
+        {
             name: "pollPeriod",
             displayName: "Poll Period (ms)",
             description: pollPeriodDescription,
@@ -137,7 +151,7 @@ const pmModule = {
             description: queuedMessageDescription,
             longDescription: queuedMessageLongDescription,
             default: 100,
-            hidden: false 
+            hidden: false
         },
         {
             name: "dataResponsePollPeriod",
@@ -145,7 +159,7 @@ const pmModule = {
             description: dataResponseDescription,
             longDescription: dataResponseLongDescription,
             default: 100,
-            hidden: false 
+            hidden: false
         },
         {
             name: "rejoinMessagePollPeriod",
@@ -153,7 +167,7 @@ const pmModule = {
             description: rejoinMessageDescription,
             longDescription: rejoinMessageLongDescription,
             default: 440,
-            hidden: false 
+            hidden: false
         }
 
     ],
@@ -171,6 +185,7 @@ function onDeviceTypeChange(inst, ui)
     {
         inst.powerModeOperation = "alwaysOn";
         ui.powerModeOperation.readOnly = true;
+        ui.minPollPeriod.hidden = true;
         ui.pollPeriod.hidden = true;
         ui.queuedMessagePollPeriod.hidden = true;
         ui.dataResponsePollPeriod.hidden = true;
@@ -180,11 +195,11 @@ function onDeviceTypeChange(inst, ui)
     {
         inst.powerModeOperation = "sleepy";
         ui.powerModeOperation.readOnly = false;
+        ui.minPollPeriod.hidden = false;
         ui.pollPeriod.hidden = false;
         ui.queuedMessagePollPeriod.hidden = false;
         ui.dataResponsePollPeriod.hidden = false;
         ui.rejoinMessagePollPeriod.hidden = false;
-        
     }
 }
 
@@ -193,6 +208,7 @@ function onPowerModeChange(inst, ui)
 {
     if(inst.powerModeOperation === "alwaysOn")
     {
+        ui.minPollPeriod.hidden = true;
         ui.pollPeriod.hidden = true;
         ui.queuedMessagePollPeriod.hidden = true;
         ui.dataResponsePollPeriod.hidden = true;
@@ -200,6 +216,7 @@ function onPowerModeChange(inst, ui)
     }
     else /* sleepy */
     {
+        ui.minPollPeriod.hidden = false;
         ui.pollPeriod.hidden = false;
         ui.queuedMessagePollPeriod.hidden = false;
         ui.dataResponsePollPeriod.hidden = false;
@@ -210,11 +227,39 @@ function onPowerModeChange(inst, ui)
 /* Validation function for the power management submodule */
 function validate(inst, validation)
 {
-    /* Verify poll period min bound */
-    if(inst.pollPeriod < 0)
+    /* Verify min poll period min bound */
+    if(inst.minPollPeriod < Common.POLL_PERIOD_MIN)
+    {
+        validation.logWarning(
+            "Poll period less than " + Common.POLL_PERIOD_MIN
+            + "ms may cause undefined stack behavior", inst, "minPollPeriod"
+        );
+    }
+
+    /* Verify minimal poll period min bound */
+    if(inst.minPollPeriod <= 0)
     {
         validation.logError(
-            "Poll period cannot be negative", inst, "pollPeriod"
+            "Minimal Poll Period must be greater than 0", inst, "minPollPeriod"
+        );
+    }
+
+    /* Verify minimal poll period max bound */
+    if(inst.minPollPeriod > Common.POLL_PERIOD_MAX)
+    {
+        validation.logError(
+            "Minimal Poll Period must be less than "
+            + Common.POLL_PERIOD_MAX + " milliseconds (32 bits)",
+            inst, "minPollPeriod"
+        );
+    }
+
+    /* Verify poll period min bound */
+    if(inst.pollPeriod < inst.minPollPeriod)
+    {
+        validation.logError(
+            "Poll period must be greater than or equal to minimal poll period",
+            inst, "pollPeriod"
         );
     }
 
@@ -228,13 +273,6 @@ function validate(inst, validation)
         );
     }
 
-    /* Info for poll period 0 */
-    if(inst.pollPeriod === 0)
-    {
-        validation.logInfo(
-            "Poll period of 0 disables polling", inst, "pollPeriod"
-        );
-    }
     /* Validate Queued Poll Period */
     Common.validateRange(inst, validation, inst.queuedMessagePollPeriod,
         "queuedMessagePollPeriod", "Queued Message Poll Period", 0, 65535);

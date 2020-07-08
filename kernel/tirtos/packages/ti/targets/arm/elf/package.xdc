@@ -28,10 +28,10 @@ package ti.targets.arm.elf [1,0,0] {
     interface IM3, IM4;
     module Arm9;
     module M3, M4, M4F;
-    module R4Ft, R5F, R5Ft;
+    module R4F, R4Ft, R5F, R5Ft;
 }
 /*
- *  @(#) ti.targets.arm.elf; 1, 0, 0,0; 8-9-2019 17:15:05; /db/ztree/library/trees/xdctargets/xdctargets-v00/src/ xlibrary
+ *  @(#) ti.targets.arm.elf; 1, 0, 0,; 5-11-2020 15:30:23; /db/ztree/library/trees/xdctargets/xdctargets-w14/src/ xlibrary
 
  */
 

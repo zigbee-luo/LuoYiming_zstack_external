@@ -1,3 +1,28 @@
+diff -rupN newlib_original/libgloss/aarch64/configure newlib/libgloss/aarch64/configure
+--- newlib_original/libgloss/aarch64/configure
++++ newlib/libgloss/aarch64/configure
+@@ -2521,7 +2521,7 @@ test "${CCASFLAGS+set}" = set || CCASFLAGS=$CFLAGS
+
+
+ case "${target}" in
+-  *-*-elf)
++  *-*-elf | *-*-tirtos*)
+        objtype=elf-
+        ;;
+ esac
+diff -rupN newlib_original/libgloss/aarch64/configure.in newlib/libgloss/aarch64/configure.in
+--- newlib_original/libgloss/aarch64/configure.in
++++ newlib/libgloss/aarch64/configure.in
+@@ -2521,7 +2521,7 @@ test "${CCASFLAGS+set}" = set || CCASFLAGS=$CFLAGS
+@@ -29,7 +29,7 @@ AC_PROG_RANLIB
+ LIB_AM_PROG_AS
+
+ case "${target}" in
+-  *-*-elf)
++  *-*-elf | *-*-tirtos*)
+        objtype=elf-
+        ;;
+ esac
 diff -rupN newlib_original/configure.ac newlib/configure.ac
 --- newlib_original/configure.ac	2016-06-24 10:07:42.000000000 -0700
 +++ newlib/configure.ac	2017-04-03 14:51:25.004917000 -0700

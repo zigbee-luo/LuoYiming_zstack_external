@@ -1048,7 +1048,7 @@ extern ZStatus_t zclTel_InfoSendDeleteRsp( uint8_t srcEP, afAddrType_t *dstAddr,
 extern ZStatus_t zclTel_RegisterChattingCmdCallbacks( uint8_t endpoint, zclTel_ChattingAppCallbacks_t *callbacks );
 
 /*
- * @brief   Call to send out a Send Join Request command
+ * @brief   Call to send out a Send Join Chat Request command
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
@@ -1058,7 +1058,7 @@ extern ZStatus_t zclTel_RegisterChattingCmdCallbacks( uint8_t endpoint, zclTel_C
  *
  * @return  ZStatus_t
  */
-extern ZStatus_t zclTel_ChatJoinReq( uint8_t srcEP, afAddrType_t *dstAddr,
+extern ZStatus_t zclTel_ChatJoinChatReq( uint8_t srcEP, afAddrType_t *dstAddr,
                                     zcl_Tel_Chat_JoinReq_t* pCmd, uint8_t disableDefaultRsp, uint8_t seqNum );
 
 /*

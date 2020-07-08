@@ -10,7 +10,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2019, Texas Instruments Incorporated
+ Copyright (c) 2019-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -406,6 +406,7 @@ TOAD_status_t TOAD_decode()
         {
             gTOADdecode_pAppImgDelta += ctrlBlock.seekOffset;
             ctrlBlock.seekOffset = 0;
+            gToadState = TOAD_State_idle;
         }
     }
 

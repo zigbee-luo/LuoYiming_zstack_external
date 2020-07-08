@@ -1,6 +1,6 @@
 %%{
 /*
- * Copyright (c) 2015, Texas Instruments Incorporated
+ * Copyright (c) 2015-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@
  */
 %%}
 %var Hwi = xdc.module("ti.sysbios.family.arm.m3.Hwi");
+%if (Hwi.placeVectorTables) {
 %if (Program.build.target.$name.match(/elf/) || Program.build.target.$name.match(/clang/)) {
 -u `String(Hwi.resetFunc).substr(1)`
 %    if (Hwi.resetVectorAddress != Hwi.vectorTableAddress) {
@@ -72,6 +73,7 @@
 %else if (Program.build.target.$name.match(/iar/)) {
 --entry `String(Hwi.resetFunc).substr(1)`
 --keep __vector_table
+%}
 %}
 %if (Program.build.target.$name.match(/iar/)) {
 --define_symbol ti_sysbios_family_arm_m3_Hwi_nvic=0xe000e000

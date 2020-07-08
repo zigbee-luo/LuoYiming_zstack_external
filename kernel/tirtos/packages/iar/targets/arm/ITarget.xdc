@@ -1,10 +1,10 @@
 /*
- *  Copyright 2019 by Texas Instruments Incorporated.
+ *  Copyright 2020 by Texas Instruments Incorporated.
  *
  */
 
 /*
- * Copyright (c) 2013-2019 Texas Instruments Incorporated
+ * Copyright (c) 2013-2020 Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -192,7 +192,7 @@ metaonly interface ITarget inherits xdc.bld.ITarget3 {
         }],
         ["release", {
             compileOpts: {
-                copts: "-Ohs --dlib_config $(rootDir)/inc/c/DLib_Config_Normal.h",
+                copts: "--debug -Ohs --dlib_config $(rootDir)/inc/c/DLib_Config_Normal.h",
             },
             linkOpts: "--semihosting=iar_breakpoint",
         }],
@@ -204,7 +204,7 @@ metaonly interface ITarget inherits xdc.bld.ITarget3 {
         }],
         ["release_full", {
             compileOpts: {
-                copts: "-Ohs --dlib_config $(rootDir)/inc/c/DLib_Config_Full.h",
+                copts: "--debug -Ohs --dlib_config $(rootDir)/inc/c/DLib_Config_Full.h",
             },
             linkOpts: "--semihosting=iar_breakpoint",
         }],
@@ -213,7 +213,7 @@ metaonly interface ITarget inherits xdc.bld.ITarget3 {
     override config String binaryParser = "xdc.targets.omf.Elf";
 }
 /*
- *  @(#) iar.targets.arm; 1, 0, 0,0; 8-9-2019 17:14:57; /db/ztree/library/trees/xdctargets/xdctargets-v00/src/ xlibrary
+ *  @(#) iar.targets.arm; 1, 0, 0,; 5-11-2020 15:30:18; /db/ztree/library/trees/xdctargets/xdctargets-w14/src/ xlibrary
 
  */
 

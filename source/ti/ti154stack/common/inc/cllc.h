@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -273,6 +273,7 @@ extern void Cllc_setAsyncChanMask(uint8_t *asyncChanMask);
  */
 extern void Cllc_getAsyncChanMask(uint8_t *asyncChanMask);
 
+#ifdef FEATURE_MAC_SECURITY
 /*!
  * @brief       set the default security key.
  *
@@ -286,7 +287,7 @@ extern void Cllc_setDefaultKey(uint8_t *key);
  * @param       key - default key to get
  */
 extern void Cllc_getDefaultKey(uint8_t *key);
-
+#endif
 
 /*!
  * @brief       Set the collector (Full Function Device - FFD) address.

@@ -95,7 +95,7 @@ const collectorTestRampDataSize = {
     longDescription: `
 Configures the size of the ramp data to be sent by the collector
 \n\
-__Default__: 0
+__Default__: 20
 \n\
 __Range__: 0 to UINT16_MAX
 `

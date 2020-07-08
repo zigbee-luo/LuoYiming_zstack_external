@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Texas Instruments Incorporated - http://www.ti.com
+ * Copyright (c) 2017-2020 Texas Instruments Incorporated - http://www.ti.com
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,9 @@
  *  ======== ReentSupport.xs ========
  */
 
-var ReentSupport;
+var BIOS = null;
+var ReentSupport = null;
+var Task = null;
 
 /*
  *  ======== module$use ========

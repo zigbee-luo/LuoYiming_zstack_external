@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -124,7 +124,6 @@ static void setEvent(uint16_t eventMask);
 static void clearEvent(uint16_t eventMask);
 static void processSensorRead(Lpstk_SensorMask sensors, bool shutdown);
 static void powerUpSensors(Lpstk_SensorMask sensors);
-static void shutDownSensors(Lpstk_SensorMask sensors);
 static void scAccelTaskAlertCallback(void);
 static void sensorReadTimeoutCallback(UArg a0);
 
@@ -303,6 +302,30 @@ float Lpstk_getLux()
     return lpstkSensors.lux;
 }
 
+void shutDownSensors(Lpstk_SensorMask sensors)
+{
+    /* Humidity and temperature are measured by the same sensor */
+    if(sensors & LPSTK_HUMIDITY || sensors & LPSTK_TEMPERATURE)
+    {
+        Lpstk_shutdownHumidityTempSensor();
+    }
+    if(sensors & LPSTK_LIGHT)
+    {
+        Lpstk_shutdownLightSensor();
+    }
+    if(sensors & LPSTK_ACCELEROMETER)
+    {
+        /* Accelerometer should be shutdown when another SPI device
+         * will be in use from the main application given that the sensor
+         * controller has no way of knowing that the SPI is currently in use*/
+        Lpstk_shutdownAccelerometerSensor();
+    }
+    if(sensors & LPSTK_HALL_EFFECT)
+    {
+        Lpstk_shutdownHallEffectSensor();
+    }
+}
+
 static void setEvent(uint16_t eventMask)
 {
     lpstkEvents |= eventMask;
@@ -362,30 +385,6 @@ static void powerUpSensors(Lpstk_SensorMask sensors)
     if(sensors & LPSTK_HALL_EFFECT)
     {
         Lpstk_openHallEffectSensor();
-    }
-}
-
-static void shutDownSensors(Lpstk_SensorMask sensors)
-{
-    /* Humidity and temperature are measured by the same sensor */
-    if(sensors & LPSTK_HUMIDITY || sensors & LPSTK_TEMPERATURE)
-    {
-        Lpstk_shutdownHumidityTempSensor();
-    }
-    if(sensors & LPSTK_LIGHT)
-    {
-        Lpstk_shutdownLightSensor();
-    }
-    if(sensors & LPSTK_ACCELEROMETER)
-    {
-        /* Accelerometer should be shutdown when another SPI device
-         * will be in use from the main application given that the sensor
-         * controller has no way of knowing that the SPI is currently in use*/
-        Lpstk_shutdownAccelerometerSensor();
-    }
-    if(sensors & LPSTK_HALL_EFFECT)
-    {
-        Lpstk_shutdownHallEffectSensor();
     }
 }
 

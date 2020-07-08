@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@
 #include <advanced_config.h>
 #ifdef FEATURE_SECURE_COMMISSIONING
 #include "sm_ti154.h"
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 #ifdef USE_DMM
 #include "remote_display.h"
@@ -68,6 +68,9 @@
 #include <ti/sysbios/knl/Clock.h>
 #include <ti/sysbios/knl/Semaphore.h>
 #include "util_timer.h"
+#ifdef FEATURE_SECURE_COMMISSIONING
+#include "sm_commissioning_gatt_profile.h"
+#endif  /* FEATURE_SECURE_COMMISSIONING */
 #endif /* USE_DMM */
 /******************************************************************************
  Constants and definitions
@@ -106,21 +109,21 @@
 /* Tracking timeouts */
 #define TRACKING_CNF_DELAY_TIME 2000 /* in milliseconds */
 
-#if (CONFIG_PHY_ID == APIMAC_STD_US_915_PHY_1) || \
-    (CONFIG_PHY_ID == APIMAC_STD_ETSI_863_PHY_3) || \
-    (CONFIG_PHY_ID == APIMAC_GENERIC_CHINA_433_PHY_128)
+#if (CONFIG_PHY_ID == APIMAC_50KBPS_915MHZ_PHY_1) || \
+    (CONFIG_PHY_ID == APIMAC_50KBPS_868MHZ_PHY_3) || \
+    (CONFIG_PHY_ID == APIMAC_50KBPS_433MHZ_PHY_128)
     #define SYMBOL_DURATION         (SYMBOL_DURATION_50_kbps)  //us
 
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_US_915_PHY_132) || \
-      (CONFIG_PHY_ID == APIMAC_GENERIC_ETSI_863_PHY_133)
+#elif (CONFIG_PHY_ID == APIMAC_200KBPS_915MHZ_PHY_132) || \
+      (CONFIG_PHY_ID == APIMAC_200KBPS_868MHZ_PHY_133)
     #define SYMBOL_DURATION         (SYMBOL_DURATION_200_kbps) //us
 
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_US_LRM_915_PHY_129) || \
-      (CONFIG_PHY_ID == APIMAC_GENERIC_CHINA_LRM_433_PHY_130) || \
-      (CONFIG_PHY_ID == APIMAC_GENERIC_ETSI_LRM_863_PHY_131)
+#elif (CONFIG_PHY_ID == APIMAC_5KBPS_915MHZ_PHY_129) || \
+      (CONFIG_PHY_ID == APIMAC_5KBPS_433MHZ_PHY_130) || \
+      (CONFIG_PHY_ID == APIMAC_5KBPS_868MHZ_PHY_131)
     #define SYMBOL_DURATION         (SYMBOL_DURATION_LRM)      //us
 
-#elif (CONFIG_PHY_ID == APIMAC_PHY_ID_NONE)  // 2.4g
+#elif (CONFIG_PHY_ID == APIMAC_250KBPS_IEEE_PHY_0)  // 2.4g
     #define SYMBOL_DURATION         (SYMBOL_DURATION_250_kbps)  //us
 #else
     #define SYMBOL_DURATION         (SYMBOL_DURATION_50_kbps)  //us
@@ -147,7 +150,7 @@
 
 #ifdef USE_DMM
 #define NTWK_DISCOVER_TIMER         100
-#endif
+#endif /* USE_DMM */
 /******************************************************************************
  Global variables
  *****************************************************************************/
@@ -220,12 +223,14 @@ static bool sendMsg(Smsgs_cmdIds_t type, uint16_t dstShortAddr, bool rxOnIdle,
 static void generateConfigRequests(void);
 static void generateTrackingRequests(void);
 static void generateBroadcastCmd(void);
+#ifndef POWER_MEAS
 static void sendTrackingRequest(Cllc_associated_devices_t *pDev);
+#endif
 static void commStatusIndCB(ApiMac_mlmeCommStatusInd_t *pCommStatusInd);
 static void pollIndCB(ApiMac_mlmePollInd_t *pPollInd);
 static void processDataRetry(ApiMac_sAddr_t *pAddr);
 static void processConfigRetry(void);
-static void processIdendifyLedRequest(ApiMac_mcpsDataInd_t *pDataInd);
+static void processIdentifyLedRequest(ApiMac_mcpsDataInd_t *pDataInd);
 static void orphanIndCb(ApiMac_mlmeOrphanInd_t *pData);
 #ifdef FEATURE_SECURE_COMMISSIONING
 /* Security Manager callback functions */
@@ -466,7 +471,7 @@ void Collector_init(void)
     /* Update BLE remote display with initial state, which will trigger a read
      * of the default JDLLC setting  */
     RemoteDisplay_updateCollectorJoinState(Cllc_states_initWaiting);
-#endif
+#endif /* BLE_START && USE_DMM */
 
 #ifdef DMM_OAD
     // register the app callbacks
@@ -535,7 +540,7 @@ void Collector_process(void)
         }
 #else
         generateConfigRequests();
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
         /* Clear the event */
         Util_clearEvent(&Collector_events, COLLECTOR_CONFIG_EVT);
     }
@@ -610,7 +615,7 @@ void Collector_process(void)
     if((Collector_events == 0) && (SM_events == 0))
 #else
     if(Collector_events == 0)
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
     {
         /* Wait for response message or events */
         ApiMac_processIncoming();
@@ -660,7 +665,7 @@ static void setRDAttrCb(RemoteDisplayAttr_t remoteDisplayAttr,
         case RemoteDisplayAttr_SensorDisassociate:
         {
             uint16_t disassociateSensor = Util_buildUint16(byteArr[1], byteArr[0]);
-            Csf_removeDevice(disassociateSensor);
+            Csf_sendDisassociateMsg(disassociateSensor);
             break;
         }
 
@@ -737,7 +742,9 @@ static void setProvisioningCb(ProvisionAttr_t provisioningAttr,
         }
         case ProvisionAttr_NtwkKey:
         {
+#ifdef FEATURE_MAC_SECURITY
             Cllc_setDefaultKey(byteArr);
+#endif
             break;
         }
         default:
@@ -775,9 +782,17 @@ static void getProvisioningCb(ProvisionAttr_t provisioningAttr, void *value, uin
             Cllc_getChanMask((uint8_t *)value);
             break;
         }
+        case ProvisionAttr_FFDAddr:
+        {
+            extern ApiMac_sAddrExt_t ApiMac_extAddr;
+            memcpy(value, ApiMac_extAddr, APIMAC_SADDR_EXT_LEN);
+            break;
+        }
         case ProvisionAttr_NtwkKey:
         {
+#ifdef FEATURE_MAC_SECURITY
             Cllc_getDefaultKey((uint8_t *)value);
+#endif
             break;
         }
         case ProvisionAttr_ProvState:
@@ -810,7 +825,6 @@ static void provisionNtwkOpenCloseCb(bool ntwkOpen) {
     }
 }
 
-
 /** @brief  Send 154 network data callback functions
  *
  *  @param  uint16_t devAddr
@@ -822,7 +836,7 @@ static void collector_networkDeviceCb(uint16_t devAddr, union RemoteDisplay_Devi
 {
     static int devIdx = 0;
     static bool isCollectorDev = false;
-    Cllc_associated_devices_t *currentDev;
+    Cllc_associated_devices_t *currentDev = NULL;
     uint16_t numEntries = Csf_getNumDeviceListEntries();
 
     if(devAddr == 0xFFFF)
@@ -914,7 +928,7 @@ Collector_status_t Collector_sendConfigRequest(ApiMac_sAddr_t *pDstAddr,
             *pBuf++ = Util_breakUint32(pollingInterval, 2);
             *pBuf = Util_breakUint32(pollingInterval, 3);
 
-            if((sendMsg(Smsgs_cmdIds_configReq, item.devInfo.shortAddress,
+            if ((sendMsg(Smsgs_cmdIds_configReq, item.devInfo.shortAddress,
                         item.capInfo.rxOnWhenIdle,
                         (SMSGS_CONFIG_REQUEST_MSG_LENGTH),
                          buffer)) == true)
@@ -1073,7 +1087,7 @@ static void cllcStartedCB(Llc_netInfo_t *pStartedInfo)
 #ifdef FEATURE_SECURE_COMMISSIONING
     /* Coordinator has started */
     readySMToRun = true;
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 }
 
 /*!
@@ -1117,7 +1131,7 @@ static ApiMac_assocStatus_t cllcDeviceJoiningCB(
 #else
             /* Set event for sending collector config packet */
             Util_setEvent(&Collector_events, COLLECTOR_CONFIG_EVT);
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
         }
     }
     else
@@ -1282,9 +1296,9 @@ static void dataCnfCB(ApiMac_mcpsDataCnf_t *pDataCnf)
 #ifdef FEATURE_SECURE_COMMISSIONING
             /* if current sensor commissioning in progress, do not send
              * if other sensor commissioning in progress, ok to send */
-            if(SM_Current_State != SM_CM_InProgress || SM_Sensor_SAddress != pDev->shortAddr)
+            if(SM_Current_State != SM_CM_InProgress || ((pDev) && (SM_Sensor_SAddress != pDev->shortAddr)))
             {
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
                 if(pDev != NULL)
                 {
                     if(pDataCnf->status == ApiMac_status_success)
@@ -1320,7 +1334,7 @@ static void dataCnfCB(ApiMac_mcpsDataCnf_t *pDataCnf)
                 }
 #ifdef FEATURE_SECURE_COMMISSIONING
             }
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
         }
 
     }
@@ -1377,7 +1391,7 @@ static void dataIndCB(ApiMac_mcpsDataInd_t *pDataInd)
                 break;
 
             case Smsgs_cmdIds_IdentifyLedReq:
-                processIdendifyLedRequest(pDataInd);
+                processIdentifyLedRequest(pDataInd);
                 break;
 
             case Smsgs_cmdIds_toggleLedRsp:
@@ -1441,7 +1455,7 @@ static void processStartEvent(void)
             fCommissionRequired = true;
             keyRecoverDeviceNumber = numDevices;
         }
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
     }
     else
     {
@@ -1545,7 +1559,7 @@ static void processTrackingResponse(ApiMac_mcpsDataInd_t *pDataInd)
  *
  * @param      pDataInd - pointer to the data indication information
  */
-static void processIdendifyLedRequest(ApiMac_mcpsDataInd_t *pDataInd)
+static void processIdentifyLedRequest(ApiMac_mcpsDataInd_t *pDataInd)
 {
     /* Make sure the message is the correct size */
     if(pDataInd->msdu.len == SMSGS_INDENTIFY_LED_REQUEST_MSG_LEN)
@@ -1774,7 +1788,30 @@ static void processSensorData(ApiMac_mcpsDataInd_t *pDataInd)
         sensorData.accelerometerSensor.xTiltDet = *pBuf++;
         sensorData.accelerometerSensor.yTiltDet = *pBuf++;    
 
-#endif /* LPSTK */                               
+#endif /* LPSTK */
+    }
+    if(sensorData.frameControl & Smsgs_dataFields_bleSensor)
+    {
+#ifndef LPSTK
+        pBuf += 4;
+#endif
+        uint8_t i;
+        for(i=0; i<B_ADDR_LEN; i++)
+        {
+            sensorData.bleSensor.bleAddr[i] = *pBuf++;
+        }
+        sensorData.bleSensor.manFacID = (int16_t)Util_buildUint16(pBuf[0],
+                                                             pBuf[1]);
+        pBuf += 2;
+        sensorData.bleSensor.uuid = (int16_t)Util_buildUint16(pBuf[0],
+                                                              pBuf[1]);
+        pBuf += 2;
+        sensorData.bleSensor.dataLength = *pBuf++;
+
+        for(i=0; i < sensorData.bleSensor.dataLength; i++)
+        {
+            sensorData.bleSensor.data[i] = *pBuf++;
+        }
     }
 
     Collector_statistics.sensorMessagesReceived++;
@@ -1791,7 +1828,7 @@ static void processSensorData(ApiMac_mcpsDataInd_t *pDataInd)
         //Update BLE application with new sensorData
         RemoteDisplay_deviceUpdate(currentDev->shortAddr);
     }
-#endif
+#endif /* USE_DMM */
 
     /* Report the sensor data */
     Csf_deviceSensorDataUpdate(&pDataInd->srcAddr, pDataInd->rssi,
@@ -2322,6 +2359,7 @@ static void generateBroadcastCmd(void)
                      buffer);
 }
 
+#ifndef POWER_MEAS
 /*!
  * @brief      Generate Tracking Requests for a device
  *
@@ -2335,7 +2373,7 @@ static void sendTrackingRequest(Cllc_associated_devices_t *pDev)
         /* Do not send tracking messages if commissioning is in progress */
         return;
     }
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
     uint8_t cmdId = Smsgs_cmdIds_trackingReq;
 
@@ -2362,7 +2400,7 @@ static void sendTrackingRequest(Cllc_associated_devices_t *pDev)
         processDataRetry(&devAddr);
     }
 }
-
+#endif /* endif for POWER_MEAS */
 
 
 /*!
@@ -2482,6 +2520,11 @@ void smFailCMProcessCb(ApiMac_deviceDescriptor_t *devInfo, bool rxOnIdle,
         if (permitJoining) {
             Cllc_setJoinPermit(duration);
         }
+
+#ifdef USE_DMM
+        DMMPolicy_updateStackState(DMMPolicy_StackRole_154Sensor, DMMPOLICY_154_UNINIT);
+        RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_FAIL);
+#endif /* USE_DMM */
     }
     else if ((smErrorCode == SMMsgs_errorCode_noMatchAuthVal) ||
              (smErrorCode == SMMsgs_errorCode_noMatchKeyConfirm) ||
@@ -2493,8 +2536,12 @@ void smFailCMProcessCb(ApiMac_deviceDescriptor_t *devInfo, bool rxOnIdle,
 
         /* Send a disassociation request to the device */
         Cllc_sendDisassociationRequest(devInfo->shortAddress, rxOnIdle);
-        /* Remove device from the NV list */
-        Cllc_removeDevice(&devInfo->extAddress);
+        /* Remove device from the NV list when receiving disassocCnfCb */
+
+        if (SM_cmAttempts >= SM_CM_MAX_RETRY_ATTEMPTS)
+        {
+          SM_cmAttempts = 0;
+        }
 
         Util_setEvent(&Collector_events, COLLECTOR_CONFIG_EVT);
 
@@ -2505,6 +2552,11 @@ void smFailCMProcessCb(ApiMac_deviceDescriptor_t *devInfo, bool rxOnIdle,
         if (!fCommissionRequired) {
             Cllc_setJoinPermit(duration);
         }
+
+#ifdef USE_DMM
+        DMMPolicy_updateStackState(DMMPolicy_StackRole_154Sensor, DMMPOLICY_154_UNINIT);
+        RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_FAIL);
+#endif /* USE_DMM */
     }
     else
     {
@@ -2514,21 +2566,20 @@ void smFailCMProcessCb(ApiMac_deviceDescriptor_t *devInfo, bool rxOnIdle,
             int8_t i = 0;
 
             /* find the index of the device with the above short address*/
-            for(i = 0; i <CONFIG_MAX_DEVICES ; i++)
+            for(i = 0; i < CONFIG_MAX_DEVICES; i++)
             {
                 if(Cllc_associatedDevList[i].shortAddr == devInfo->shortAddress)
                 {
+                    /* set the reCM_status to pending*/
+                    Cllc_associatedDevList[i].reCM_status = SM_RE_CM_PENDING;
+
+                    /* mark the device not alive*/
+                    Cllc_associatedDevList[i].status &=
+                                            ~(CLLC_ASSOC_STATUS_ALIVE| ASSOC_CONFIG_SENT | ASSOC_CONFIG_RSP);
                     /* found the index; so break */
                     break;
                 }
             }
-
-            /* set the reCM_status to pending*/
-            Cllc_associatedDevList[i].reCM_status = SM_RE_CM_PENDING;
-
-            /* mark the device not alive*/
-            Cllc_associatedDevList[i].status &=
-                                    ~(CLLC_ASSOC_STATUS_ALIVE| ASSOC_CONFIG_SENT | ASSOC_CONFIG_RSP);
         }
         else
         {
@@ -2562,7 +2613,7 @@ void smSuccessCMProcessCb(ApiMac_deviceDescriptor_t *devInfo, bool keyRefreshmen
             Cllc_setJoinPermit(duration);
         }
     }
-    else if (fCommissionRequired  == false) {
+    else if (fCommissionRequired == false) {
         // secure commissioning. The permitJoining was allowed before, so let's allow it
         uint32_t duration = 0xFFFFFFFF;
         Cllc_setJoinPermit(duration);
@@ -2572,6 +2623,10 @@ void smSuccessCMProcessCb(ApiMac_deviceDescriptor_t *devInfo, bool keyRefreshmen
     {
         Util_setEvent(&Collector_events, COLLECTOR_CONFIG_EVT);
     }
+#ifdef USE_DMM
+    DMMPolicy_updateStackState(DMMPolicy_StackRole_154Sensor, DMMPOLICY_154_CONNECTED);
+    RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_SUCCESS);
+#endif /* USE_DMM */
 }
 #endif /* FEATURE_SECURE_COMMISSIONING */
 

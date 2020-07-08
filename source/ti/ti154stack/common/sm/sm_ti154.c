@@ -11,7 +11,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2018-2019, Texas Instruments Incorporated
+ Copyright (c) 2018-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -64,7 +64,7 @@
 #include "ti_154stack_config.h"
 #include "advanced_config.h"
 #include "sm_ti154.h"
-#include "sm_ecc.h"
+#include "sm_ecc_ti154.h"
 #include "sm_toolbox.h"
 #include "util_timer.h"
 #include "mac_api.h"
@@ -137,6 +137,8 @@ List_List SeedKeyTableList;
 ApiMac_deviceDescriptor_t commissionDevInfo;
 /* Number of commissioning attempts for current sensor device */
 uint8_t SM_cmAttempts = 0;
+/* Flag to determine when the SM process was force stopped */
+bool SM_forceStopped = false;
 /* Flag to tell whether to process success/failure status of previous packet */
 bool volatile useSendPktStatus = false;
 
@@ -278,8 +280,10 @@ void SM_init(void* sem, CUI_clientHandle_t cuiHndl)
     /* Initialize ECC module */
     SM_ECC_init();
 
+#ifndef USE_DMM
     /* Initialize AESECB module */
     SM_AESECB_init();
+#endif /* USE_DMM */
 
     /* Save off the semaphore */
     hSMappSem = sem;
@@ -287,12 +291,13 @@ void SM_init(void* sem, CUI_clientHandle_t cuiHndl)
     /* Saveoff the CUI handle */
     securityCuiHndl = cuiHndl;
 
-    CUI_statusLineResourceRequest(securityCuiHndl, "Security Status", &securityStatusLine);
+    CUI_statusLineResourceRequest(securityCuiHndl, "Security Status", false, &securityStatusLine);
 #ifdef SECURE_MANAGER_DEBUG
-    CUI_statusLineResourceRequest(securityCuiHndl, "Security Debug", &securityDebugStatusLine);
+    CUI_statusLineResourceRequest(securityCuiHndl, "Security Debug", false, &securityDebugStatusLine);
 #endif
+
 #ifdef SECURE_MANAGER_DEBUG_ADVANCED
-    CUI_statusLineResourceRequest(securityCuiHndl, "Security Debug 2", &securityDebugStatusLine2);
+    CUI_statusLineResourceRequest(securityCuiHndl, "Security Debug 2", false, &securityDebugStatusLine2);
 #endif
     /* Initialize commissioning timeout clock */
     initializeCommStatusClock();
@@ -360,6 +365,7 @@ void SM_process(void)
                 /*passkey timeout*/
                 pSMCallbacks->pfnRequestPasskeyCb(SM_passkeyEntryTimeout);
             }
+            CUI_statusLinePrintf(securityCuiHndl, securityStatusLine, "Passkey Entry Timeout!");
         }
     }
     else if (SM_events & SM_SENT_CM_FAIL_EVT)
@@ -407,7 +413,7 @@ void SM_process(void)
     else if (SM_events & SM_PASSKEY_EVT)
     {
         /* If passkey entered successfully, trigger main menu */
-        if ((pSMCallbacks->pfnRequestPasskeyCb) && (0 == SM_cmAttempts))
+        if ((pSMCallbacks->pfnRequestPasskeyCb) && (SM_cmAttempts < SM_CM_MAX_RETRY_ATTEMPTS))
         {
             pSMCallbacks->pfnRequestPasskeyCb(SM_passkeyEntered);
         }
@@ -645,6 +651,21 @@ void SM_startCMProcess(ApiMac_deviceDescriptor_t *devInfo, ApiMac_sec_t *sec,
 }
 
 /*!
+ Function to stop a currently active commissioning process
+
+ Public function defined in sm_ti154.h
+ */
+void SM_stopCMProcess(void)
+{
+    if (SM_Current_State == SM_CM_InProgress)
+    {
+      SM_cmAttempts = SM_CM_MAX_RETRY_ATTEMPTS;
+      SM_forceStopped = true;
+      switchState(SM_states_finish_fail);
+    }
+}
+
+/*!
  SM callback registration function.
 
  Public function defined in sm.h
@@ -679,6 +700,9 @@ bool SM_removeEntryFromSeedKeyTable (ApiMac_sAddrExt_t *extAddress) {
 
     /* free the space */
     OsalPort_free(pSeedKey);
+
+    CUI_statusLinePrintf(securityCuiHndl, securityStatusLine, "Decommissioned");
+    
     return(true);
 }
 
@@ -909,6 +933,11 @@ static void processState(SM_states_t state)
         case SM_states_entry:
         {
             /* Default state */
+            /* if this is a sensor device, reset the SM_forceStopped flag */
+            if (deviceType == SM_type_device)
+            {
+              SM_forceStopped = false;
+            }
             break;
         }
         /* Coordinator specific state */
@@ -916,6 +945,9 @@ static void processState(SM_states_t state)
         {
             /* Set ID of expected reply from other party */
             waitingForMsgID = SMMsgs_cmdIds_processResponse;
+
+            /* reset the SM_forceStopped flag */
+            SM_forceStopped = false;
 
             /* Send data message containing commissioning request to device via Cm_ProcessRequest */
             SMSendInfo(Smgs_cmdIds_CommissionStart, SMMsgs_cmdIds_processRequest,
@@ -996,7 +1028,7 @@ static void processState(SM_states_t state)
                /* first ever attempt..not retry attempt
                 * get the passkey from user. For retry cases
                 * no need to prompt user to input again */
-               if ((pSMCallbacks->pfnRequestPasskeyCb) &&(0 == SM_cmAttempts))
+               if ((pSMCallbacks->pfnRequestPasskeyCb) && (SM_cmAttempts < SM_CM_MAX_RETRY_ATTEMPTS))
                {
                    /* Start timer for passkey input process */
                    setSMProcessTimeoutClock(SM_USER_INPUT_TIMEOUT_VALUE);
@@ -1152,6 +1184,8 @@ static void processState(SM_states_t state)
             switchState(SM_states_entry);
             /* update SM_Current_State so that key refreshment is enabled */
             SM_Current_State = SM_CM_Finished_Successfully;
+            /* clear the SM_cmAttempts count */
+            SM_cmAttempts = 0;
 
             if (keyRefreshmentProcess == true)
             {
@@ -1220,6 +1254,11 @@ static void processState(SM_states_t state)
                      (errorCode == SMMsgs_errorCode_unsupportedAuthMethod) ||
                      (SM_cmAttempts >= SM_CM_MAX_RETRY_ATTEMPTS))
             {
+                if ((deviceType == SM_type_device) && (SM_cmAttempts >= SM_CM_MAX_RETRY_ATTEMPTS))
+                {
+                  SM_cmAttempts = 0;
+                }
+
                 /* Device failed authentication, exceeded max commissioning attempts,
                  * or user has not allowed commissioning retry */
                 CUI_statusLinePrintf(securityCuiHndl, securityStatusLine,
@@ -1420,7 +1459,6 @@ static void processSMProcessTimeoutCallback(UArg a0)
     if (SM_CM_InProgress == SM_Current_State)
     {
         Util_setEvent(&SM_events, SM_TIMEOUT_EVT);
-
         Semaphore_post(hSMappSem);
     }
 

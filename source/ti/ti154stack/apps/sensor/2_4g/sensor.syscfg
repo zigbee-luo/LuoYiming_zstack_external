@@ -134,13 +134,6 @@ NVS_INT.$name = "CONFIG_NVSINTERNAL";                    // Internal NVS
 NVS_INT.internalFlash.regionBase = 0x52000;              // Sensor project has 2 NV pages default
 NVS_INT.internalFlash.regionSize = 0x4000;
 
-
-/* ======== TI-15.4 Stack ======== */
-var TI154Stack = scripting.addModule("/ti/ti154stack/ti154stack");
-TI154Stack.project = "sensor";
-TI154Stack.freqBand = "freqBand24";
-TI154Stack.lockProject = true;
-
 /* ======== Device ======== */
 var device = scripting.addModule("ti/devices/CCFG");
 const ccfgSettings = system.getScript("/ti/common/lprf_ccfg_settings.js").ccfgSettings;
@@ -148,3 +141,18 @@ for(var setting in ccfgSettings)
 {
     device[setting] = ccfgSettings[setting];
 }
+
+/* ======== RF Design ======== */
+var rfDesign = scripting.addModule("ti/devices/radioconfig/rfdesign");
+const rfDesignSettings = system.getScript("/ti/common/lprf_rf_design_settings.js").rfDesignSettings;
+for(var setting in rfDesignSettings)
+{
+    rfDesign[setting] = rfDesignSettings[setting];
+}
+
+/* ======== TI-15.4 Stack ======== */
+var TI154Stack = scripting.addModule("/ti/ti154stack/ti154stack");
+TI154Stack.rfDesign = rfDesignSettings.rfDesign;
+TI154Stack.project = "sensor";
+TI154Stack.freqBand = "freqBand24";
+TI154Stack.lockProject = true;

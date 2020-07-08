@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2006-2019, Texas Instruments Incorporated
+ Copyright (c) 2006-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -186,6 +186,7 @@ MAC_INTERNAL_API bool macRadioUpdateChannelRx(void);
 MAC_INTERNAL_API uint8 macRadioComputeLQI(int8 rssiDbm, uint8 correlation);
 MAC_INTERNAL_API void macRadioPowerDown(bool bypassRAT);
 MAC_INTERNAL_API void macRadioPowerUp(bool bypassRAT);
+MAC_INTERNAL_API void scheduleNopWakeupCmd(void);
 MAC_INTERNAL_API void macRadioPowerUpWait(void);
 MAC_INTERNAL_API void macRadioWakeupCb(RF_Handle h, RF_CmdHandle ch, RF_EventMask e);
 MAC_INTERNAL_API void macRadioPowerUpBeaconMode(bool bypassRAT);

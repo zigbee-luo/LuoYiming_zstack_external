@@ -284,7 +284,7 @@ ZStatus_t touchLinkInitiator_AbortTL( void )
     if( savedTXPower != 0 )
     {
       // restore previous TX power prior to scan requests
-      ZMacSetTransmitPower((ZMacTransmitPower_t)savedTXPower);
+      ZMacSetTransmitPower( (ZMacTransmitPower_t) savedTXPower);
     }
 
     return ( ZSuccess );
@@ -464,7 +464,7 @@ uint32_t touchLinkInitiator_event_loop( uint8_t task_id, uint32_t events )
               (selectedTarget.scanRsp.deviceInfo.endpoint != DEV_INFO_INVALID_EP))
       {
         // restore previous TX power prior to scan requests
-        ZMacSetTransmitPower((ZMacTransmitPower_t)savedTXPower);
+        ZMacSetTransmitPower( (ZMacTransmitPower_t) savedTXPower);
 
         // Make sure the responder is not a factory new initiator if this device is also
         // factory new
@@ -506,7 +506,7 @@ uint32_t touchLinkInitiator_event_loop( uint8_t task_id, uint32_t events )
       else
       {
         // restore previous TX power prior to scan requests
-        ZMacSetTransmitPower((ZMacTransmitPower_t)savedTXPower);
+        ZMacSetTransmitPower( (ZMacTransmitPower_t) savedTXPower);
 
         // We did not manage to select any target
         // Let's just go back to our initial configuration

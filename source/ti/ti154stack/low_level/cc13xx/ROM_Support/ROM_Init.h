@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2009-2019, Texas Instruments Incorporated
+ Copyright (c) 2009-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights

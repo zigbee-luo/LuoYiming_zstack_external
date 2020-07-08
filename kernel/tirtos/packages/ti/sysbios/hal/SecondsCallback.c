@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Texas Instruments Incorporated
+ * Copyright (c) 2014-2019, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,11 +46,27 @@ UInt32 SecondsCallback_get(Void)
 }
 
 /*
+ *  ======== SecondsCallback_getTime ========
+ */
+UInt32 SecondsCallback_getTime(SecondsCallback_Time *ts)
+{
+    return (SecondsCallback_getTimeFxn(ts));
+}
+
+/*
  *  ======== SecondsCallback_set ========
  */
 Void SecondsCallback_set(UInt32 seconds)
 {
     SecondsCallback_setFxn(seconds);
+}
+
+/*
+ *  ======== SecondsCallback_setTime ========
+ */
+UInt32 SecondsCallback_setTime(SecondsCallback_Time *ts)
+{
+    return (SecondsCallback_setTimeFxn(ts));
 }
 
 /*
@@ -62,8 +78,24 @@ UInt32 ti_sysbios_hal_SecondsCallback_defaultGet(Void)
 }
 
 /*
+ *  ======== ti_sysbios_hal_SecondsCallback_defaultGetTime ========
+ */
+UInt32 ti_sysbios_hal_SecondsCallback_defaultGetTime(SecondsCallback_Time *ts)
+{
+    return (0);
+}
+
+/*
  *  ======== ti_sysbios_hal_SecondsCallback_defaultSet ========
  */
 Void ti_sysbios_hal_SecondsCallback_defaultSet(UInt32 seconds)
 {
+}
+
+/*
+ *  ======== ti_sysbios_hal_SecondsCallback_defaultSetTime ========
+ */
+UInt32 ti_sysbios_hal_SecondsCallback_defaultSetTime(SecondsCallback_Time *ts)
+{
+    return (0);
 }

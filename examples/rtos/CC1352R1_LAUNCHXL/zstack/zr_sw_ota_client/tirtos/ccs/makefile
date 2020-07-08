@@ -13,7 +13,7 @@ LNK = "$(CCS_ARMCOMPILER)/bin/armcl"
 XDCTARGET = ti.targets.arm.elf.M4F
 PLATFORM = ti.platforms.simplelink:CC1352R1F3
 
-OBJECTS = ti_drivers_config.obj ti_radio_config.obj CC1352R1_LAUNCHXL_fxns.obj mac_user_config.obj mac_settings.obj zcl_samplesw.obj zcl_samplesw_data.obj main.obj cui.obj zstackstartup.obj crc.obj nvocmp.obj saddr.obj zcl_sampleapps_ui.obj mac_util.obj util_timer.obj af.obj bdb.obj bdb_finding_and_binding.obj bdb_reporting.obj bdb_touchlink.obj bdb_touchlink_initiator.obj bdb_touchlink_target.obj bdb_tl_commissioning.obj touchlink_initiator_app.obj touchlink_target_app.obj gp_common.obj gp_proxy_table.obj gp_proxy.obj gp_bit_fields.obj hal_appasrt.obj dbg.obj mac_cfg.obj binding_table.obj nwk_globals.obj stub_aps.obj osal_nv.obj osal_port.obj osal_port_timers.obj zstackapi.obj zstacktask.obj zdiags.obj zglobals.obj zd_app.obj zd_config.obj zd_nwk_mgr.obj zd_object.obj zd_profile.obj zd_sec_mgr.obj zmac.obj zmac_cb.obj rom_init_154.obj fh_rom_init.obj hmac_rom_init.obj lmac_rom_init.obj icall_osal_rom_init.obj  zcl.obj zcl_port.obj zcl_general.obj zcl_green_power.obj zcl_ha.obj zcl_diagnostic.obj zcl_closures.obj zcl_appliance_control.obj zcl_appliance_events_alerts.obj zcl_appliance_statistics.obj zcl_cc.obj zcl_cert_data.obj zcl_electrical_measurement.obj zcl_hvac.obj zcl_retail.obj zcl_telecommunication.obj zcl_lighting.obj zcl_ll.obj zcl_ms.obj zcl_ota.obj zcl_partition.obj zcl_pi.obj zcl_poll_control.obj zcl_power_profile.obj zcl_se.obj zcl_ss.obj ota_client_app.obj oad_switch_agama.obj oad_image_header_app.obj flash_interface_ext_rtos_NVS.obj crc32.obj
+OBJECTS = ti_drivers_config.obj ti_radio_config.obj CC1352R1_LAUNCHXL_fxns.obj mac_user_config.obj mac_settings.obj zcl_samplesw.obj zcl_samplesw_data.obj main.obj cui.obj zstackstartup.obj crc.obj nvocmp.obj saddr.obj zcl_sampleapps_ui.obj mac_util.obj util_timer.obj af.obj bdb.obj bdb_finding_and_binding.obj bdb_reporting.obj bdb_touchlink.obj bdb_touchlink_initiator.obj bdb_touchlink_target.obj bdb_tl_commissioning.obj touchlink_initiator_app.obj touchlink_target_app.obj gp_common.obj gp_proxy_table.obj gp_proxy.obj gp_bit_fields.obj dbg.obj mac_cfg.obj binding_table.obj nwk_globals.obj stub_aps.obj osal_nv.obj osal_port.obj osal_port_timers.obj zstackapi.obj zstacktask.obj zdiags.obj zglobals.obj zd_app.obj zd_config.obj zd_nwk_mgr.obj zd_object.obj zd_profile.obj zd_sec_mgr.obj zmac.obj zmac_cb.obj rom_init_154.obj fh_rom_init.obj hmac_rom_init.obj lmac_rom_init.obj icall_osal_rom_init.obj  zcl.obj zcl_port.obj zcl_general.obj zcl_green_power.obj zcl_ha.obj zcl_diagnostic.obj zcl_closures.obj zcl_appliance_control.obj zcl_appliance_events_alerts.obj zcl_appliance_statistics.obj zcl_cc.obj zcl_cert_data.obj zcl_electrical_measurement.obj zcl_hvac.obj zcl_retail.obj zcl_telecommunication.obj zcl_lighting.obj zcl_ll.obj zcl_ms.obj zcl_ota.obj zcl_partition.obj zcl_pi.obj zcl_poll_control.obj zcl_power_profile.obj zcl_se.obj zcl_ss.obj ota_client_app.obj oad_switch_agama.obj oad_image_header_app.obj flash_interface_ext_rtos_NVS.obj crc32.obj
 
 CONFIGPKG = zr_sw_ota_client
 
@@ -58,8 +58,6 @@ CFLAGS = -I../.. \
     -DFREQ_2_4G \
     -DOSAL_PORT2TIRTOS \
     -DOSAL_PORT2TIRTOS_OSALMAP \
-    -DRCN_APP_ASSERT \
-    -DHAL_ASSERT_SPIN \
     -DZDO_API_BASIC \
     -DTC_LINKKEY_JOIN \
     -DNV_RESTORE \
@@ -79,8 +77,6 @@ CFLAGS = -I../.. \
     "-I${PROJECT_ROOT}/Stack/bdb" \
     "-I${PROJECT_ROOT}/Stack/Config" \
     "-I${PROJECT_ROOT}/Stack/gp" \
-    "-I${PROJECT_ROOT}/Stack/HAL/Assert" \
-    "-I${PROJECT_ROOT}/Stack/HAL/Appasrt" \
     "-I${PROJECT_ROOT}/Stack/HAL/Crypto" \
     "-I${PROJECT_ROOT}/Stack/HAL/Platform" \
     "-I${PROJECT_ROOT}/Stack/HAL/RF" \
@@ -100,8 +96,6 @@ CFLAGS = -I../.. \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/osal" \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/services/saddr" \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/services/sdata" \
-    "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/assert" \
-    "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/appasrt" \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/crypto" \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/platform" \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/rf" \
@@ -152,12 +146,8 @@ CFLAGS = -I../.. \
     -DOTA_CLIENT_CC26XX \
     -DOTA_CLIENT=TRUE \
     -DSECURITY \
-    -DOTA_HA \
     -DOTA_MANUFACTURER_ID=0xBEBE \
     -DOTA_APP_VERSION=0x00000001 \
-    -DSWITCH_OTA \
-    -DNVSSPI \
-    -DCC26X2 \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/ota" \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/oad/CC13X2_CC26X2R1_LAUNCHXL" \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/cc26xx/flash_interface" \
@@ -322,10 +312,6 @@ gp_proxy.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/zstack/
 	@ $(CC) $(CFLAGS) $< --cmd_file=$(CONFIGPKG)/compiler.opt --output_file=$@
 
 gp_bit_fields.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/zstack/stack/gp/gp_bit_fields.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
-	@ echo Building $@
-	@ $(CC) $(CFLAGS) $< --cmd_file=$(CONFIGPKG)/compiler.opt --output_file=$@
-
-hal_appasrt.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/hal/appasrt/hal_appasrt.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
 	@ echo Building $@
 	@ $(CC) $(CFLAGS) $< --cmd_file=$(CONFIGPKG)/compiler.opt --output_file=$@
 

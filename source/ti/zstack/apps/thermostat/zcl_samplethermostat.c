@@ -92,6 +92,9 @@
 #include "zstackmsg.h"
 #include "zcl_port.h"
 
+#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/apps/LED.h>
+
 #ifdef USE_ZCL_SAMPLEAPP_UI
 #include "zcl_sampleapps_ui.h"
 #include "zcl_sample_app_def.h"
@@ -170,6 +173,8 @@ static uint16_t zclSampleThermostat_BdbCommissioningModes;
 #endif
 #endif
 
+static LED_Handle gRedLedHandle;
+
 #ifdef USE_ZCL_SAMPLEAPP_UI
 CONST char zclSampleThermostat_appStr[] = APP_TITLE_STR;
 CUI_clientHandle_t gCuiHandle;
@@ -196,7 +201,7 @@ static void zclSampleThermostat_Init( void );
 #ifdef USE_ZCL_SAMPLEAPP_UI
 static void zclSampleThermostat_BasicResetCB( void );
 static void zclSampleThermostat_RemoveAppNvmData(void);
-static void zclSampleThermostat_processKey(uint32_t _btn, Button_EventMask _buttonEvents);
+static void zclSampleThermostat_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleThermostat_InitializeStatusLine(CUI_clientHandle_t gCuiHandle);
 static void zclSampleThermostat_UpdateStatusLine(void);
 #endif
@@ -448,13 +453,13 @@ static void zclSampleThermostat_Init( void )
 #ifdef BDB_REPORTING
   zstack_bdbRepAddAttrCfgRecordDefaultToListReq_t  Req = {0};
 #endif
+  // Register the Application to receive the unprocessed Foundation command/response messages
+  zclport_registerZclHandleExternal(  SAMPLETHERMOSTAT_ENDPOINT, zclSampleThermostat_ProcessIncomingMsg );
+
   //Register Endpoint
   zclSampleThermostatEpDesc.endPoint = SAMPLETHERMOSTAT_ENDPOINT;
   zclSampleThermostatEpDesc.simpleDesc = &zclSampleThermostat_SimpleDesc;
   zclport_registerEndpoint(appServiceTaskId, &zclSampleThermostatEpDesc);
-
-  // Register the Application to receive the unprocessed Foundation command/response messages
-  zclport_registerZclHandleExternal( SAMPLETHERMOSTAT_ENDPOINT, zclSampleThermostat_ProcessIncomingMsg );
 
 #if defined (ENABLE_GREENPOWER_COMBO_BASIC)
     zclGp_RegisterCBForGPDCommand(&zclSampleThermostat_GpSink_AppCallbacks);
@@ -517,20 +522,17 @@ static void zclSampleThermostat_Init( void )
             &appServiceTaskEvents,                // The events processed by the sample application
             appSemHandle,                         // Semaphore to post the events in the application thread
             &zclSampleThermostat_IdentifyTime,
-            &zclSampleThermostat_BdbCommissioningModes,   // a pointer to the applications bdbCommissioningModes
-            zclSampleThermostat_appStr,
-            zclSampleThermostat_processKey,
-            zclSampleThermostat_RemoveAppNvmData         // A pointer to the app-specific NV Item reset function
+            &zclSampleThermostat_BdbCommissioningModes,   // A pointer to the application's bdbCommissioningModes
+            zclSampleThermostat_appStr,                   // A pointer to the app-specific name string
+            zclSampleThermostat_processKey,               // A pointer to the app-specific key process function
+            zclSampleThermostat_RemoveAppNvmData          // A pointer to the app-specific NV Item reset function
             );
 
-  //Request the Red LED for App
-  CUI_retVal_t retVal;
-  /* Initialize the LEDS */
-  CUI_ledRequest_t ledRequest;
-  ledRequest.index = CONFIG_LED_RED;
 
-  retVal = CUI_ledResourceRequest(gCuiHandle, &ledRequest);
-  (void) retVal;
+  //Request the Red LED for App
+  LED_Params ledParams;
+  LED_Params_init(&ledParams);
+  gRedLedHandle = LED_open(CONFIG_LED_RED, &ledParams);
 
 
   //Initialize the SampleDoorLock UI status line
@@ -1230,11 +1232,7 @@ static void zclSampleThermostat_ProcessCommissioningStatus(bdbCommissioningModeM
     case BDB_COMMISSIONING_FORMATION:
       if(bdbCommissioningModeMsg->bdbCommissioningStatus == BDB_COMMISSIONING_SUCCESS)
       {
-        zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
-
-        //After formation, perform nwk steering again plus the remaining commissioning modes that has not been process yet
-        zstack_bdbStartCommissioningReq.commissioning_mode = BDB_COMMISSIONING_MODE_NWK_STEERING | bdbCommissioningModeMsg->bdbRemainingCommissioningModes;
-        Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
+        //YOUR JOB:
       }
       else
       {
@@ -1372,19 +1370,21 @@ void zclSampleThermostat_UpdateLedState(void)
     {
       // turn on heating
       zclSampleThermostat_SystemMode = HVAC_THERMOSTAT_SYSTEM_MODE_HEAT;
-      CUI_ledOn(gCuiHandle, CONFIG_LED_RED, NULL);
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
     }
     else if ( zclSampleThermostat_LocalTemperature >= zclSampleThermostat_OccupiedCoolingSetpoint )
     {
       // turn on cooling
       zclSampleThermostat_SystemMode = HVAC_THERMOSTAT_SYSTEM_MODE_COOL;
-      CUI_ledBlink(gCuiHandle, CONFIG_LED_RED, CUI_BLINK_CONTINUOUS);
+      LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
     }
     else
     {
       // turn off heating/cooling
       zclSampleThermostat_SystemMode = HVAC_THERMOSTAT_SYSTEM_MODE_OFF;
-      CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOff(gRedLedHandle);
     }
   }
 }
@@ -1395,22 +1395,23 @@ void zclSampleThermostat_UpdateLedState(void)
  *
  * @brief   Key event handler function
  *
- * @param   keysPressed - keys to be process in application context
+ * @param   key - key to handle action for
+ *          buttonEvents - event to handle action for
  *
  * @return  none
  */
-static void zclSampleThermostat_processKey(uint32_t _btn, Button_EventMask _buttonEvents)
+static void zclSampleThermostat_processKey(uint8_t key, Button_EventMask buttonEvents)
 {
-    if (_buttonEvents & Button_EV_CLICKED)
+    if (buttonEvents & Button_EV_CLICKED)
     {
-        if(_btn == CONFIG_BTN_LEFT)
+        if(key == CONFIG_BTN_LEFT)
         {
             zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
 
             zstack_bdbStartCommissioningReq.commissioning_mode = zclSampleThermostat_BdbCommissioningModes;
             Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
         }
-        if(_btn == CONFIG_BTN_RIGHT)
+        if(key == CONFIG_BTN_RIGHT)
         {
           //Unused
         }
@@ -1420,8 +1421,8 @@ static void zclSampleThermostat_processKey(uint32_t _btn, Button_EventMask _butt
 static void zclSampleThermostat_InitializeStatusLine(CUI_clientHandle_t gCuiHandle)
 {
     /* Request Async Line for Light application Info */
-    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gSampleThermostatInfoLine1);
-    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"2"CUI_DEBUG_MSG_END, &gSampleThermostatInfoLine2);
+    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gSampleThermostatInfoLine1);
+    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"2"CUI_DEBUG_MSG_END, false, &gSampleThermostatInfoLine2);
 
     zclSampleThermostat_UpdateStatusLine();
 }

@@ -156,7 +156,8 @@ const gpdSecurityModule = {
                     name: "KEY_TYPE_DERIVED_INDIVIDUAL_GPD_KEY",
                     displayName: "Derived Individual GPD Key"
                 }
-            ]
+            ],
+            onChange: gpdfSecurityKeyTypeChange
         },
         {
             name: "gpdfSecurityKey",
@@ -168,6 +169,19 @@ const gpdSecurityModule = {
     ],
     validate: validate
 };
+
+/* Function to handle changes in gpdfSecurityKeyType configurable */
+function gpdfSecurityKeyTypeChange(inst, ui)
+{
+    if(inst.gpdfSecurityKeyType !== "KEY_TYPE_OUT_BOX_GPD_KEY")
+    {
+        ui.gpdfSecurityKey.hidden = true;
+    }
+    else
+    {
+        ui.gpdfSecurityKey.hidden = false;
+    }
+}
 
 /* Validation function for the GPD security submodule */
 function validate(inst, validation)

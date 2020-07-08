@@ -51,6 +51,20 @@ extern "C"
 #include "zcl.h"
 #include "ota_common.h"
 
+/*********************************************************************
+ * TYPEDEFS
+ */
+
+// Defines the max number of OTA clients performing an upgrade simultaneously
+#define SEQ_NUM_ENTRY_MAX 3
+
+typedef struct
+{
+  uint8_t transSeqNum;
+  uint16_t      shortAddr;
+} otaSeqNumEntry_t;
+
+
 /******************************************************************************
  * FUNCTIONS
  */

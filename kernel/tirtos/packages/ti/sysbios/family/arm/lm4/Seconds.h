@@ -2,7 +2,7 @@
  *  Do not modify this file; it is automatically 
  *  generated and any modifications will be overwritten.
  *
- * @(#) xdc-H32
+ * @(#) xdc-I11
  */
 
 /*
@@ -367,6 +367,7 @@ static inline xdc_Void ti_sysbios_family_arm_lm4_Seconds_Module_setMask(xdc_Bits
 
 /* Module_State */
 struct ti_sysbios_family_arm_lm4_Seconds_Module_State {
+    xdc_UInt32 setSecondsHi;
     xdc_UInt32 setSeconds;
     xdc_UInt32 refSeconds;
     xdc_UInt32 deltaNSecs;

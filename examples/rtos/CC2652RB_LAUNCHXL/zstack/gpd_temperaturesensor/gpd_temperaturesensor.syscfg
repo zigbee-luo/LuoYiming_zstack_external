@@ -80,6 +80,14 @@ AESCCM1.interruptPriority = "2";
 /* AESECB */
 AESECB1.interruptPriority = "1";
 
+/* ======== RF Design ======== */
+var rfDesign = scripting.addModule("ti/devices/radioconfig/rfdesign");
+const rfDesignSettings = system.getScript("/ti/common/lprf_rf_design_settings.js").rfDesignSettings;
+for(var setting in rfDesignSettings)
+{
+    rfDesign[setting] = rfDesignSettings[setting];
+}
+
 /* CCFG */
 const ccfgSettings = system.getScript("/ti/common/lprf_ccfg_settings.js").ccfgSettings;
 for(var setting in ccfgSettings)
@@ -167,3 +175,4 @@ zstack.deviceTypeReadOnly            = true;
 zstack.gpdNetwork.gpdType            = "0x30";
 zstack.gpdNetwork.gpdTypeReadOnly    = true;
 zstack.gpdSecurity.gpdfSecurityLevel = "GP_SECURITY_LVL_4FC_4MIC_ENCRYPT";
+zstack.gpdRf.rfDesign = rfDesignSettings.rfDesign;

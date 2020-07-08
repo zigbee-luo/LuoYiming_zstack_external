@@ -56,7 +56,6 @@ Display_UART.uart.$name = "CONFIG_DISPLAY_UART";               // Descriptive na
 Display_UART.uart.txPinInstance.$name = "CONFIG_PIN_UART_TX";  // Descriptive name for UART TX PIN
 Display_UART.uart.rxPinInstance.$name = "CONFIG_PIN_UART_RX";  // Descriptive name for UART RX PIN
 
-
 /* ======== LED Red ======== */
 var LED = scripting.addModule("/ti/drivers/apps/LED");   // Add a LED module
 var LED_R = LED.addInstance();                           // Add a LED module instance for LED_R
@@ -75,7 +74,6 @@ LED_R.gpioPin.$name = "CONFIG_GPIO_RLED";               // Descriptive name for 
 LED_R.gpioPin.mode = "Output";
 LED_R.gpioPin.callbackFunction = "";
 LED_R.gpioPin.pinInstance.$name = "CONFIG_PIN_RLED";    // Descriptive name for LED_R PIN
-
 
 /* ======== LED Green ======== */
 var LED = scripting.addModule("/ti/drivers/apps/LED");   // Add a LED module
@@ -126,7 +124,6 @@ BUTTON_R.gpioPin.pull = "Pull Up";                       // Use Pull up resistor
 BUTTON_R.gpioPin.interruptTrigger = "Falling Edge";
 BUTTON_R.gpioPin.pinInstance.$name = "CONFIG_PIN_BTN2";  // Descriptive name for the BUTTON_R PIN
 
-
 /* ======== NVS ======== */
 var NVS = scripting.addModule("/ti/drivers/NVS");
 var NVS_INT = NVS.addInstance();
@@ -142,13 +139,6 @@ NVS_INT1.internalFlash.regionType = "Pointer";         // Pointer to predefined 
 NVS_INT1.internalFlash.regionBase = 0x0;               // Internal flash region 1 base
 NVS_INT1.internalFlash.regionSize = 0x2A000;           // Internal flash region 1 size
 
-
-/* ======== TI-15.4 Stack ======== */
-var TI154Stack = scripting.addModule("/ti/ti154stack/ti154stack");
-TI154Stack.project = "sensorOAD";
-TI154Stack.freqBand = "freqBand24";
-TI154Stack.lockProject = true;
-
 /* ======== Device ======== */
 var device = scripting.addModule("ti/devices/CCFG");
 const ccfgSettings = system.getScript("/ti/common/lprf_ccfg_settings.js").ccfgSettings;
@@ -159,3 +149,19 @@ for(var setting in ccfgSettings)
 
 // Can't configure CCFG from OAD project. BIM controls this portion of flash
 device.enableCodeGeneration = false;
+
+/* ======== RF Design ======== */
+var rfDesign = scripting.addModule("ti/devices/radioconfig/rfdesign");
+const rfDesignSettings = system.getScript("/ti/common/lprf_rf_design_settings.js").rfDesignSettings;
+for(var setting in rfDesignSettings)
+{
+    rfDesign[setting] = rfDesignSettings[setting];
+}
+
+
+/* ======== TI-15.4 Stack ======== */
+var TI154Stack = scripting.addModule("/ti/ti154stack/ti154stack");
+TI154Stack.rfDesign = rfDesignSettings.rfDesign;
+TI154Stack.project = "sensorOAD";
+TI154Stack.freqBand = "freqBand24";
+TI154Stack.lockProject = true;

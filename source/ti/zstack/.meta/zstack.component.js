@@ -45,7 +45,8 @@ let templates = [];
 if(deviceId.match(/CC2652R|CC1352R1|CC1352P1/))
 {
     let name = system.deviceData.deviceId;
-    if (system.deviceData.board != null) {
+    if(system.deviceData.board != null)
+    {
         name = system.deviceData.board.source;
         /* Strip off everything up to and including the last '/' */
         name = name.replace(/.*\//, "");
@@ -53,7 +54,7 @@ if(deviceId.match(/CC2652R|CC1352R1|CC1352P1/))
         /* Strip off everything after and including the first '.' */
         name = name.replace(/\..*/, "");
     }
-    if ((system.deviceData.board == null) || (system.deviceData.board != null && (!name.includes("P_4") && !name.includes("P1")))) {
+    if ((system.deviceData.board == null) || (system.deviceData.board != null && (!name.includes("P1")))) {
         topModules = [
             {
                 displayName: "RF Stacks",

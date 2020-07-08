@@ -37,6 +37,13 @@
 
 "use strict";
 
+// Get common utility functions
+const Common = system.getScript("/ti/ti154stack/ti154stack_common.js");
+
+// Get common radio config module functions
+const commonRadioConfig = system.getScript("/ti/devices/radioconfig/"
+    + "radioconfig_common.js");
+
 /*
  *  ======== Common PHY Settings ========
  *
@@ -94,15 +101,15 @@ const commonSlLr5KbpsSettings = {
     },
     phy154Settings: {
         freq433: {
-            ID: "APIMAC_GENERIC_CHINA_LRM_433_PHY_130",
+            ID: "APIMAC_5KBPS_433MHZ_PHY_130",
             channelPage: "APIMAC_CHANNEL_PAGE_10"
         },
         freq863: {
-            ID: "APIMAC_GENERIC_ETSI_LRM_863_PHY_131",
+            ID: "APIMAC_5KBPS_868MHZ_PHY_131",
             channelPage: "APIMAC_CHANNEL_PAGE_10"
         },
         freq915: {
-            ID: "APIMAC_GENERIC_US_LRM_915_PHY_129",
+            ID: "APIMAC_5KBPS_915MHZ_PHY_129",
             channelPage: "APIMAC_CHANNEL_PAGE_10"
         }
     }
@@ -134,15 +141,15 @@ const common2Gfsk50KbpsSettings = {
     },
     phy154Settings: {
         freq433: {
-            ID: "APIMAC_GENERIC_CHINA_433_PHY_128",
+            ID: "APIMAC_50KBPS_433MHZ_PHY_128",
             channelPage: "APIMAC_CHANNEL_PAGE_10"
         },
         freq863: {
-            ID: "APIMAC_STD_ETSI_863_PHY_3",
+            ID: "APIMAC_50KBPS_868MHZ_PHY_3",
             channelPage: "APIMAC_CHANNEL_PAGE_9"
         },
         freq915: {
-            ID: "APIMAC_STD_US_915_PHY_1",
+            ID: "APIMAC_50KBPS_915MHZ_PHY_1",
             channelPage: "APIMAC_CHANNEL_PAGE_9"
         }
     }
@@ -174,11 +181,11 @@ const common2Gfsk200KbpsSettings = {
     },
     phy154Settings: {
         freq863: {
-            ID: "APIMAC_GENERIC_ETSI_863_PHY_133",
+            ID: "APIMAC_200KBPS_868MHZ_PHY_133",
             channelPage: "APIMAC_CHANNEL_PAGE_10"
         },
         freq915: {
-            ID: "APIMAC_GENERIC_US_915_PHY_132",
+            ID: "APIMAC_200KBPS_915MHZ_PHY_132",
             channelPage: "APIMAC_CHANNEL_PAGE_10"
         }
     }
@@ -242,7 +249,7 @@ const commonIEEESettings = {
     },
     phy154Settings: {
         phyIEEE: {
-            ID: "APIMAC_PHY_ID_NONE",
+            ID: "APIMAC_250KBPS_IEEE_PHY_0",
             channelPage: "APIMAC_CHANNEL_PAGE_NONE"
         }
     }
@@ -348,10 +355,292 @@ function mergeRFSettings(obj1, obj2)
     return(mergedObj);
 }
 
+/*
+ * ======== getBoardPhySettings ========
+ * Determines which rf_defaults script to use based on device or inst.rfDesign
+ *
+ * @param inst - Instance of this module
+ *
+ * @returns Obj - rf_defaults script from which to get phy settings in
+ *                radioconfig format. If device is not supported, returns null
+ */
+function getBoardPhySettings(inst)
+{
+    let phySettings;
+
+    if(inst !== null && system.deviceData.deviceId === "CC1352P1F3RGZ")
+    {
+        // Get the RF Design configurable
+        const rfDesign = inst.rfDesign;
+        if(rfDesign === "LAUNCHXL-CC1352P-4")
+        {
+            phySettings = system.getScript("/ti/ti154stack/rf_config/"
+                + "CC1352P_4_LAUNCHXL_rf_defaults.js");
+        }
+        else if(rfDesign === "LAUNCHXL-CC1352P1")
+        {
+            phySettings = system.getScript("/ti/ti154stack/rf_config/"
+                + "CC1352P1_LAUNCHXL_rf_defaults.js");
+        }
+        else if(rfDesign === "LAUNCHXL-CC1352P-2")
+        {
+            phySettings = system.getScript("/ti/ti154stack/rf_config/"
+                + "CC1352P_2_LAUNCHXL_rf_defaults.js");
+        }
+    }
+    else
+    {
+        // Initialize with launchpad mapped from device
+        phySettings = system.getScript("/ti/ti154stack/rf_config/"
+            + Common.getLaunchPadFromDevice() + "_rf_defaults.js");
+    }
+
+    return(phySettings);
+}
+
+/*
+ * ======== getPhyTypeGroupFromRFConfig ========
+ * Returns phy group and phy type based on frequency set and radio config module
+ * defaults files.
+ *
+ * Required in order to set tx power parameters in radio config module when it
+ * is added in moduleInstances(). The radio config instance cannot be accessed
+ * during this process to retrieve these values
+ *
+ * @param inst       - 15.4 instance
+ */
+function getPhyTypeGroupFromRFConfig(inst)
+{
+    let rfPhyType;
+    let rfPhyGroup;
+    let allPhySettings;
+
+    const localPhyType = getSafePhyType(inst);
+
+    // Possible phyTypeXXX properties in the phy settings
+    const phyTypes = ["phyType868", "phyType433", "phyType"];
+
+    // Set phy group based on frequency selected and supported
+    if(inst.freqBand === "freqBandSub1"
+        || (Common.isSub1GHzDevice() && !Common.is24GHzDevice(inst)))
+    {
+        // Get proprietary Sub-1 GHz RF defaults for the device being used
+        allPhySettings = getBoardPhySettings(inst).defaultPropPhyList;
+        rfPhyGroup = commonRadioConfig.PHY_PROP;
+    }
+    else
+    {
+        // Get IEEE 2.4 GHz RF defaults for the device being used
+        allPhySettings = getBoardPhySettings(inst).defaultIEEEPhyList;
+        rfPhyGroup = commonRadioConfig.PHY_IEEE_15_4;
+    }
+
+    // Extract data rate from 15.4 phy type config
+    // Convert string to lowercase to convert "IEEE" to "ieee" for matching
+    const dataRate = _.toLower(_.replace(localPhyType, "phy", ""));
+
+    // Search through phy settings array which contains the objects with
+    // settings for phys/data rates supported from rf_defaults files
+    let phySetting = null;
+    for(phySetting of allPhySettings)
+    {
+        let phyType = null;
+        for(phyType of phyTypes)
+        {
+            // Check for phy property that contains the data rate currently
+            // selected
+            if(_.has(phySetting.args, phyType)
+                && phySetting.args[phyType].includes(dataRate))
+            {
+                rfPhyType = phySetting.args[phyType];
+                break;
+            }
+        }
+    }
+
+    return{
+        phyType: rfPhyType,
+        phyGroup: rfPhyGroup
+    };
+}
+
+/*
+ * ======== getFreqBandOptions ========
+ * Generates a list of frequency bands supported for drop down config
+ *
+ * @param inst - 15.4 instance (null during initialization)
+ * @returns Array - array of options representing frequency bands supported
+ */
+function getFreqBandOptions(inst)
+{
+    const freqBandOptions = [];
+
+    if(Common.isSub1GHzDevice())
+    {
+        freqBandOptions.push(
+            {
+                name: "freqBandSub1",
+                displayName: "Sub-1 GHz"
+            }
+        );
+    }
+
+    if(Common.is24GHzDevice(inst))
+    {
+        freqBandOptions.push(
+            {
+                name: "freqBand24",
+                displayName: "2.4 GHz"
+            }
+        );
+    }
+
+    return(freqBandOptions);
+}
+
+/*
+ *  ======== getDefaultPhyType ========
+ *  Retrieves the default phyType
+ *      * 50kbps for Sub-1 GHz
+ *      * 250kbps for 2.4 Ghz
+ *
+ *  @param getSubGDefault - Boolean. True selects Sub-1 GHz default value,
+ *      False returns 2.4 GHz default value
+ *  @returns - name of default phyType (50kbps, 2-GFSK)
+ */
+function getDefaultFreqBand(getSubGDefault)
+{
+    let defaultFreqBand;
+    if(getSubGDefault)
+    {
+        defaultFreqBand = "freqBandSub1";
+    }
+    else
+    {
+        defaultFreqBand = "freqBand24";
+    }
+
+    return(defaultFreqBand);
+}
+
+/*!
+ * ======== getSafeFreqBand ========
+ * Safely retrieve the value of the config by returning the instance value it's
+ * valid, otherwise returns the default value.
+ *
+ * Due to their nature, dynamic enum configurables may be incorrectly modified
+ * through the .syscfg file. While all dynamic configs have validation functions
+ * to detect such errors, the dependency of the radio config module requires
+ * safe access to some configs to avoid SysCOnfig breaks.
+ *
+ * Access to function needed from main power_config and rf_config files
+ *
+ * @param inst - 15.4 module instance (null during initialization)
+ * @returns - config value in instance (if valid), otherwise config default
+ *            value
+ */
+function getSafeFreqBand(inst)
+{
+    const validOptions = getFreqBandOptions(inst);
+    const isSubGSelected = Common.isSub1GHzDevice();
+    const defaultFreqBand = getDefaultFreqBand(isSubGSelected);
+
+    const freqBand = Common.getSafeDynamicConfig(inst, "freqBand",
+        defaultFreqBand, validOptions);
+
+    return(freqBand);
+}
+
+/*
+ *  ======== getDefaultPhyType ========
+ *  Retrieves the default phyType
+ *      * 50kbps for Sub-1 GHz
+ *      * 250kbps for 2.4 Ghz
+ *
+ *  @param getSubGDefault - Boolean. True selects Sub-1 GHz default value,
+ *      False returns 2.4 GHz default value
+ *  @returns - name of default phyType (50kbps, 2-GFSK)
+ */
+function getDefaultPhyType(getSubGDefault)
+{
+    let defaultPhyType;
+    if(getSubGDefault)
+    {
+        defaultPhyType = "phy50kbps";
+    }
+    else
+    {
+        defaultPhyType = "phyIEEE";
+    }
+
+    return(defaultPhyType);
+}
+
+/*
+ * ======== getPhyTypeOptions ========
+ * Generates list of phys supported for drop down config
+ *
+ * @param inst - 15.4 instance (null during initialization)
+ * @returns Array - array of options representing phys supported
+ */
+function getPhyTypeOptions(inst)
+{
+    let phyList;
+
+    // Extract phy settings from RF defaults files
+    if(inst.freqBand === "freqBandSub1")
+    {
+        // Get proprietary Sub-1 GHz RF defaults for the device being used
+        phyList = getBoardPhySettings(inst).defaultPropPhyList;
+    }
+    else
+    {
+        // Get IEEE 2.4 GHz RF defaults for the device being used
+        phyList = getBoardPhySettings(inst).defaultIEEEPhyList;
+    }
+
+    // Construct the drop down options array
+    return(_.map(phyList, (phy) => phy.phyDropDownOption));
+}
+
+/*!
+ * ======== getSafePhyType ========
+ * Safely retrieve the value of the config by returning the instance value it's
+ * valid, otherwise returns the default value.
+ *
+ * Due to their nature, dynamic enum configurables may be incorrectly modified
+ * through the .syscfg file. While all dynamic configs have validation functions
+ * to detect such errors, the dependency of the radio config module requires
+ * safe access to some configs to avoid SysCOnfig breaks.
+ *
+ * @param inst - 15.4 module instance (null during initialization)
+ * @returns - config value in instance (if valid), otherwise config default
+ *            value
+ */
+function getSafePhyType(inst)
+{
+    const validOptions = getPhyTypeOptions(inst);
+    const isSubGSelected = Common.isSub1GHzDevice();
+    const defaultPhyType = getDefaultPhyType(isSubGSelected);
+
+    const phyType = Common.getSafeDynamicConfig(inst, "phyType",
+        defaultPhyType, validOptions);
+
+    return(phyType);
+}
+
 exports = {
     commonSlLr5KbpsSettings: commonSlLr5KbpsSettings,
     common2Gfsk50KbpsSettings: common2Gfsk50KbpsSettings,
     common2Gfsk200KbpsSettings: common2Gfsk200KbpsSettings,
     commonIEEESettings: commonIEEESettings,
-    mergeRFSettings: mergeRFSettings
+    mergeRFSettings: mergeRFSettings,
+    getBoardPhySettings: getBoardPhySettings,
+    getPhyTypeGroupFromRFConfig: getPhyTypeGroupFromRFConfig,
+    getFreqBandOptions: getFreqBandOptions,
+    getDefaultFreqBand: getDefaultFreqBand,
+    getSafeFreqBand: getSafeFreqBand,
+    getDefaultPhyType: getDefaultPhyType,
+    getPhyTypeOptions: getPhyTypeOptions,
+    getSafePhyType: getSafePhyType
 };

@@ -10,7 +10,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2013-2019, Texas Instruments Incorporated
+ Copyright (c) 2013-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -63,7 +63,7 @@
 
 #ifdef FEATURE_SECURE_COMMISSIONING
 #include <ti/drivers/TRNG.h>
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 #include "mac_symbol_timer.h"
 
@@ -170,7 +170,7 @@ uint8_t AppTaskId;
 
 #ifdef FEATURE_SECURE_COMMISSIONING
 extern TRNG_Handle TRNG_handle;
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 /* ------------------------------------------------------------------------------------------------
  *                                           Functions
@@ -269,7 +269,7 @@ static void macInit(macUserCfg_t *pUserCfg)
   uint32_t key;
 #ifndef USE_DMM
   int_fast16_t status;
-#endif
+#endif /* USE_DMM */
 
 #ifdef FEATURE_MAC_SECURITY
 #if !defined(DeviceFamily_CC13X2) && !defined(DeviceFamily_CC26X2)
@@ -278,7 +278,7 @@ static void macInit(macUserCfg_t *pUserCfg)
   AESCCM_Params AESCCMParams;
 #ifdef FEATURE_SECURE_COMMISSIONING
   TRNG_Params TRNGParams;
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 #endif
 #endif //FEATURE_MAC_SECURITY
 
@@ -323,7 +323,7 @@ static void macInit(macUserCfg_t *pUserCfg)
   if (status != Random_STATUS_SUCCESS) {
       System_abort("Random_seedAutomatic() failed");
   }
-#endif
+#endif /* USE_DMM */
 
 #ifdef FEATURE_MAC_SECURITY
 #if !defined(DeviceFamily_CC13X2) && !defined(DeviceFamily_CC26X2)
@@ -355,8 +355,15 @@ static void macInit(macUserCfg_t *pUserCfg)
   //BLE Stack has opened the AESCCM driver
   extern AESCCM_Handle encHandleCCM;
   AESCCM_handle = encHandleCCM;
+
+  // BLE Stack has opened the AESECB driver
+  extern AESECB_Handle encHandleECB;
+  extern AESECB_Handle AESECB_handle;
+  AESECB_handle = encHandleECB;
+
 #ifdef FEATURE_SECURE_COMMISSIONING
   //Open separate TRNG driver instance than BLE Stack
+  TRNG_Params trngParams;
   TRNG_init();
   TRNG_Params_init(&trngParams);
   trngParams.returnBehavior = TRNG_RETURN_BEHAVIOR_POLLING;
@@ -374,7 +381,7 @@ static void macInit(macUserCfg_t *pUserCfg)
       /* abort */
       System_abort("TRNG open failed");
   }
-#endif /* FEATURE_SECURE_COMMISIONING */
+#endif /* FEATURE_SECURE_COMMISSIONING */
 #endif /*!defined(DeviceFamily_CC13X2) && !defined(DeviceFamily_CC26X2)*/
 #endif /* FEATURE_MAC_SECURITY */
 
@@ -627,6 +634,20 @@ static void macTaskFxn(UArg a0, UArg a1)
       {
         hdr.status = MAC_SUCCESS;
         hdr.event = MAC_BC_TIM_EXP_EVT ;
+        macExecute((macEvent_t *) &hdr);
+      }
+
+      if (macEvents & MAC_TX_BACKOFF_TIM_TASK_EVT)
+      {
+        hdr.status = MAC_SUCCESS;
+        hdr.event = TX_BACKOFF_TIM_EXP_EVT;
+        macExecute((macEvent_t *) &hdr);
+      }
+
+      if (macEvents & MAC_RX_BACKOFF_TIM_TASK_EVT)
+      {
+        hdr.status = MAC_SUCCESS;
+        hdr.event =  RX_BACKOFF_TIM_EXP_EVT;
         macExecute((macEvent_t *) &hdr);
       }
 

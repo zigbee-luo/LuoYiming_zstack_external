@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, Texas Instruments Incorporated
+ * Copyright (c) 2015-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ function getAsmFiles(targetName)
 
         default:
             return (null);
-	    break;
+            break;
     }
 }
 
@@ -98,7 +98,9 @@ if (xdc.om.$name == "cfg" || typeof(genCdoc) != "undefined") {
     deviceTable["TM4C129CNCPDT"] = deviceTable["MSP432P401R"];
     deviceTable["TM4.*"]         = deviceTable["MSP432P401R"];
 
-    /* Simplelink devices */
+    /* SimpleLink devices */
+    deviceTable["CC13.1.*"] = deviceTable["CC26.2.*"];
+    deviceTable["CC26.1.*"] = deviceTable["CC26.2.*"];
     deviceTable["CC13.2.*"] = deviceTable["CC26.2.*"];
 
     /* Keystone3 devices */
@@ -186,7 +188,7 @@ function module$use()
         var supportedDevices = new Object();
 
         for (var i = 0; i < catalog.$modules.length; i++) {
-            catalogName = catalog.$modules[i].$name.substring(
+            var catalogName = catalog.$modules[i].$name.substring(
                 Program.cpu.catalogName.length + 1);
 
             for (device in deviceTable) {

@@ -36,29 +36,28 @@
 
 "use strict";
 
-const Common = system.getScript("/ti/zstack/zstack_common.js");
+// Get RF command handler
+const CmdHandler = system.getScript("/ti/devices/radioconfig/cmd_handler.js");
+
+// Get radio config module functions
+const RadioConfig = system.getScript(
+    "/ti/devices/radioconfig/radioconfig_common.js"
+);
+
+const RadioConfigCommon = system.getScript("/ti/devices/radioconfig/radioconfig_common.js");
+
+// Get RF design functions
+const RfDesign = system.getScript("/ti/devices/radioconfig/rfdesign");
 
 // Get common utility functions
-const Common154 = system.getScript("/ti/ti154stack/ti154stack_common.js");
+const Common = system.getScript("/ti/zstack/zstack_common.js");
 
 // Get RF setting descriptions
 const Docs = system.getScript("/ti/ti154stack/rf_config/"
     + "ti154stack_rf_config_docs.js");
 
-let deviceName = Common154.getDeviceOrLaunchPadName(true);
-if (deviceName.includes("P1")){
-    deviceName = "CC1352P_2_LAUNCHXL";
-}
-
-// Get IEEE 2.4 GHz RF defaults for the LaunchPad or device being used
-const ieeePhySettings = system.getScript("/ti/ti154stack/rf_config/"
-    + deviceName
-    + "_rf_defaults.js").defaultIEEEPhyList;
-
-// Get proprietary Sub-1 GHz RF defaults for the LaunchPad or device being used
-const propPhySettings = system.getScript("/ti/ti154stack/rf_config/"
-    + deviceName
-    + "_rf_defaults.js").defaultPropPhyList;
+// Get common utility functions
+const TI154Common = system.getScript("/ti/ti154stack/ti154stack_common.js");
 
 const deviceId = system.deviceData.deviceId;
 
@@ -96,14 +95,11 @@ Guide.
 
 **Range:** Any combination of channels 11-26`;
 
-const minTransDescription = `Minimum transmissions to attempt to find a low \
-interference channel. Set to 0 to disable frequency agility.`;
+const txpowerDescription = `The default transmit power in dBm`;
 
-const minTransLongDescription = minTransDescription + `\n\n\
-**Default:** 20
+const txpowerLongDescription = `The default transmit power in dBm
 
-**Range:** 0 - 127`;
-
+**Default Power:** 0`;
 
 /* Frequency channel options for enumeration configurables */
 const rfOptions = [
@@ -133,6 +129,14 @@ const phyDropDownOption = [{
 /* RF submodule for zstack module */
 const rfModule = {
     config: [
+        {
+            name: "rfDesign",
+            displayName: "Based On RF Design",
+            options: getRfDesignOptions(),
+            default: getRfDesignOptions()[0].name,
+            description: Docs.rfDesign.description,
+            longDescription: Docs.rfDesign.longDescription
+        },
         {
             name: "primaryChannels",
             displayName: "Primary Channels",
@@ -166,7 +170,7 @@ const rfModule = {
         {
             name: "phyType",
             displayName: "Phy Type",
-            options: phyDropDownOption, 
+            options: phyDropDownOption,
             default: "phyIEEE",
             hidden: false,
             description: Docs.phyType.description,
@@ -180,26 +184,56 @@ const rfModule = {
             description: Docs.phyID.description,
             longDescription: Docs.phyID.longDescription,
             hidden: true
+        },
+        {
+            name: "txPower",
+            displayName: "Transmit Power",
+            description: txpowerDescription,
+            longDescription: txpowerLongDescription,
+            options: (inst) => getTxPowerConfigOptions(inst),
+            default: "0"
         }
     ],
     validate: validate,
     moduleInstances: moduleInstances
 };
 
+
 /* RadioConfig module definition and default configurations */
 function moduleInstances(inst)
 {
     let isPDevice = false;
 
+    let phySettings = Common.getBoardPhySettings(inst).defaultIEEEPhyList;
+
+    // Get settings from selected phy
+    const radioConfigArgs = _.cloneDeep(phySettings[0].args);
+
     if(deviceId.match(/CC1352P/))
     {
         isPDevice = true;
+        if ( !isNaN(inst.txPower) )
+        {
+          // High PA Tx Power values start at 6dBm
+          if ( parseInt(inst.txPower) > 5 )
+          {
+            radioConfigArgs.highPA = true;
+            radioConfigArgs["txPowerHi"] = (inst.txPower);
+          }
+          else
+          {
+            radioConfigArgs.highPA = false;
+            radioConfigArgs["txPower"] = (inst.txPower);
+          }
+        }
+        else
+        {
+          radioConfigArgs.highPA = false;
+        }
     }
 
-    const radioConfigArgs = {
-        codeExportConfig: ieeePhySettings[0].args.codeExportConfig
-    };
-    radioConfigArgs.codeExportConfig.paExport= isPDevice ? "combined" : "active";
+    radioConfigArgs.codeExportConfig.paExport = isPDevice
+        ? "combined" : "active";
 
     const radioConfigModule = {
         name: "radioConfig",
@@ -214,6 +248,43 @@ function moduleInstances(inst)
 }
 
 /*
+ *  ======== getRfDesignOptions ========
+ *  Generates an array of SRFStudio compatible rfDesign options based on device
+ *
+ * @param deviceId - device being used
+ *
+ * @returns Array - Array of rfDesign options, if the device isn't supported,
+ *                  returns null
+ */
+function getRfDesignOptions()
+{
+    const deviceId = system.deviceData.deviceId;
+    let newRfDesignOptions = null;
+
+    if(deviceId === "CC1352P1F3RGZ")
+    {
+        newRfDesignOptions = [
+            {name: "LAUNCHXL-CC1352P-2"},
+            {name: "LAUNCHXL-CC1352P-4"}
+        ];
+    }
+    else if(deviceId === "CC1352R1F3RGZ")
+    {
+        newRfDesignOptions = [{name: "LAUNCHXL-CC1352R1"}];
+    }
+    else if(deviceId === "CC2652R1FRGZ")
+    {
+        newRfDesignOptions = [{name: "LAUNCHXL-CC26X2R1"}];
+    }
+    else if(deviceId === "CC2652RB")
+    {
+        newRfDesignOptions = [{name: "LAUNCHXL-CC2652RB"}];
+    }
+
+    return(newRfDesignOptions);
+}
+
+/*
  *  ======== getFrequencyBandOptions ========
  *  Gets the array of frequency bands supported by the board/devices
  *
@@ -222,14 +293,14 @@ function moduleInstances(inst)
  */
 function getFrequencyBandOptions()
 {
-    let freqBandOptions = [];
+    const freqBandOptions = [];
 
     freqBandOptions.push(
         {
             name: "freqBand24",
-            displayName: "2.4 GHz"            
-        },
-    ) 
+            displayName: "2.4 GHz"
+        }
+    );
 
     return freqBandOptions;
 }
@@ -244,35 +315,94 @@ function getFrequencyBandOptions()
  */
 function getDefaultFreqBand()
 {
-    let defaultFreqBand;
-
-    defaultFreqBand = "freqBand24"
+    const defaultFreqBand = "freqBand24";
 
     return defaultFreqBand;
-}
-
-/*
- *  ======== getPhyTypeOptions ========
- *  Retrieves the sub-1 GHz phy types from the <board_name>_rf_defaults.js
- *  file and returns an options array for the 15.4 stack
- *
- *  @returns Array - an array containing one or more dictionaries with the
- *                   following keys: displayName, name
- */
-function getPhyTypeOptions()
-{
-    // Construct the drop down options array   
-    return _.map(ieeePhySettings, phy => phy.phyDropDownOption);
 }
 
 /* Validation function for the RF submodule */
 function validate(inst, validation)
 {
-    if (((inst.freqBand === "freqBandSub1") && (inst.phyType === "phyIEEE")) ||
-    ((inst.freqBand === "freqBand24") && (inst.phyType !== "phyIEEE"))) 
+    if(((inst.freqBand === "freqBandSub1") && (inst.phyType === "phyIEEE"))
+        || ((inst.freqBand === "freqBand24") && (inst.phyType !== "phyIEEE")))
     {
-        validation.logError("Phy type selected not supported by this frequency band");
+        validation.logError("Phy type selected not supported by"
+        + "this frequency band");
     }
+
+    // Get the RF Design module
+    const rfDesign = system.modules["/ti/devices/radioconfig/rfdesign"].$static;
+
+    if(rfDesign.rfDesign === "LAUNCHXL-CC1352P1")
+    {
+        validation.logError(
+            `This stack does not support this board configuration`,
+            rfDesign, "rfDesign"
+        );
+    }
+
+    if(inst.rfDesign !== rfDesign.rfDesign)
+    {
+        validation.logError(`Must match ${system.getReference(rfDesign,
+            "rfDesign")} in the RF Design Module`, inst, "rfDesign");
+    }
+
+    const validOptions = getTxPowerConfigOptions(inst);
+    TI154Common.validateDynamicEnum(inst, validation, "txPower", validOptions);
+}
+
+/*!
+ * ======== getTxPowerConfigOptions ========
+ *
+ * Get list of available Tx power values
+ *
+ * @returns a list of available transmit power options from the radio config
+ */
+function getTxPowerConfigOptions(inst)
+{
+    let txPowerValueList = [];
+
+    // Get the command handler for this phy instance
+    const cmdHandler = CmdHandler.get(RadioConfig.PHY_IEEE_15_4, "ieee154");
+    let freq = cmdHandler.getFrequency();
+
+    // special case for P-4
+    if (inst.rfDesign == "LAUNCHXL-CC1352P-4")
+    {
+      freq = 2499;
+    }
+
+    // TxPowerOptions with highPA disabled
+    txPowerValueList = _.concat(
+        txPowerValueList, RfDesign.getTxPowerOptions(freq, false)
+    );
+
+    if(deviceId.match(/CC1352P/))
+    {
+        txPowerValueList = _.concat(
+            txPowerValueList, RfDesign.getTxPowerOptions(freq, true)
+        );
+    }
+
+    // Round all tx power values
+    _.forEach(txPowerValueList, (option) =>
+    {
+        option.name = _.round(option.name);
+    });
+
+    // Remove any duplicates
+    txPowerValueList = _.uniqBy(txPowerValueList, "name");
+
+    // Sort values in descending order
+    txPowerValueList = _.orderBy(txPowerValueList, "name", "desc");
+
+    // convert int array to string array
+    _.forEach(txPowerValueList, (option) =>
+    {
+        option.name = option.name + "";
+    });
+
+    return(txPowerValueList);
 }
 
 exports = rfModule;

@@ -105,17 +105,17 @@ extern "C"
 #endif
 %
 
-/*! Setting for PAN ID */
+/* Setting for PAN ID */
 #define CONFIG_PAN_ID                   `Common.toHexString(inst.panID)`
 
-/*! Setting for phy ID */
+/* Setting for phy ID */
 #define CONFIG_PHY_ID                   `inst.phyID`
 
-/*! Setting for channel page */
+/* Setting for channel page */
 #define CONFIG_CHANNEL_PAGE             `inst.channelPage`
 
-% let channelMaskHexArr = Common.channelMaskCHexStrArr(inst["channelMask"]);
-/*!
+% let channelMaskHexArr = Common.channelMaskCHexStrArr(inst["channels"]);
+/*
  Channel mask used when CONFIG_FH_ENABLE is false.
  Each bit indicates if the corresponding channel is to be scanned
  First byte represents channels 0 to 7 and the last byte represents
@@ -128,8 +128,8 @@ extern "C"
                                           `_.slice(channelMaskHexArr,6,12)`, \
                                           `_.slice(channelMaskHexArr,12)` }
 
-% channelMaskHexArr = Common.channelMaskCHexStrArr(inst["fhChannelMask"]);
-/*!
+% channelMaskHexArr = Common.channelMaskCHexStrArr(inst["fhChannels"]);
+/*
  Channel mask used when CONFIG_FH_ENABLE is true.
  Represents the list of channels on which the device can hop.
  The actual sequence used shall be based on DH1CF function.
@@ -140,8 +140,8 @@ extern "C"
                                           `_.slice(channelMaskHexArr,6,12)`, \
                                           `_.slice(channelMaskHexArr,12)` }
 
-% channelMaskHexArr = Common.channelMaskCHexStrArr(inst["fhAsyncChannelMask"]);
-/*!
+% channelMaskHexArr = Common.channelMaskCHexStrArr(inst["fhAsyncChannels"]);
+/*
  List of channels to target asynchronous frames when CONFIG_FH_ENABLE = true.
  It is represented as a bit string with LSB representing Ch0
  e.g., 0x01 0x10 represents Ch0 and Ch12 are included
@@ -154,47 +154,58 @@ extern "C"
                                           `_.slice(channelMaskHexArr,6,12)`, \
                                           `_.slice(channelMaskHexArr,12)` }
 
+% let allValidChannels = networkScript.getChannelOptions(inst, false);
+% allValidChannels = networkScript.selectAllOptions(allValidChannels);
+% channelMaskHexArr = Common.channelMaskCHexStrArr(allValidChannels);
+/*
+Channel mask composed of all supported channels for selected PHY. Used to
+validate user input during runtime channel mask configuration.
+*/
+#define CUI_VALID_CHANNEL_MASK          { `_.slice(channelMaskHexArr,0,6)`, \
+                                          `_.slice(channelMaskHexArr,6,12)`, \
+                                          `_.slice(channelMaskHexArr,12)` }
+
 /* Setting for FH network name attribute */
 #define CONFIG_FH_NETNAME               {"`inst.fhNetname`"}
 
 % if (!networkScript.getNetworkConfigHiddenState(inst, "maxDevices")) {
-/*! Setting for maximum devices in association table */
+/* Setting for maximum devices in association table */
 #define CONFIG_MAX_DEVICES              `inst.maxDevices`
 
 % }
-/*!
+/*
  Setting for reporting interval - in milliseconds to be set on connected devices
  using configuration request messages
  */
 #define CONFIG_REPORTING_INTERVAL       `inst.reportingInterval`
 
-/*!
+/*
  Setting for polling interval - in milliseconds to be set on connected devices
  using configuration request messages
  */
 #define CONFIG_POLLING_INTERVAL         `inst.pollingInterval`
 
 % if (!networkScript.getNetworkConfigHiddenState(inst, "trackingDelayTime")) {
-/*! Setting for interval in ms between tracking message intervals */
+/* Setting for interval in ms between tracking message intervals */
 #define TRACKING_DELAY_TIME             `inst.trackingDelayTime`
 
 % }
 % // Backoff configs required to be generated for sensor projects only
 % if (inst.project.includes("sensor")) {
-/*! Setting for interval in ms between tracking message intervals */
+/* Setting for interval in ms between tracking message intervals */
 #define CONFIG_SCAN_BACKOFF_INTERVAL    `inst.scanBackoffInterval`
 
-/*! Setting for delay in ms between orphan notifications */
+/* Setting for delay in ms between orphan notifications */
 #define CONFIG_ORPHAN_BACKOFF_INTERVAL  `inst.orphanBackoffInterval`
 
 % }
-/*! Setting for scan duration in seconds */
+/* Setting for scan duration in seconds */
 #define CONFIG_SCAN_DURATION            `inst.scanDuration`
 
-/*! Setting for beacon order */
+/* Setting for beacon order */
 #define CONFIG_MAC_BEACON_ORDER         `inst.macBeaconOrder`
 
-/*! Setting for superframe order */
+/* Setting for superframe order */
 #define CONFIG_MAC_SUPERFRAME_ORDER     `inst.macSuperframeOrder`
 
 /* Setting for minimum backoff exponent */
@@ -205,51 +216,51 @@ extern "C"
 
 % // FH broadcast configs required to be generated for collector projects only
 % if (inst.project.includes("collector")) {
-/*! Setting for FH application broadcast msg generation interval in ms */
+/* Setting for FH application broadcast msg generation interval in ms */
 #define FH_BROADCAST_INTERVAL           `inst.fhBroadcastInterval`
 
-/*! Setting for FH application broadcast dwell time in ms */
+/* Setting for FH application broadcast dwell time in ms */
 #define FH_BROADCAST_DWELL_TIME         `inst.fhBroadcastDwellTime`
 % }
 
 % const isSub1BandSet = (inst.freqBand === "freqBandSub1");
-% const curTxPowerCfg = (isSub1BandSet ? inst.transmitPowerSubG : inst.transmitPower24G);
+% const curTxPowerCfg = inst.transmitPower;
 /* ! Setting for transmit power in dBm */
 #define CONFIG_TRANSMIT_POWER           `curTxPowerCfg`
 
-/*! Setting to enable frequency hopping mode */
+/* Setting to enable frequency hopping mode */
 #define CONFIG_FH_ENABLE                `inst.mode === "frequencyHopping"`
 
 % if (!powerScript.getPowerConfigHiddenState(inst, "rxOnIdle")) {
-/*! Setting to enable RX on when idle. False for sleepy device */
+/* Setting to enable RX on when idle. False for sleepy device */
 #define CONFIG_RX_ON_IDLE               `inst.rxOnIdle`
 
 % }
-/*! Setting to enable network security */
+/* Setting to enable network security */
 #define CONFIG_SECURE                   `inst.secureLevel !== "macSecureDisabled"`
 
 % const keyTableArr = keyTable();
-/*! Setting for network security key*/
+/* Setting for network security key*/
 #define KEY_TABLE_DEFAULT_KEY           { `_.slice(keyTableArr,0,8)`, \
                                           `_.slice(keyTableArr,8)` }
 
 % if (!securityScript.getSecurityConfigHiddenState(inst, "smCollectorAuthMethods")) {
-/*! Setting for authentication methods supported on the collector */
+/* Setting for authentication methods supported on the collector */
 #define SM_COLLECTOR_AUTH_METHODS       (`_.join(inst.smCollectorAuthMethods, "|")`)
 
 % }
 % if (!securityScript.getSecurityConfigHiddenState(inst, "smSensorAuthMethods")) {
-/*! Setting for authentication methods supported on the collector */
+/* Setting for authentication methods supported on the collector */
 #define SM_SENSOR_DEFAULT_AUTH_METHOD   `inst.smSensorAuthMethods`
 
 % }
 % if (!securityScript.getSecurityConfigHiddenState(inst, "smDefaultAuthCode")) {
-/*! Setting for pre-defined authentication code */
+/* Setting for pre-defined authentication code */
 #define SM_DEFAULT_AUTH_CODE            `Common.toHexString(inst.smDefaultAuthCode, 5)`
 
 % }
 % if (!securityScript.getSecurityConfigHiddenState(inst, "smKeyrefreshTimeout")) {
-/*! Setting for interval in seconds between key refreshments */
+/* Setting for interval in seconds between key refreshments */
 #define SM_KEYREFRESH_TIMEOUT           `inst.smKeyrefreshTimeout`
 
 % }
@@ -257,7 +268,7 @@ extern "C"
 #define CERTIFICATION_TEST_MODE         `inst.certificationTestMode`
 
 % if (inst.powerTestEnable) {
-/*! Setting to enable power measurement test mode */
+/* Setting to enable power measurement test mode */
 #define POWER_MEAS
 
 % }

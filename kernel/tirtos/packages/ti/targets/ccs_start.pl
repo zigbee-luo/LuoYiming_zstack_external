@@ -1,5 +1,5 @@
 #
-#  Copyright 2019 by Texas Instruments Incorporated.
+#  Copyright 2020 by Texas Instruments Incorporated.
 #  
 #
 
@@ -33,7 +33,7 @@ if ($proj) {
     }
 }
 #
-#  @(#) ti.targets; 1, 0, 3,0; 8-9-2019 17:15:03; /db/ztree/library/trees/xdctargets/xdctargets-v00/src/ xlibrary
+#  @(#) ti.targets; 1, 0, 3,; 5-11-2020 15:30:20; /db/ztree/library/trees/xdctargets/xdctargets-w14/src/ xlibrary
 
 #
 

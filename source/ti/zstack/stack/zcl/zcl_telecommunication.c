@@ -85,7 +85,7 @@
 #define TELECOMMUNICATIONS_CHATTING_USER_LEFT_SIZE              5
 #define TELECOMMUNICATIONS_CHATTING_SEARCH_CHAT_RSP_SIZE        1
 #define TELECOMMUNICATIONS_CHATTING_SWITCH_CHAIRMAN_REQ_SIZE    2
-#define TELECOMMUNICATIONS_CHATTING_SWITCH_CHAIRMAN_CNF_SIZE    1
+#define TELECOMMUNICATIONS_CHATTING_SWITCH_CHAIRMAN_CNF_SIZE    2
 #define TELECOMMUNICATIONS_CHATTING_SWITCH_CHAIRMAN_NOTIF_SIZE  7
 #define TELECOMMUNICATIONS_CHATTING_GET_NODE_INFO_RSP_SIZE      5
 
@@ -1907,9 +1907,9 @@ ZStatus_t zclTel_InfoSendDeleteRsp( uint8_t srcEP, afAddrType_t *dstAddr,
 #ifdef ZCL_CHATTING
 
 /*********************************************************************
- * @fn      zclTel_ChatJoinReq
+ * @fn      zclTel_ChatJoinChatReq
  *
- * @brief   Call to send out a Send Join Request command
+ * @brief   Call to send out a Send Join Chat Request command
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
@@ -1920,7 +1920,7 @@ ZStatus_t zclTel_InfoSendDeleteRsp( uint8_t srcEP, afAddrType_t *dstAddr,
  * @return  ZStatus_t
  */
 
-ZStatus_t zclTel_ChatJoinReq( uint8_t srcEP, afAddrType_t *dstAddr,
+ZStatus_t zclTel_ChatJoinChatReq( uint8_t srcEP, afAddrType_t *dstAddr,
                                     zcl_Tel_Chat_JoinReq_t* pCmd, uint8_t disableDefaultRsp, uint8_t seqNum )
 {
   uint8_t bufLen = TELECOMMUNICATIONS_CHATTING_JOIN_REQ_SIZE;
@@ -1928,19 +1928,23 @@ ZStatus_t zclTel_ChatJoinReq( uint8_t srcEP, afAddrType_t *dstAddr,
   uint8_t *tempBuf = NULL;
   ZStatus_t stat = ZSuccess;
 
-  bufLen += *(pCmd->Nickname);
+  bufLen += pCmd->Nickname[0];
 
-  buf = zcl_mem_alloc(bufLen);
+  buf = tempBuf = zcl_mem_alloc(bufLen);
 
-  tempBuf = buf;
+  if(buf == NULL)
+  {
+    return ZMemError;
+  }
 
-  tempBuf[0] = LO_UINT16(pCmd->U_ID);
-  tempBuf[1] = HI_UINT16(pCmd->U_ID);
-  tempBuf += 2;
-  tempBuf = zcl_memcpy(tempBuf,pCmd->Nickname,*(pCmd->Nickname) + 1);
-  tempBuf[0] = LO_UINT16(pCmd->C_ID);
-  tempBuf[1] = HI_UINT16(pCmd->C_ID);
+  *tempBuf++ = LO_UINT16(pCmd->U_ID);
+  *tempBuf++ = HI_UINT16(pCmd->U_ID);
 
+  // Copy length of nickname and length byte
+  tempBuf = zcl_memcpy(tempBuf, &pCmd->Nickname[0], pCmd->Nickname[0] + 1);
+
+  *tempBuf++ = LO_UINT16(pCmd->C_ID);
+  *tempBuf++ = HI_UINT16(pCmd->C_ID);
 
   stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_TELECOMMUNICATIONS_CHATTING,
                         COMMAND_TEL_CHATTING_JOIN_CHAT_REQ, TRUE,
@@ -2061,21 +2065,22 @@ ZStatus_t zclTel_ChatStartChatReq( uint8_t srcEP, afAddrType_t *dstAddr,
   uint8_t *tempBuf = NULL;
   ZStatus_t stat = ZSuccess;
 
-  bufLen += *(pCmd->Name) + *(pCmd->Nickname);
+  bufLen += pCmd->Name[0] + pCmd->Nickname[0];
 
-  buf = zcl_mem_alloc(bufLen);
+  buf = tempBuf = zcl_mem_alloc(bufLen);
 
   if(buf == NULL)
   {
     return ZMemError;
   }
-  tempBuf = buf;
 
-  tempBuf = zcl_memcpy(tempBuf,pCmd->Name, *(pCmd->Name) + 1);
-  tempBuf[0] = LO_UINT16(pCmd->U_ID);
-  tempBuf[1] = HI_UINT16(pCmd->U_ID);
-  tempBuf += 2;
-  tempBuf = zcl_memcpy(tempBuf,pCmd->Name, *(pCmd->Nickname) + 1);
+  // Copy length of name and length byte
+  tempBuf = zcl_memcpy(tempBuf, &pCmd->Name[0], pCmd->Name[0] + 1);
+  *tempBuf++ = LO_UINT16(pCmd->U_ID);
+  *tempBuf++ = HI_UINT16(pCmd->U_ID);
+
+  // Copy length of nickname and length byte
+  tempBuf = zcl_memcpy(tempBuf, &pCmd->Nickname[0], pCmd->Nickname[0] + 1);
 
   stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_TELECOMMUNICATIONS_CHATTING,
                         COMMAND_TEL_CHATTING_START_CHAT_REQ, TRUE,
@@ -2109,31 +2114,32 @@ ZStatus_t zclTel_ChatChatMessage( uint8_t srcEP, afAddrType_t *dstAddr,
   uint8_t *tempBuf = NULL;
   ZStatus_t stat = ZSuccess;
 
-  bufLen += *(pCmd->Message) + *(pCmd->Nickname);
+  bufLen += pCmd->Nickname[0] + pCmd->Message[0];
 
-  buf = zcl_mem_alloc(bufLen);
+  buf = tempBuf = zcl_mem_alloc(bufLen);
 
   if(buf == NULL)
   {
     return ZMemError;
   }
-  tempBuf = buf;
 
-  tempBuf[0] = LO_UINT16(pCmd->Dest_U_ID);
-  tempBuf[1] = HI_UINT16(pCmd->Dest_U_ID);
-  tempBuf[2] = LO_UINT16(pCmd->Src_U_ID);
-  tempBuf[3] = HI_UINT16(pCmd->Src_U_ID);
-  tempBuf[4] = LO_UINT16(pCmd->C_ID);
-  tempBuf[5] = HI_UINT16(pCmd->C_ID);
-  tempBuf += 6;
+  *tempBuf++ = LO_UINT16(pCmd->Dest_U_ID);
+  *tempBuf++ = HI_UINT16(pCmd->Dest_U_ID);
+  *tempBuf++ = LO_UINT16(pCmd->Src_U_ID);
+  *tempBuf++ = HI_UINT16(pCmd->Src_U_ID);
+  *tempBuf++ = LO_UINT16(pCmd->C_ID);
+  *tempBuf++ = HI_UINT16(pCmd->C_ID);
 
-  tempBuf = zcl_memcpy(tempBuf,pCmd->Nickname, *(pCmd->Nickname) + 1);
-  tempBuf = zcl_memcpy(tempBuf,pCmd->Message, *(pCmd->Message) + 1);
+  // Copy length of nickname and length byte
+  tempBuf = zcl_memcpy(tempBuf, &pCmd->Nickname[0], pCmd->Nickname[0] + 1);
+
+  // Copy length of message and length byte
+  tempBuf = zcl_memcpy(tempBuf, &pCmd->Message[0], pCmd->Message[0] + 1);
 
   stat =  zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_TELECOMMUNICATIONS_CHATTING,
-                        COMMAND_TEL_CHATTING_CHAT_MESSAGE, TRUE,
-                        ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0,
-                        seqNum, bufLen, buf );
+                         COMMAND_TEL_CHATTING_CHAT_MESSAGE, TRUE,
+                         ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0,
+                         seqNum, bufLen, buf );
   zcl_mem_free(buf);
 
   return stat;
@@ -2225,60 +2231,57 @@ ZStatus_t zclTel_ChatStartChatRsp( uint8_t srcEP, afAddrType_t *dstAddr,
 ZStatus_t zclTel_ChatJoinChatRsp( uint8_t srcEP, afAddrType_t *dstAddr,
                                     zcl_Tel_Chat_JoinChatRsp_t* pCmd, uint8_t disableDefaultRsp, uint8_t seqNum )
 {
-  uint8_t bufLen = TELECOMMUNICATIONS_CHATTING_START_CHAT_RSP_SIZE;
-  uint8_t *buf = 0;
+  uint8_t bufLen = TELECOMMUNICATIONS_CHATTING_JOIN_CHAT_RSP_SIZE;
+  uint8_t *buf = NULL;
   uint8_t *tempBuf = NULL;
   uint8_t i;
   ZStatus_t stat = ZSuccess;
   ChatUser_t *ChatUsers = NULL;
 
-  if(pCmd->numberChatUsers)
+  if(pCmd->status == ZSuccess && pCmd->numberChatUsers)
   {
     //Increase length of buffer by number of U_IDs in the list
     bufLen += pCmd->numberChatUsers * 2;
 
     ChatUsers = pCmd->ChatUsers;
 
-    //increase length of buffer by the nickname length
+    //Increase length of buffer by the nickname length and length byte
     for(i=0; i < pCmd->numberChatUsers; i++)
     {
-      uint8_t  *ptr = (uint8_t*)ChatUsers;
-      bufLen += *(ChatUsers->Nickname);
-      //Point to the next chat user ( U_ID + Nickname length + length field)
-      ptr += 2 + *(ChatUsers->Nickname) + 1;
-
+      uint8_t *ptr = (uint8_t*)ChatUsers;
+      bufLen += ChatUsers->Nickname[0] + 1;
+      // Point to next chat user
+      ptr += sizeof(ChatRoom_t);
       ChatUsers = (ChatUser_t*)ptr;
     }
   }
 
-  buf = zcl_mem_alloc(bufLen);
+  buf = tempBuf = zcl_mem_alloc(bufLen);
 
   if(buf == NULL)
   {
     return ZMemError;
   }
 
-  tempBuf = buf;
-
-  tempBuf[0] = pCmd->status;
-  tempBuf[1] = LO_UINT16(pCmd->C_ID);
-  tempBuf[2] = HI_UINT16(pCmd->C_ID);
-  tempBuf += 3;
+  *tempBuf++ = pCmd->status;
+  *tempBuf++ = LO_UINT16(pCmd->C_ID);
+  *tempBuf++ = HI_UINT16(pCmd->C_ID);
 
   ChatUsers = pCmd->ChatUsers;
 
-  //Copy the nicknames
-  for(i=0; i < pCmd->numberChatUsers; i++)
-  {
-    uint8_t*  ptr = (uint8_t*)ChatUsers;
-    tempBuf[0] = LO_UINT16(ChatUsers->U_ID);
-    tempBuf[1] = HI_UINT16(ChatUsers->U_ID);
-    tempBuf += 2;
-    tempBuf = zcl_memcpy(tempBuf,ChatUsers->Nickname,*(ChatUsers->Nickname) + 1);
+  // Copy the nicknames
+  if(pCmd->status == ZSuccess){
+    for(i=0; i < pCmd->numberChatUsers; i++)
+    {
+      uint8_t* ptr = (uint8_t*)ChatUsers;
+      *tempBuf++ = LO_UINT16(ChatUsers->U_ID);
+      *tempBuf++ = HI_UINT16(ChatUsers->U_ID);
+      tempBuf = zcl_memcpy(tempBuf, ChatUsers->Nickname, ChatUsers->Nickname[0] + 1);
 
-    //Point to the next chat user (U_ID + Nickname length + length field)
-    ptr += 2 + *(ChatUsers->Nickname) + 1;
-    ChatUsers = (ChatUser_t*)ptr;
+      // Point to next chat user
+      ptr += sizeof(ChatRoom_t);
+      ChatUsers = (ChatUser_t*)ptr;
+    }
   }
 
   stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_TELECOMMUNICATIONS_CHATTING,
@@ -2310,7 +2313,7 @@ ZStatus_t zclTel_ChatUserLeftJoined( uint8_t srcEP, afAddrType_t *dstAddr,
                                     zcl_Tel_Chat_UserLeftJoined_t* pCmd, uint8_t disableDefaultRsp, uint8_t seqNum )
 {
   uint8_t bufLen = TELECOMMUNICATIONS_CHATTING_USER_LEFT_SIZE;
-  uint8_t *buf = 0;
+  uint8_t *buf = NULL;
   uint8_t *tempBuf = NULL;
   ZStatus_t stat = ZSuccess;
   uint16_t cmdId;
@@ -2324,25 +2327,22 @@ ZStatus_t zclTel_ChatUserLeftJoined( uint8_t srcEP, afAddrType_t *dstAddr,
     cmdId = COMMAND_TEL_CHATTING_USER_JOINED;
   }
 
-  //Increase buffer length by the nickname length
-  bufLen += *(pCmd->ChatUser.Nickname);
+  //Increase buffer length by the nickname length (length byte included in USER_LEFT_SIZE)
+  bufLen += pCmd->ChatUser.Nickname[0];
 
-  buf = zcl_mem_alloc(bufLen);
+  buf = tempBuf = zcl_mem_alloc(bufLen);
 
   if(buf == NULL)
   {
     return ZMemError;
   }
 
-  tempBuf = buf;
+  *tempBuf++ = LO_UINT16(pCmd->C_ID);
+  *tempBuf++ = HI_UINT16(pCmd->C_ID);
+  *tempBuf++ = LO_UINT16(pCmd->ChatUser.U_ID);
+  *tempBuf++ = HI_UINT16(pCmd->ChatUser.U_ID);
 
-  tempBuf[0] = LO_UINT16(pCmd->C_ID);
-  tempBuf[1] = HI_UINT16(pCmd->C_ID);
-  tempBuf[2] = LO_UINT16(pCmd->ChatUser.U_ID);
-  tempBuf[3] = HI_UINT16(pCmd->ChatUser.U_ID);
-  tempBuf += 4;
-
-  zcl_memcpy(tempBuf,pCmd->ChatUser.Nickname,*(pCmd->ChatUser.Nickname) + 1);
+  tempBuf = zcl_memcpy(tempBuf, pCmd->ChatUser.Nickname, pCmd->ChatUser.Nickname[0] + 1);
 
   stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_TELECOMMUNICATIONS_CHATTING,
                         cmdId, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0,
@@ -2371,7 +2371,7 @@ ZStatus_t zclTel_ChatSearchChatRsp( uint8_t srcEP, afAddrType_t *dstAddr,
                                     zcl_Tel_Chat_SearchChatRsp_t *pCmd, uint8_t disableDefaultRsp, uint8_t seqNum )
 {
   uint8_t bufLen = TELECOMMUNICATIONS_CHATTING_SEARCH_CHAT_RSP_SIZE;
-  uint8_t *buf = 0;
+  uint8_t *buf = NULL;
   uint8_t *tempBuf = NULL;
   uint8_t i;
   ZStatus_t stat = ZSuccess;
@@ -2384,44 +2384,39 @@ ZStatus_t zclTel_ChatSearchChatRsp( uint8_t srcEP, afAddrType_t *dstAddr,
 
     ChatRoom = pCmd->ChatRoom;
 
-    //increase length of buffer by the name length
+    //Increase length of buffer by the name length
     for(i=0; i < pCmd->numberChatRooms; i++)
     {
       uint8_t* ptr = (uint8_t*)ChatRoom;
-      bufLen += *(ChatRoom->Name);
-      //Point to the next chat user ( U_ID + Name length + length field)
-      ptr += 2 + *(ChatRoom->Name) + 1;
-
+      bufLen += ChatRoom->Name[0] + 1;
+      // Point to next chat room
+      ptr += sizeof(ChatRoom_t);
       ChatRoom = (ChatRoom_t*)ptr;
     }
   }
 
-  buf = zcl_mem_alloc(bufLen);
+  buf = tempBuf = zcl_mem_alloc(bufLen);
 
   if(buf == NULL)
   {
     return ZMemError;
   }
 
-  tempBuf = buf;
-
-  tempBuf[0] = pCmd->options;
-  tempBuf += 1;
+  *tempBuf++ = pCmd->options;
 
   ChatRoom = pCmd->ChatRoom;
 
-  //Copy the nicknames
+  //Copy the chat room names
   for(i=0; i < pCmd->numberChatRooms; i++)
   {
-    uint8_t*  ptr = (uint8_t*)ChatRoom;
+    uint8_t* ptr = (uint8_t*)ChatRoom;
 
-    tempBuf[0] = LO_UINT16(ChatRoom->C_ID);
-    tempBuf[1] = HI_UINT16(ChatRoom->C_ID);
-    tempBuf += 2;
-    tempBuf = zcl_memcpy(tempBuf,ChatRoom->Name,*(ChatRoom->Name) + 1);
+    *tempBuf++ = LO_UINT16(ChatRoom->C_ID);
+    *tempBuf++ = HI_UINT16(ChatRoom->C_ID);
+    tempBuf = zcl_memcpy(tempBuf, ChatRoom->Name, ChatRoom->Name[0] + 1);
 
-    //Point to the next chat user ( U_ID + Nickname length + length field)
-    ptr +=  2 + *(ChatRoom->Name) + 1;
+    //Point to next chat room
+    ptr += sizeof(ChatRoom_t);
     ChatRoom = (ChatRoom_t*)ptr;
   }
 
@@ -2482,16 +2477,15 @@ ZStatus_t zclTel_ChatSwitchChairmanCnf( uint8_t srcEP, afAddrType_t *dstAddr,
                                     zcl_Tel_Chat_SwitchChairmanCnf_t *pCmd, uint8_t disableDefaultRsp, uint8_t seqNum )
 {
   uint8_t bufLen = TELECOMMUNICATIONS_CHATTING_SWITCH_CHAIRMAN_CNF_SIZE;
-  uint8_t *buf = 0;
+  uint8_t *buf = NULL;
   uint8_t *tempBuf = NULL;
   uint8_t i;
   ZStatus_t stat = ZSuccess;
   NodeInfo_t *NodeInfo = NULL;
 
-
   if(pCmd->numberNodeInfo)
   {
-    //Increase length of buffer by number of node rooms (each node room must have U_ID,ShortAddr and endpoint)
+    //Increase length of buffer by number of nodes (each node room must have U_ID, ShortAddr and endpoint)
     bufLen += pCmd->numberNodeInfo * 5;
 
     NodeInfo = pCmd->NodeInfo;
@@ -2499,46 +2493,42 @@ ZStatus_t zclTel_ChatSwitchChairmanCnf( uint8_t srcEP, afAddrType_t *dstAddr,
     //increase length of buffer by the Nickname length in nodeInformation
     for(i=0; i < pCmd->numberNodeInfo; i++)
     {
-      uint8_t*  ptr = (uint8_t*)NodeInfo;
-      bufLen += *(NodeInfo->Nickname);
-      //Point to the next chat user (U_ID,ShortAddr,Endpoint + Nickname length + length field)
-      ptr += 5 + *(NodeInfo->Nickname) + 1;
+      uint8_t* ptr = (uint8_t*)NodeInfo;
+      // Length of nickname size plus length byte
+      bufLen += NodeInfo->Nickname[0] + 1;
+      //Point to next node information
+      ptr += sizeof(NodeInfo_t);
       NodeInfo = (NodeInfo_t*)ptr;
     }
   }
 
-  buf = zcl_mem_alloc(bufLen);
+  buf = tempBuf = zcl_mem_alloc(bufLen);
 
   if(buf == NULL)
   {
     return ZMemError;
   }
 
-  tempBuf = buf;
-
-  tempBuf[0] = LO_UINT16(pCmd->C_ID);
-  tempBuf[1] = HI_UINT16(pCmd->C_ID);
-  tempBuf += 2;
+  *tempBuf++ = LO_UINT16(pCmd->C_ID);
+  *tempBuf++ = HI_UINT16(pCmd->C_ID);
 
   NodeInfo = pCmd->NodeInfo;
 
-  //Copy the nicknames
+  //Copy the nodes information
   for(i=0; i < pCmd->numberNodeInfo; i++)
   {
-    uint8_t* ptr = (uint8_t*) NodeInfo;
+    uint8_t* ptr = (uint8_t*)NodeInfo;
 
-    tempBuf[0] = LO_UINT16(NodeInfo->U_ID);
-    tempBuf[1] = HI_UINT16(NodeInfo->U_ID);
-    tempBuf[2] = LO_UINT16(NodeInfo->ShortAddr);
-    tempBuf[3] = HI_UINT16(NodeInfo->ShortAddr);
-    tempBuf[4] = LO_UINT16(NodeInfo->endpoint);
-    tempBuf += 5;
-    tempBuf = zcl_memcpy(tempBuf,NodeInfo->Nickname,*(NodeInfo->Nickname) + 1);
+    *tempBuf++ = LO_UINT16(NodeInfo->U_ID);
+    *tempBuf++ = HI_UINT16(NodeInfo->U_ID);
+    *tempBuf++ = LO_UINT16(NodeInfo->ShortAddr);
+    *tempBuf++ = HI_UINT16(NodeInfo->ShortAddr);
+    *tempBuf++ = NodeInfo->endpoint;
+    tempBuf = zcl_memcpy(tempBuf, NodeInfo->Nickname, NodeInfo->Nickname[0] + 1);
 
-    //Point to the next chat user (U_ID,ShortAddr,Endpoint + Nickname length + length field)
-    ptr += 5 + *(NodeInfo->Nickname) + 1;
-
-    NodeInfo = (NodeInfo_t*) ptr;
+    //Point to next node information
+    ptr += sizeof(NodeInfo_t);
+    NodeInfo = (NodeInfo_t*)ptr;
   }
 
   stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_TELECOMMUNICATIONS_CHATTING,
@@ -2582,7 +2572,7 @@ ZStatus_t zclTel_ChatSwitchChairmanNotification( uint8_t srcEP, afAddrType_t *ds
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_TELECOMMUNICATIONS_CHATTING,
                           COMMAND_TEL_CHATTING_SWITCH_CHAIRMAN_NOTIFICATION, TRUE,
                         ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0,
-                        seqNum, COMMAND_TEL_CHATTING_SWITCH_CHAIRMAN_NOTIFICATION, buf );
+                        seqNum, TELECOMMUNICATIONS_CHATTING_SWITCH_CHAIRMAN_NOTIF_SIZE, buf );
 }
 
 
@@ -2604,46 +2594,45 @@ ZStatus_t zclTel_ChatGetNodeInfoRsp( uint8_t srcEP, afAddrType_t *dstAddr,
                                     zcl_Tel_Chat_GetNodeInfoRsp_t *pCmd, uint8_t disableDefaultRsp, uint8_t seqNum )
 {
   uint8_t bufLen = TELECOMMUNICATIONS_CHATTING_GET_NODE_INFO_RSP_SIZE;
-  uint8_t *buf = 0;
+  uint8_t *buf = NULL;
   uint8_t *tempBuf = NULL;
   ZStatus_t stat = ZSuccess;
 
   if(pCmd->status == ZSuccess)
   {
-    //If success, then add ShortAddr, Endpoint and length field of Nickname and legth of nickname
-    bufLen += 4 + *(pCmd->Nickname);
+    //If success, then add ShortAddr, Endpoint and length field of Nickname
+    bufLen += 4 + pCmd->Nickname[0];
   }
 
-  buf = zcl_mem_alloc(bufLen);
+  buf = tempBuf = zcl_mem_alloc(bufLen);
 
   if(buf == NULL)
   {
     return ZMemError;
   }
 
-  tempBuf = buf;
-
-  tempBuf[0] = pCmd->status;
-  tempBuf[0] = LO_UINT16(pCmd->C_ID);
-  tempBuf[1] = HI_UINT16(pCmd->C_ID);
-  tempBuf[2] = LO_UINT16(pCmd->U_ID);
-  tempBuf[3] = HI_UINT16(pCmd->U_ID);
-  tempBuf += 5;
+  *tempBuf++ = pCmd->status;
+  *tempBuf++ = LO_UINT16(pCmd->C_ID);
+  *tempBuf++ = HI_UINT16(pCmd->C_ID);
+  *tempBuf++ = LO_UINT16(pCmd->U_ID);
+  *tempBuf++ = HI_UINT16(pCmd->U_ID);
 
   if(pCmd->status == ZSuccess)
   {
-    tempBuf[0] = LO_UINT16(pCmd->shortAddr);
-    tempBuf[1] = HI_UINT16(pCmd->shortAddr);
-    tempBuf[2] = pCmd->endpoint;
-    tempBuf += 3;
-    zcl_memcpy(tempBuf,pCmd->Nickname,*(pCmd->Nickname) + 1);
+      *tempBuf++ = LO_UINT16(pCmd->shortAddr);
+      *tempBuf++ = HI_UINT16(pCmd->shortAddr);
+      *tempBuf++ = pCmd->endpoint;
+
+      zcl_memcpy(tempBuf, &pCmd->Nickname[0], pCmd->Nickname[0] + 1);
   }
 
 
   stat =  zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_TELECOMMUNICATIONS_CHATTING,
                         COMMAND_TEL_CHATTING_GET_NODE_INFO_RSP, TRUE,
                         ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0,
-                        seqNum, COMMAND_TEL_CHATTING_SWITCH_CHAIRMAN_NOTIFICATION, buf );
+                        seqNum, bufLen, buf );
+
+  zcl_mem_free(buf);
 
   return stat;
 }

@@ -24,12 +24,12 @@
     </makefiles>
     <targets>
         <target name="gnu.targets.arm.M4F"
-            version="gnu.targets.arm.M4F{1,0,7.2,1"
-            rawVersion="7.2.1"
+            version="gnu.targets.arm.M4F{1,0,9.2,1"
+            rawVersion="9.2.1"
             platform="ti.platforms.tiva:TM4C1294NCPDT"
             isa="v7M4"
             suffix="m4fg"
-            rootDir="/db/vendors/linaro/gcc-arm-none-eabi-7-2017-q4-major"
+            rootDir="/db/vendors/arm/gcc-arm-none-eabi-9-2019-q4-major"
             os="undefined"
             rts="gnu.targets.arm.rtsv7M">
             <model endian="little"

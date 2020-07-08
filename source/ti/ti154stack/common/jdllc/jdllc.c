@@ -10,7 +10,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -271,6 +271,7 @@ static void scanCnfCb(ApiMac_mlmeScanCnf_t *pData);
 static void disassoCnfCb(ApiMac_mlmeDisassociateCnf_t *pData);
 static void disassocIndCb(ApiMac_mlmeDisassociateInd_t *pData);
 static void wsAsyncIndCb(ApiMac_mlmeWsAsyncInd_t *pData);
+static void wsAsyncCnfCb(ApiMac_mlmeWsAsyncCnf_t *pData);
 static void syncLossCb(ApiMac_mlmeSyncLossInd_t *pData);
 static void dataCnfCb(ApiMac_mcpsDataCnf_t *pData);
 static void pollCnfCb(ApiMac_mlmePollCnf_t *pData);
@@ -339,6 +340,7 @@ void Jdllc_init(ApiMac_callbacks_t *pMacCbs, Jdllc_callbacks_t *pJdllcCbs)
     else
     {
         pMacCbs->pWsAsyncIndCb = wsAsyncIndCb;
+        pMacCbs->pWsAsyncCnfCb = wsAsyncCnfCb;
         devInfoBlock.coordShortAddr = FH_COORD_SHORT_ADDR;
     }
 
@@ -591,16 +593,14 @@ void Jdllc_getJoiningPanId(uint16_t *pPanId)
         if(Ssf_getNetworkInfo(&netInfo, &parentInfo))
         {
             *pPanId = netInfo.panID;
+            return;
         }
     }
-    else
-    {
-        /* If this is the first time the collector is setting the panId, use the value that
-         * was either compiled or selected through CUI. */
-        *pPanId = devInfoBlock.panID;
-        panIdInitialized = 1;
-    }
-
+    /* If this is the first time the collector is setting the panId, use the value that
+     * was either compiled or selected through CUI. */
+    *pPanId = devInfoBlock.panID;
+    panIdInitialized = 1;
+    return;
 }
 
 /*!
@@ -693,19 +693,6 @@ void Jdllc_getDefaultKey(uint8_t *key)
     memcpy(key, keyTable[0].key, APIMAC_KEY_MAX_LEN);
 }
 #endif /* FEATURE_MAC_SECURITY */
-
-/*!
- Set the collector (Full Function Device - FFD) address
-
- Public function defined in jdllc.h
- */
-void Jdllc_setFfdAddr(uint8_t *addr)
-{
-    if(devInfoBlock.currentJdllcState == Jdllc_states_initWaiting)
-    {
-        memcpy(devInfoBlock.coordExtAddr, addr, APIMAC_SADDR_EXT_LEN);
-    }
-}
 
 /*!
  Get the collector (Full Function Device - FFD) address
@@ -1261,6 +1248,8 @@ static void beaconNotifyIndCb(ApiMac_mlmeBeaconNotifyInd_t *pData)
                     else if (devInfoBlock.panID == pData->panDesc.coordPanId)
                     {
                         panIdMatch = true;
+                        numSyncLoss = 0;
+                        ApiMac_mlmeSetReqBool(ApiMac_attribute_autoRequest, true);
                     }
 
                     devInfoBlock.channel = pData->panDesc.logicalChannel;
@@ -1582,7 +1571,16 @@ static void disassoCnfCb(ApiMac_mlmeDisassociateCnf_t *pData)
         /* set devInfoBlock back to defaults */
         devInfoBlock.panID = CONFIG_PAN_ID;
         devInfoBlock.channel = JDLLC_INVALID_CHANNEL;
-        devInfoBlock.coordShortAddr = 0xFFFF;
+
+        if(!CONFIG_FH_ENABLE)
+        {
+          devInfoBlock.coordShortAddr = 0xFFFF;
+        }
+        else
+        {
+          devInfoBlock.coordShortAddr = FH_COORD_SHORT_ADDR;
+        }
+
         //copy the current coordinator's extended address into the pData as it has only the short address
         memcpy(&pData->deviceAddress.addr.extAddr[0], &devInfoBlock.coordExtAddr[0], APIMAC_SADDR_EXT_LEN);
         memset(&devInfoBlock.coordExtAddr[0], 0x00, APIMAC_SADDR_EXT_LEN);
@@ -1749,6 +1747,12 @@ static void wsAsyncIndCb(ApiMac_mlmeWsAsyncInd_t *pData)
         return;
     }
 
+    if (devInfoBlock.currentJdllcState == Jdllc_states_initWaiting)
+    {
+        /* Drop PAS, PCS when sensor is in initial waiting state */
+        return;
+    }
+
     if(pData->fhFrameType == ApiMac_fhFrameType_panAdvertSolicit)
     {
         fhNumPASRcvdInTrickleWindow++;
@@ -1873,6 +1877,34 @@ static void wsAsyncIndCb(ApiMac_mlmeWsAsyncInd_t *pData)
 }
 
 /*!
+ * @brief      MAC Async Confirm callback.
+ *
+ * @param      pDataCnf - pointer to the async confirm information
+ */
+static void wsAsyncCnfCb(ApiMac_mlmeWsAsyncCnf_t *pData)
+{
+    /* Record statistics and increment */
+    if(pData->status == ApiMac_status_success)
+    {
+        fhPanConfigInterval = CONFIG_PAN_CONFIG_SOLICIT_CLK_DURATION;
+        fhPanAdvInterval = CONFIG_PAN_ADVERT_SOLICIT_CLK_DURATION;
+    }
+    else if(pData->status == ApiMac_status_noResources)
+    {
+        Sensor_msgStats.otherDataRequestFailures++;
+
+        /* Decrease Trickle timer time */
+        fhPanConfigInterval = CONFIG_PAN_CONFIG_SOLICIT_CLK_DURATION / 2;
+        fhPanAdvInterval = CONFIG_PAN_ADVERT_SOLICIT_CLK_DURATION  / 2;
+    }
+
+    if(macCallbacksCopy.pWsAsyncCnfCb != NULL)
+    {
+        macCallbacksCopy.pWsAsyncCnfCb(pData);
+    }
+}
+
+/*!
  * @brief       Send Association request
  */
 static void sendAssocReq(void)
@@ -1941,6 +1973,8 @@ static void syncLossCb(ApiMac_mlmeSyncLossInd_t *pData)
             {
                 numSyncLoss++;
                 parentFound = false;
+                /* set autoRequest to false to receive Beacons */
+                ApiMac_mlmeSetReqBool(ApiMac_attribute_autoRequest, false);
                 /* retry sync request */
                 switchState(Jdllc_deviceStates_syncReq);
             }
@@ -2093,7 +2127,11 @@ static void processCoordRealign(void)
         }
 
         /* transition to correct non orphan state */
-        if(devInfoBlock.prevJdllcState == Jdllc_states_joined)
+        if((devInfoBlock.prevJdllcState == Jdllc_states_joined)&&(devInfoBlock.currentJdllcState == Jdllc_states_orphan))
+        {
+            updateState(Jdllc_states_rejoined);
+        }
+        else if(devInfoBlock.prevJdllcState == Jdllc_states_joined)
         {
             updateState(Jdllc_states_joined);
         }
@@ -2254,7 +2292,16 @@ static void disassocIndCb(ApiMac_mlmeDisassociateInd_t *pData)
     /* set devInfoBlock back to defaults */
     devInfoBlock.panID = CONFIG_PAN_ID;
     devInfoBlock.channel = JDLLC_INVALID_CHANNEL;
-    devInfoBlock.coordShortAddr = 0xFFFF;
+
+    if(!CONFIG_FH_ENABLE)
+    {
+      devInfoBlock.coordShortAddr = 0xFFFF;
+    }
+    else
+    {
+      devInfoBlock.coordShortAddr = FH_COORD_SHORT_ADDR;
+    }
+
     memset(&devInfoBlock.coordExtAddr[0], 0x00, APIMAC_SADDR_EXT_LEN);
     devInfoBlock.devShortAddr = 0xFFFF;
     memset(&devInfoBlock.devExtAddr[0], 0x00, APIMAC_SADDR_EXT_LEN);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Texas Instruments Incorporated
+ * Copyright (c) 2013-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@
 
 print("removing " + this.Manifest.packageName + " package libs from exports.");
 
-for (i = 0; i < this.Manifest.files.length; i++) {
+for (var i = 0; i < this.Manifest.files.length; i++) {
     var file = this.Manifest.files[i];
     if (file.match(/lib/) && file.match(/debug/)) {
        this.Manifest.files[i] = null;

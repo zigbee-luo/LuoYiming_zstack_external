@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Texas Instruments Incorporated
+ * Copyright (c) 2012-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@ function module$use()
  *  ======== instance$static$init ========
  */
 function instance$static$init(obj, params)
-{    
+{
 }
 
 function queryMeta(qual)
@@ -57,14 +57,14 @@ function queryMeta(qual)
     switch (qual) {
         case IGateProvider.Q_BLOCKING:
         case IGateProvider.Q_PREEMPTING:
-            rc = false; 
+            rc = false;
             break;
-           
+
         default:
-           GateHwi.$logWarning("Invalid quality. Returning false", this, qual);
-           break;  
+            this.$logWarning("Invalid quality. Returning false", this, qual);
+            break;
     }
-   
+
     return (rc);
 }
 

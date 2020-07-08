@@ -63,7 +63,7 @@
 
     #define __FAR__ far
 
-#elif defined(__TMS470__)                       /* ARM */
+#elif defined(__ARM_ARCH)                       /* ARM (was __TMS470__) */
     #define xdc__LONGLONG__
     #define xdc__BITS8__
     #define xdc__BITS16__
@@ -89,24 +89,6 @@
     #define xdc__INT64__
 
     #define __FAR__
-
-#elif defined(ti_targets_arm_clang_M4F) || \
-      defined(ti_targets_arm_clang_M4) || \
-      defined(ti_targets_arm_clang_M3)
-    #define xdc__LONGLONG__
-    #define xdc__BITS8__
-    #define xdc__BITS16__
-    #define xdc__BITS32__
-    #define xdc__BITS64__
-    #define xdc__INT64__
-
-#elif defined(__ARM_ARCH_8M_MAIN__)
-    #define xdc__LONGLONG__
-    #define xdc__BITS8__
-    #define xdc__BITS16__
-    #define xdc__BITS32__
-    #define xdc__BITS64__
-    #define xdc__INT64__
 
 #else
     #error <ti/targets/std.h> is not supported for this target
@@ -220,7 +202,7 @@ static inline xdc_Fxn xdc_uargToFxn(xdc_UArg a) { return ((xdc_Fxn)(int)a); }
 
 #endif /* ti_targets_STD_ */
 /*
- *  @(#) ti.targets; 1, 0, 3,0; 8-9-2019 17:15:03; /db/ztree/library/trees/xdctargets/xdctargets-v00/src/ xlibrary
+ *  @(#) ti.targets; 1, 0, 3,; 5-11-2020 15:30:21; /db/ztree/library/trees/xdctargets/xdctargets-w14/src/ xlibrary
 
  */
 

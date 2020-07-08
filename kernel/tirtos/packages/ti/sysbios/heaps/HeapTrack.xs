@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, Texas Instruments Incorporated
+ * Copyright (c) 2015-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -101,6 +101,7 @@ function viewInitBasic(view, obj)
  */
 function viewInitTask()
 {
+    var index;
     var Program = xdc.useModule('xdc.rov.Program');
     HeapTrack = xdc.useModule('ti.sysbios.heaps.HeapTrack');
     Queue = xdc.useModule('ti.sysbios.knl.Queue');

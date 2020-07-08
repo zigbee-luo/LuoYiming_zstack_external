@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -89,6 +89,7 @@ void Lpstk_init(void *evntHandle, Lpstk_AccelTiltCb accelTiltCb);
 void Lpstk_processEvents(void);
 void Lpstk_initSensorReadTimer(Lpstk_SensorMask sensors, uint32_t clockPeriod);
 void Lpstk_setSensorReadTimer(Lpstk_SensorMask sensors, uint32_t clockPeriod);
+void shutDownSensors(Lpstk_SensorMask sensors);
 
 float Lpstk_getTemperature(void);
 float Lpstk_getHumidity(void);

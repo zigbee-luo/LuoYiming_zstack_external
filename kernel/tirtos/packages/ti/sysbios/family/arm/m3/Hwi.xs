@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, Texas Instruments Incorporated
+ * Copyright (c) 2015-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -209,6 +209,8 @@ if (xdc.om.$name == "cfg") {
     deviceTable["OMAP5430"]      = deviceTable["OMAP4430"];
     deviceTable["Vayu"]          = deviceTable["OMAP4430"];
     deviceTable["DRA7XX"]        = deviceTable["OMAP4430"];
+    deviceTable["CC13.1.*"]      = deviceTable["CC26.2.*"];
+    deviceTable["CC26.1.*"]      = deviceTable["CC26.2.*"];
     deviceTable["CC13.2.*"]      = deviceTable["CC26.2.*"];
     deviceTable["CC13.*"]        = deviceTable["CC26.*"];
     deviceTable["CC3235S"]       = deviceTable["CC3200"];
@@ -318,13 +320,6 @@ function module$meta$init()
     Program.sectMap[".bootVecs"] = new Program.SectionSpec();
     Program.sectMap[".bootVecs"].type = "DSECT";
 
-    if (!Program.build.target.$name.match(/gnu/)) {
-        /* create our .vecs & .resetVecs SectionSpecs */
-        Program.sectMap[".resetVecs"] = new Program.SectionSpec();
-        Program.sectMap[".vecs"] = new Program.SectionSpec();
-        Program.sectMap[".vecs"].type = "NOLOAD";
-    }
-
     /*
      * Initialize meta-only Hwi object array
      */
@@ -411,6 +406,13 @@ function module$use()
     }
     else {
         Memory = xdc.useModule('xdc.runtime.Memory');
+    }
+
+    if (Hwi.placeVectorTables && !Program.build.target.$name.match(/gnu/)) {
+        /* create our .vecs & .resetVecs SectionSpecs */
+        Program.sectMap[".resetVecs"] = new Program.SectionSpec();
+        Program.sectMap[".vecs"] = new Program.SectionSpec();
+        Program.sectMap[".vecs"].type = "NOLOAD";
     }
 
     if (Hwi.dispatcherSwiSupport == undefined) {
@@ -630,7 +632,7 @@ function module$static$init(mod, params)
     /*
      * Non GNU targets have to deal with legacy config files
      */
-    if (!Program.build.target.$name.match(/gnu/)) {
+    if (Hwi.placeVectorTables && !Program.build.target.$name.match(/gnu/)) {
 
         /*
          * Some legacy config files explicitly place the vector table sections
@@ -919,7 +921,7 @@ function viewScanDispatchTable(data, viewLevel)
             var alreadyScanned = false;
             /* skip Hwis that are already known to ROV */
             for (var j in rawView.instStates) {
-                rawInstance = rawView.instStates[j];
+                var rawInstance = rawView.instStates[j];
                 if (Number(rawInstance.$addr) == Number(hwiHandle.elem)) {
                     alreadyScanned = true;
                     break;
@@ -1058,9 +1060,9 @@ function viewFillBasicInfo(view, obj)
 
     var pri = viewGetPriority(view, this, Math.abs(obj.intNum));
 
-    mask = numPriTable[hwiModCfg.NUM_PRIORITIES].mask;
+    var mask = numPriTable[hwiModCfg.NUM_PRIORITIES].mask;
 
-    shift = numPriTable[hwiModCfg.NUM_PRIORITIES].shift;
+    var shift = numPriTable[hwiModCfg.NUM_PRIORITIES].shift;
 
     view.priority = pri;
 
@@ -1847,7 +1849,7 @@ function viewInitVectorTable(view)
 
     var vtor = Number(this.VTOR);
 
-    vectorTable = Program.fetchArray({type: 'xdc.rov.support.ScalarStructs.S_UInt', isScalar: true}, vtor, numInts, false);
+    var vectorTable = Program.fetchArray({type: 'xdc.rov.support.ScalarStructs.S_UInt', isScalar: true}, vtor, numInts, false);
 
     try {
         var rawView = Program.scanRawView('ti.sysbios.family.arm.m3.Hwi');

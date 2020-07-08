@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -331,7 +331,7 @@ typedef struct
  * @param   entityID  - ICall application entity ID
  * @param   serviceID - ICall application service class ID
  */
-#if defined(USE_ICALL)
+#if defined(USE_ICALL) && !defined(USE_DMM)
 extern void MT_init(ICall_EntityID entityID, ICall_ServiceEnum serviceID);
 #else
 extern void MT_init(uint8_t entityID, uint8_t serviceID);

@@ -36,6 +36,11 @@
 
 "use strict";
 
+const TI154Common = system.getScript("/ti/ti154stack/ti154stack_common.js");
+
+/* Min poll period (ms) */
+const POLL_PERIOD_MIN = 100;
+
 /* Max poll period (ms) */
 const POLL_PERIOD_MAX = 0xFFFFFFFF;
 
@@ -150,6 +155,52 @@ function getDeviceOrLaunchPadName(convertToBoard)
     return(name);
 }
 
+
+/*
+ * ======== getBoardPhySettings ========
+ * Determines which rf_defaults script to use based on device or inst.rfDesign
+ *
+ * @param inst - Instance of this module
+ *
+ * @returns Obj - rf_defaults script from which to get phy settings in
+ *                radioconfig format. If device is not supported, returns null
+ */
+function getBoardPhySettings(inst)
+{
+    let phySettings;
+
+    if(inst !== null && system.deviceData.deviceId === "CC1352P1F3RGZ")
+    {
+        const rfDesign = inst.rfDesign;
+
+        // Get the RF Design configurable
+        if(rfDesign === "LAUNCHXL-CC1352P-4")
+        {
+            phySettings = system.getScript("/ti/ti154stack/rf_config/"
+                + "CC1352P_4_LAUNCHXL_rf_defaults.js");
+        }
+        else if(rfDesign === "LAUNCHXL-CC1352P1")
+        {
+            phySettings = system.getScript("/ti/ti154stack/rf_config/"
+                + "CC1352P1_LAUNCHXL_rf_defaults.js");
+        }
+        else if(rfDesign === "LAUNCHXL-CC1352P-2")
+        {
+            phySettings = system.getScript("/ti/ti154stack/rf_config/"
+                + "CC1352P_2_LAUNCHXL_rf_defaults.js");
+        }
+    }
+    else
+    {
+        // Initialize with launchpad mapped from device
+        phySettings = system.getScript("/ti/ti154stack/rf_config/"
+            + TI154Common.getLaunchPadFromDevice() + "_rf_defaults.js");
+    }
+
+    return(phySettings);
+}
+
+
 // Settings for ti/devices/CCFG module
 const zstackCCFGSettings = {
     CC1352R1_LAUNCHXL_CCFG_SETTINGS: {
@@ -168,6 +219,7 @@ const boardName = getDeviceOrLaunchPadName(true);
 const ccfgSettings = zstackCCFGSettings[boardName + "_CCFG_SETTINGS"];
 
 exports = {
+    POLL_PERIOD_MIN: POLL_PERIOD_MIN,
     POLL_PERIOD_MAX: POLL_PERIOD_MAX,
     PAN_ID_LEN: PAN_ID_LEN,
     EPID_LEN: EPID_LEN,
@@ -178,5 +230,6 @@ exports = {
     validateRange: validateRange,
     chanArrToBitmask: chanArrToBitmask,
     getDeviceOrLaunchPadName: getDeviceOrLaunchPadName,
-    ccfgSettings: ccfgSettings
+    ccfgSettings: ccfgSettings,
+    getBoardPhySettings: getBoardPhySettings
 };

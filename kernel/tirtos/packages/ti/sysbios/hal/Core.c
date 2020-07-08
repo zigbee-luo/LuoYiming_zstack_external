@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Texas Instruments Incorporated
+ * Copyright (c) 2015-2019, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,7 @@
 #include <xdc/std.h>
 #include "package/internal/Core.xdc.h"
 
-#ifdef __ti__
+#if defined(__ti__) && !defined(__clang__)
 #pragma CODE_SECTION(ti_sysbios_hal_Core_getId__E, ".text:ti_sysbios_hal_Core_getId__E")
 #pragma CODE_SECTION(ti_sysbios_hal_Core_interruptCore__E, ".text:ti_sysbios_hal_Core_interruptCore__E")
 #pragma CODE_SECTION(ti_sysbios_hal_Core_lock__E, ".text:ti_sysbios_hal_Core_lock__E")
@@ -47,6 +47,11 @@
 #pragma FUNC_EXT_CALLED(ti_sysbios_hal_Core_interruptCore__E);
 #pragma FUNC_EXT_CALLED(ti_sysbios_hal_Core_lock__E);
 #pragma FUNC_EXT_CALLED(ti_sysbios_hal_Core_unlock__E);
+#else
+UInt ti_sysbios_hal_Core_getId__E() __attribute__ ((used)) __attribute__ ((section (".text:ti_sysbios_hal_Core_getId__E")));
+Void ti_sysbios_hal_Core_interruptCore__E(UInt coreId) __attribute__ ((used))  __attribute__ ((section (".text:ti_sysbios_hal_Core_interruptCore__E")));
+IArg ti_sysbios_hal_Core_lock__E() __attribute__ ((used)) __attribute__  ((section (".text:ti_sysbios_hal_Core_lock__E")));
+Void ti_sysbios_hal_Core_unlock__E() __attribute__ ((used))  __attribute__ ((section (".text:ti_sysbios_hal_Core_unlock__E")));
 #endif
 
 /*

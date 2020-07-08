@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2014-2019, Texas Instruments Incorporated
+ Copyright (c) 2014-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -117,7 +117,7 @@ void bspSpiOpen(uint32_t bitRate, uint32_t clkPin)
 #ifdef BOOT_LOADER
   /* GPIO power && SPI power domain */
   PRCMPowerDomainOn(PRCM_DOMAIN_PERIPH | PRCM_DOMAIN_SERIAL);
-  while (PRCMPowerDomainStatus(PRCM_DOMAIN_PERIPH | PRCM_DOMAIN_SERIAL)
+  while (PRCMPowerDomainsAllOn(PRCM_DOMAIN_PERIPH | PRCM_DOMAIN_SERIAL)
          != PRCM_DOMAIN_POWER_ON);
 
   /* GPIO power */
@@ -167,7 +167,7 @@ void bspSpiClose(void)
   while (!PRCMLoadGet());
 
   PRCMPowerDomainOff(PRCM_DOMAIN_SERIAL | PRCM_DOMAIN_PERIPH);
-  while (PRCMPowerDomainStatus(PRCM_DOMAIN_SERIAL | PRCM_DOMAIN_PERIPH)
+  while (PRCMPowerDomainsAllOn(PRCM_DOMAIN_SERIAL | PRCM_DOMAIN_PERIPH)
          != PRCM_DOMAIN_POWER_OFF);
 #endif
 }

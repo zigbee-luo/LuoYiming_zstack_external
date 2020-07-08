@@ -2,7 +2,7 @@
  *  Do not modify this file; it is automatically 
  *  generated and any modifications will be overwritten.
  *
- * @(#) xdc-H32
+ * @(#) xdc-I11
  */
 import java.util.*;
 import org.mozilla.javascript.*;
@@ -11,7 +11,7 @@ import xdc.services.spec.Session;
 
 public class ti_sysbios_family_arm_m3
 {
-    static final String VERS = "@(#) xdc-H32\n";
+    static final String VERS = "@(#) xdc-I11\n";
 
     static final Proto.Elm $$T_Bool = Proto.Elm.newBool();
     static final Proto.Elm $$T_Num = Proto.Elm.newNum();
@@ -969,6 +969,7 @@ public class ti_sysbios_family_arm_m3
             po.addFld("nvicCCR", (Proto)om.findStrict("ti.sysbios.family.arm.m3.Hwi.CCR", "ti.sysbios.family.arm.m3"), Global.newObject("STKALIGN", 1L, "BFHFNMIGN", 0L, "DIV_0_TRP", 0L, "UNALIGN_TRP", 0L, "USERSETMPEND", 0L, "NONEBASETHRDENA", 0L), "wh");
             po.addFld("disablePriority", Proto.Elm.newCNum("(xdc_UInt)"), $$UNDEF, "w");
             po.addFld("priGroup", Proto.Elm.newCNum("(xdc_UInt)"), 0L, "w");
+            po.addFld("placeVectorTables", $$T_Bool, true, "wh");
             po.addFld("numSparseInterrupts", Proto.Elm.newCNum("(xdc_UInt)"), 0L, "w");
             po.addFld("isTiva", $$T_Bool, false, "wh");
             po.addFld("enableWA1_1", $$T_Bool, false, "wh");

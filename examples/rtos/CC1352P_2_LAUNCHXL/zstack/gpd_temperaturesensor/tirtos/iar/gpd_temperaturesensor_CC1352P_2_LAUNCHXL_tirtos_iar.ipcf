@@ -18,8 +18,6 @@
     <path>$PROJ_DIR$/Application</path>
     <path>$PROJ_DIR$/Stack/Config</path>
     <path>$PROJ_DIR$/Stack/osal_port</path>
-    <path>$PROJ_DIR$/Stack/HAL/Assert</path>
-    <path>$PROJ_DIR$/Stack/HAL/Appasrt</path>
     <path>$PROJ_DIR$/Stack/HAL/Crypto</path>
     <path>$PROJ_DIR$/Stack/HAL/Platform</path>
     <path>$PROJ_DIR$/Stack/HAL/RF</path>
@@ -31,8 +29,6 @@
     <path>$PROJ_DIR$/Stack/sec</path>
     <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/services/saddr</path>
     <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/services/sdata</path>
-    <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/hal/assert</path>
-    <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/hal/appasrt</path>
     <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/hal/crypto</path>
     <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/hal/platform</path>
     <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/hal/rf</path>
@@ -84,7 +80,6 @@
     <define>MAX_DEVICE_TABLE_ENTRIES=1</define>
     <define>ZSTACK_GPD</define>
     <define>FREQ_2_4G</define>
-    <define>HAL_ASSERT_SPIN</define>
     <define>NV_RESTORE</define>
     <define>NV_INIT</define>
     <define>FEATURE_NON_BEACON_MODE</define>
@@ -236,14 +231,6 @@
       <group name="Stack/Config">
         <path copyTo="$PROJ_DIR$/Stack/Config/mac_user_config.c">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/common/boards/mac_user_config.c</path>
         <path copyTo="$PROJ_DIR$/Stack/Config/mac_user_config.h">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/common/boards/mac_user_config.h</path>
-      </group>
-      <group name="Stack/HAL/Appasrt">
-        <path copyTo="$PROJ_DIR$/Stack/HAL/Appasrt/appasrtintf.h">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/hal/appasrt/appasrtintf.h</path>
-        <path copyTo="$PROJ_DIR$/Stack/HAL/Appasrt/hal_appasrt.c">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/hal/appasrt/hal_appasrt.c</path>
-        <path copyTo="$PROJ_DIR$/Stack/HAL/Appasrt/hal_appasrt.h">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/hal/appasrt/hal_appasrt.h</path>
-      </group>
-      <group name="Stack/HAL/Assert">
-        <path copyTo="$PROJ_DIR$/Stack/HAL/Assert/hal_assert.h">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/hal/assert/hal_assert.h</path>
       </group>
       <group name="Stack/HAL/Crypto">
         <path copyTo="$PROJ_DIR$/Stack/HAL/Crypto/crypto_mac_api.h">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/hal/crypto/crypto_mac_api.h</path>

@@ -152,7 +152,7 @@ uint8_t oadPdState = 0;
  */
 
 // Sequence number
-#if ((defined OTA_CLIENT) && (OTA_CLIENT == TRUE))
+#if ((defined OTA_CLIENT) && (OTA_CLIENT == TRUE)) || ((defined OTA_SERVER) && (OTA_SERVER == TRUE))
 static uint8_t zclOTA_SeqNo = 0;
 #endif
 
@@ -187,16 +187,6 @@ static uint8_t* buffer_uint32( uint8_t *buf, uint32_t val );
 #endif
 #endif
 
-#ifndef OTA_HA
-zclOptionRec_t zclOta_Options[ZCL_OTA_MAX_OPTIONS] =
-{
-  {
-    ZCL_CLUSTER_ID_OTA,
-    ( AF_EN_SECURITY | AF_ACK_REQUEST ),
-  },
-};
-#endif // OTA_HA
-
 #if (defined OTA_CLIENT) && (OTA_CLIENT == TRUE)
 static uint8_t oadEraseExtFlashPages(uint8_t imgStartPage, uint8_t imgPageLen);
 static uint8_t oadCheckDL(uint8_t imagePage);
@@ -229,6 +219,22 @@ uint8_t zclOTA_getStatus ( void )
 {
   return zclOTA_ImageUpgradeStatus;
 }
+
+#if ((defined OTA_SERVER) && (OTA_SERVER == TRUE))
+/*********************************************************************
+ * @fn      zclOTA_getSeqNo
+ *
+ * @brief   Get the next ZCL OTA Frame Counter for packet sequence number
+ *
+ * @param   none
+ *
+ * @return  next ZCL OTA frame counter
+ */
+uint8_t zclOTA_getSeqNo(void)
+{
+  return zclOTA_SeqNo;
+}
+#endif
 
 #if !defined (ZCL_STANDALONE)
 /******************************************************************************
@@ -316,17 +322,17 @@ void zclOTA_ProcessInDefaultRspCmd( zclIncomingMsg_t *pInMsg )
  *
  * @param   srcEp   - endpoint from which the message is send
  * @param   dstAddr - where you want the message to go
- * @param   seqNo   - seq number for OTA response, add by luoyiming 2020-01-31
  * @param   pParams - message parameters
  *
  * @return  ZStatus_t
  */
-ZStatus_t zclOTA_SendImageNotify ( uint8_t srcEp, afAddrType_t *dstAddr, uint8_t seqNo,
+ZStatus_t zclOTA_SendImageNotify (uint8_t srcEp, afAddrType_t *dstAddr,
                                    zclOTA_ImageNotifyParams_t *pParams )
 {
   ZStatus_t status;
   uint8_t buf[PAYLOAD_MAX_LEN_IMAGE_NOTIFY];
   uint8_t *pBuf = buf;
+  bool disableDefaultRsp = TRUE;
 
   *pBuf++ = pParams->payloadType;
   *pBuf++ = pParams->queryJitter;
@@ -345,10 +351,16 @@ ZStatus_t zclOTA_SendImageNotify ( uint8_t srcEp, afAddrType_t *dstAddr, uint8_t
     pBuf = OsalPort_bufferUint32 ( pBuf, pParams->fileId.version );
   }
 
+  if(afAddr16Bit == dstAddr->addrMode)
+  {
+    // For unicast disableDefaultRsp should not be set
+    disableDefaultRsp = FALSE;
+  }
+
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
                              COMMAND_IMAGE_NOTIFY, TRUE,
-                             ZCL_FRAME_SERVER_CLIENT_DIR, TRUE, 0,
-                             seqNo, ( uint16_t ) ( pBuf - buf ), buf );
+                             ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0,
+                             zclOTA_SeqNo++, ( uint16_t ) ( pBuf - buf ), buf );
 
   return status;
 }
@@ -360,13 +372,13 @@ ZStatus_t zclOTA_SendImageNotify ( uint8_t srcEp, afAddrType_t *dstAddr, uint8_t
  *
  * @param   srcEp   - endpoint from which the message is send
  * @param   dstAddr - where you want the message to go
- * @param   seqNo   - seq number for OTA response, add by luoyiming 2020-01-31
  * @param   pParams - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  */
-ZStatus_t zclOTA_SendQueryNextImageRsp (uint8_t srcEp, afAddrType_t *dstAddr, uint8_t seqNo,
-                                        zclOTA_QueryImageRspParams_t *pParams )
+ZStatus_t zclOTA_SendQueryNextImageRsp (uint8_t srcEp, afAddrType_t *dstAddr,
+    zclOTA_QueryImageRspParams_t *pParams, uint8_t transSeqNum )
 {
   ZStatus_t status;
   uint8_t buf[PAYLOAD_MAX_LEN_QUERY_NEXT_IMAGE_RSP];
@@ -386,7 +398,7 @@ ZStatus_t zclOTA_SendQueryNextImageRsp (uint8_t srcEp, afAddrType_t *dstAddr, ui
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
                              COMMAND_QUERY_NEXT_IMAGE_RSP, TRUE,
                              ZCL_FRAME_SERVER_CLIENT_DIR, TRUE, 0,
-                             seqNo, ( uint16_t ) ( pBuf - buf ), buf );
+                             transSeqNum, ( uint16_t ) ( pBuf - buf ), buf );
 
   return status;
 }
@@ -398,13 +410,13 @@ ZStatus_t zclOTA_SendQueryNextImageRsp (uint8_t srcEp, afAddrType_t *dstAddr, ui
  *
  * @param   srcEp   - endpoint from which the message is send
  * @param   dstAddr - where you want the message to go
- * @param   seqNo   - seq number for OTA response, add by luoyiming 2020-01-31
  * @param   pParams - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  */
-ZStatus_t zclOTA_SendImageBlockRsp ( uint8_t srcEp, afAddrType_t *dstAddr, uint8_t seqNo,
-                                     zclOTA_ImageBlockRspParams_t *pParams )
+ZStatus_t zclOTA_SendImageBlockRsp (uint8_t srcEp, afAddrType_t *dstAddr,
+    zclOTA_ImageBlockRspParams_t *pParams, uint8_t transSeqNum )
 {
   uint8_t *buf;
   uint8_t *pBuf;
@@ -456,7 +468,7 @@ ZStatus_t zclOTA_SendImageBlockRsp ( uint8_t srcEp, afAddrType_t *dstAddr, uint8
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
                              COMMAND_IMAGE_BLOCK_RSP, TRUE,
                              ZCL_FRAME_SERVER_CLIENT_DIR, TRUE, 0,
-                             seqNo, len, buf );
+                             transSeqNum, len, buf );
 
   OsalPort_free ( buf );
 
@@ -470,13 +482,13 @@ ZStatus_t zclOTA_SendImageBlockRsp ( uint8_t srcEp, afAddrType_t *dstAddr, uint8
  *
  * @param   srcEp   - endpoint from which the message is send
  * @param   dstAddr - where you want the message to go
- * @param   seqNo   - seq number for OTA response, add by luoyiming 2020-01-31
  * @param   pParams - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  */
-ZStatus_t zclOTA_SendUpgradeEndRsp ( uint8_t srcEp, afAddrType_t *dstAddr, uint8_t seqNo,
-                                     zclOTA_UpgradeEndRspParams_t *pParams )
+ZStatus_t zclOTA_SendUpgradeEndRsp (uint8_t srcEp, afAddrType_t *dstAddr,
+    zclOTA_UpgradeEndRspParams_t *pParams, uint8_t transSeqNum )
 {
   ZStatus_t status;
   uint8_t buf[PAYLOAD_MAX_LEN_UPGRADE_END_RSP];
@@ -493,7 +505,7 @@ ZStatus_t zclOTA_SendUpgradeEndRsp ( uint8_t srcEp, afAddrType_t *dstAddr, uint8
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
                              COMMAND_UPGRADE_END_RSP, TRUE,
                              ZCL_FRAME_SERVER_CLIENT_DIR, TRUE, 0,
-                             seqNo, PAYLOAD_MAX_LEN_UPGRADE_END_RSP, buf );
+                             transSeqNum, PAYLOAD_MAX_LEN_UPGRADE_END_RSP, buf );
 
   return status;
 }
@@ -505,13 +517,13 @@ ZStatus_t zclOTA_SendUpgradeEndRsp ( uint8_t srcEp, afAddrType_t *dstAddr, uint8
  *
  * @param   srcEp   - endpoint from which the message is send
  * @param   dstAddr - where you want the message to go
- * @param   seqNo   - seq number for OTA response, add by luoyiming 2020-01-31
  * @param   pParams - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  */
-ZStatus_t zclOTA_SendQuerySpecificFileRsp ( uint8_t srcEp, afAddrType_t *dstAddr, uint8_t seqNo,
-                                            zclOTA_QueryImageRspParams_t *pParams )
+ZStatus_t zclOTA_SendQuerySpecificFileRsp (uint8_t srcEp, afAddrType_t *dstAddr,
+    zclOTA_QueryImageRspParams_t *pParams, uint8_t transSeqNum )
 {
   ZStatus_t status;
   uint8_t buf[PAYLOAD_MAX_LEN_QUERY_SPECIFIC_FILE_RSP];
@@ -531,7 +543,7 @@ ZStatus_t zclOTA_SendQuerySpecificFileRsp ( uint8_t srcEp, afAddrType_t *dstAddr
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
                              COMMAND_QUERY_SPECIFIC_FILE_RSP, TRUE,
                              ZCL_FRAME_SERVER_CLIENT_DIR, TRUE, 0,
-                             seqNo, ( uint16_t ) ( pBuf - buf ), buf );
+                             transSeqNum, ( uint16_t ) ( pBuf - buf ), buf );
 
   return status;
 }
@@ -1281,4 +1293,5 @@ static uint8_t oadCheckDL(uint8_t imagePage)
 
     return (status);
 }
+
 #endif // (defined OTA_CLIENT) && (OTA_CLIENT == TRUE)

@@ -1,6 +1,6 @@
 %%{
 /*
- * Copyright (c) 2014-2015, Texas Instruments Incorporated
+ * Copyright (c) 2014-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@
 %var Seconds = xdc.module('ti.sysbios.hal.Seconds');
 %if (Seconds.generateTimeFunction == true) {
 
-#if defined(__ti__)
+#if defined(__ti__) && !defined(__clang__)
 
 #pragma FUNC_EXT_CALLED(time);
 
@@ -48,7 +48,7 @@
 #elif defined(__IAR_SYSTEMS_ICC__)
 
 #define ATTRIBUTE
-#define _NO_DEFINITIONS_IN_HEADER_FILES 1
+
 #else
 
 #define ATTRIBUTE __attribute__ ((used))
@@ -60,6 +60,24 @@
 
 #include <time.h>
 
+#if defined(__clang__) && defined(__TI_TIME_USES_64) && __TI_TIME_USES_64
+
+_CODE_ACCESS __time64_t __time64(__time64_t *_timer)
+{
+    UInt64 t;
+    ti_sysbios_hal_Seconds_Time ts;
+
+    ti_sysbios_hal_Seconds_getTime(&ts);
+
+    t = ((UInt64)ts.secsHi << 32) + ts.secs;
+    if (_timer != NULL) {
+        *_timer = t;
+    }
+
+    return (t);
+}
+
+#else
 /*
  *  ======== time ========
  */
@@ -84,4 +102,5 @@ time_t ATTRIBUTE time(time_t *tout)
 
     return (t);
 }
+#endif
 %}

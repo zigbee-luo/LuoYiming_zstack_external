@@ -2,7 +2,7 @@
  *  Do not modify this file; it is automatically 
  *  generated and any modifications will be overwritten.
  *
- * @(#) xdc-H32
+ * @(#) xdc-I11
  */
 import java.util.*;
 import org.mozilla.javascript.*;
@@ -11,7 +11,7 @@ import xdc.services.spec.Session;
 
 public class ti_sysbios_interfaces
 {
-    static final String VERS = "@(#) xdc-H32\n";
+    static final String VERS = "@(#) xdc-I11\n";
 
     static final Proto.Elm $$T_Bool = Proto.Elm.newBool();
     static final Proto.Elm $$T_Num = Proto.Elm.newNum();
@@ -633,6 +633,7 @@ public class ti_sysbios_interfaces
 
         so = (Proto.Str)om.findStrict("ti.sysbios.interfaces.ISeconds.Time", "ti.sysbios.interfaces");
         sizes.clear();
+        sizes.add(Global.newArray("secsHi", "UInt32"));
         sizes.add(Global.newArray("secs", "UInt32"));
         sizes.add(Global.newArray("nsecs", "UInt32"));
         so.bind("$$sizes", Global.newArray(sizes.toArray()));
@@ -905,6 +906,7 @@ public class ti_sysbios_interfaces
         po = (Proto.Obj)om.findStrict("ti.sysbios.interfaces.ISeconds$$Time", "ti.sysbios.interfaces");
         po.init("ti.sysbios.interfaces.ISeconds.Time", null);
                 po.addFld("$hostonly", $$T_Num, 0, "r");
+                po.addFld("secsHi", Proto.Elm.newCNum("(xdc_UInt32)"), $$UNDEF, "w");
                 po.addFld("secs", Proto.Elm.newCNum("(xdc_UInt32)"), $$UNDEF, "w");
                 po.addFld("nsecs", Proto.Elm.newCNum("(xdc_UInt32)"), $$UNDEF, "w");
     }

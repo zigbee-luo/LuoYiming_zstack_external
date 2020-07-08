@@ -88,6 +88,8 @@
         <file name="CC26xx_custom_makefile_clang.xdt"/>
         <file name="CC26xx_custom_outpolicies_iar.cfg.xs"/>
         <file name="linkcmd.xdt"/>
+        <file name="mangleAsmFile.xs"/>
+        <file name="processMapFile.xs"/>
         <file name="mangleCFile.xs"/>
         <file name="createRomFuncs.xs"/>
         <file name="createLinkCmdFile.xs"/>

@@ -209,7 +209,7 @@ include `goldenDir``SYMBOL_MAP_FILE`
 %   var asmDir = packageDir(s);
 %   LIBASMOBJS.push(libAsmObj)
 `libAsmObj`: `s` makefile
-	@$(XDC_ROOT)/../xs -c `romModuleDir`../mangleAsmFile.xs $(BIOS_ROOT)`s` `libAsmFile` romInternFuncs.txt
+	@$(XDC_ROOT)/../xs -c `romModuleDir`mangleAsmFile.xs $(BIOS_ROOT)`s` `libAsmFile` romInternFuncs.txt
 	@$(ASM) -o `libAsmObj` -I$(BIOS_ROOT)`asmDir` $(ASM_DEFS) $(XOPTS) $(INCS) `libAsmFile`
 
 %}

@@ -94,7 +94,7 @@
 #include "ota_srv_app.h"
 
 #include "ti_drivers_config.h"
-#include "cui.h"
+#include <ti/drivers/apps/Button.h>
 #include "nvintf.h"
 #include "zstackmsg.h"
 #include "zcl_port.h"
@@ -102,6 +102,7 @@
 #include <ti/sysbios/knl/Semaphore.h>
 #include "zstackapi.h"
 #include "util_timer.h"
+#include "nl_mede.h"
 #include "npi_data.h"
 
 #include "npi_data.h"
@@ -164,11 +165,12 @@ static Clock_Struct OtaServerNotifyClkStruct;
 static NVINTF_nvFuncts_t *pfnZdlNV = NULL;
 
 // Key press parameters
-static uint8_t keys = 0xFF;
+static Button_Handle keys = NULL;
 
 afAddrType_t otaServer_DstAddr;
 
-static CUI_clientHandle_t gCuiHandle;
+static Button_Handle gRightButtonHandle;
+static Button_Handle gLeftButtonHandle;
 /*********************************************************************
  * LOCAL FUNCTIONS
  */
@@ -183,8 +185,8 @@ static void otaServer_initializeClocks(void);
 static void otaServer_processEndDeviceRejoinTimeoutCallback(UArg a0);
 #endif
 static void otaServer_sendNotifylTimeoutCallback(UArg a0);
-static void otaServer_changeKeyCallback(uint32_t _btn, Button_EventMask _buttonEvents);
-static void otaServer_processKey(uint32_t keysPressed);
+static void otaServer_changeKeyCallback(Button_Handle _btn, Button_EventMask _buttonEvents);
+static void otaServer_processKey(Button_Handle keysPressed);
 static void otaServer_Init( void );
 
 static void otaServer_BasicResetCB( void );
@@ -219,7 +221,7 @@ static uint8_t otaServer_ProcessInDiscAttrsExtRspCmd( zclIncoming_t *pInMsg );
 #endif
 
 
-static void Initialize_CUI(void);
+static void Initialize_UI(void);
 
 /*********************************************************************
  * CONSTANTS
@@ -294,7 +296,7 @@ static void otaServer_initialization(void)
     /* Initialize user clocks */
     otaServer_initializeClocks();
 
-    Initialize_CUI();
+    Initialize_UI();
 
     /* create semaphores for messages / events
      */
@@ -540,7 +542,7 @@ static void otaServer_process_loop(void)
             {
                 // Process Key Presses
                 otaServer_processKey(keys);
-                keys = 0xFF;
+                keys = NULL;
                 appServiceTaskEvents &= ~SAMPLEAPP_KEY_EVT;
             }
 
@@ -802,11 +804,7 @@ static void otaServer_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *bdbC
     case BDB_COMMISSIONING_FORMATION:
       if(bdbCommissioningModeMsg->bdbCommissioningStatus == BDB_COMMISSIONING_SUCCESS)
       {
-        zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
-
-        //After formation, perform nwk steering again plus the remaining commissioning modes that has not been process yet
-        zstack_bdbStartCommissioningReq.commissioning_mode = BDB_COMMISSIONING_MODE_NWK_STEERING | bdbCommissioningModeMsg->bdbRemainingCommissioningModes;
-        Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
+        //YOUR JOB:
       }
       else
       {
@@ -941,8 +939,16 @@ void OTA_ProcessSysApp_ImageNotifyReq(uint8_t *pData)
   // Setup the destination address
   dstAddr.addr.shortAddr = BUILD_UINT16(pData[0], pData[1]);
   dstAddr.endPoint = pData[2];
-  dstAddr.addrMode = afAddr16Bit;
   dstAddr.panId = _NIB.nwkPanId;
+
+  if(NWK_BROADCAST_SHORTADDR_DEVZCZR <= dstAddr.addr.shortAddr)
+  {
+    dstAddr.addrMode = afAddrBroadcast;
+  }
+  else
+  {
+    dstAddr.addrMode = afAddr16Bit;
+  }
 
   // Fill the Send Image Notify Parameters
   imgNotifyParams.payloadType = pData[3];
@@ -952,7 +958,7 @@ void OTA_ProcessSysApp_ImageNotifyReq(uint8_t *pData)
   imgNotifyParams.fileId.version = BUILD_UINT32(pData[9], pData[10], pData[11], pData[12]);
 
   // Send the command
-  zclOTA_SendImageNotify(ZCL_OTA_ENDPOINT, &dstAddr, OTA_Dongle_SeqNo++, &imgNotifyParams);
+  zclOTA_SendImageNotify(ZCL_OTA_ENDPOINT, &dstAddr, &imgNotifyParams);
 }
 
 /*********************************************************************
@@ -1475,7 +1481,7 @@ static uint8_t otaServer_ProcessInDiscAttrsExtRspCmd( zclIncoming_t *pInMsg )
 
 
 /*******************************************************************************
- * @fn          Initialize_CUI
+ * @fn          Initialize_UI
  *
  * @brief       Initialize the Common User Interface
  *
@@ -1483,52 +1489,22 @@ static uint8_t otaServer_ProcessInDiscAttrsExtRspCmd( zclIncoming_t *pInMsg )
  *
  * @return      none
  */
-static void Initialize_CUI(void)
+static void Initialize_UI(void)
 {
-    CUI_params_t params;
-    CUI_paramsInit(&params);
-
-    //Do not initialize the UART as MT module already doing it.
-    params.manageUart = FALSE;
-
-    CUI_retVal_t retVal = CUI_init(&params);
-    if (CUI_SUCCESS != retVal)
-        while(1){};
-
-    CUI_clientParams_t clientParams;
-    CUI_clientParamsInit(&clientParams);
-
-    strncpy(clientParams.clientName, "GenericApp", MAX_CLIENT_NAME_LEN);
-
-    gCuiHandle = CUI_clientOpen(&clientParams);
-    if (gCuiHandle == NULL)
-        while(1){};
-
     /* Initialize btns */
-    CUI_btnRequest_t btnRequest;
-    btnRequest.index = CONFIG_BTN_RIGHT;
-    btnRequest.appCB = NULL;
+    Button_Params bparams;
+    Button_Params_init(&bparams);
+    gLeftButtonHandle = Button_open(CONFIG_BTN_LEFT, otaServer_changeKeyCallback, &bparams);
+    // Open Right button without appCallBack
+    gRightButtonHandle = Button_open(CONFIG_BTN_RIGHT, NULL, &bparams);
 
-    retVal = CUI_btnResourceRequest(gCuiHandle, &btnRequest);
-    if (CUI_SUCCESS != retVal)
-        while(1){};
-
-    bool btnState = false;
-    retVal = CUI_btnGetValue(gCuiHandle, CONFIG_BTN_RIGHT, &btnState);
-    if(!btnState)
+    if (!GPIO_read(((Button_HWAttrs*)gRightButtonHandle->hwAttrs)->gpioIndex))
     {
         Zstackapi_bdbResetLocalActionReq(appServiceTaskId);
     }
 
-    CUI_btnSetCb(gCuiHandle, CONFIG_BTN_RIGHT, otaServer_changeKeyCallback);
-
-    btnRequest.index = CONFIG_BTN_LEFT;
-    btnRequest.appCB = otaServer_changeKeyCallback;
-
-    retVal = CUI_btnResourceRequest(gCuiHandle, &btnRequest);
-    if (CUI_SUCCESS != retVal)
-        while(1){};
-
+    // Set button callback
+    Button_setCallback(gRightButtonHandle, otaServer_changeKeyCallback);
 }
 
 
@@ -1544,7 +1520,7 @@ static void Initialize_CUI(void)
  *
  * @return  none
  */
-static void otaServer_changeKeyCallback(uint32_t _btn, Button_EventMask _buttonEvents)
+static void otaServer_changeKeyCallback(Button_Handle _btn, Button_EventMask _buttonEvents)
 {
     if (_buttonEvents & Button_EV_CLICKED)
     {
@@ -1566,11 +1542,11 @@ static void otaServer_changeKeyCallback(uint32_t _btn, Button_EventMask _buttonE
  *
  * @return  none
  */
-static void otaServer_processKey(uint32_t keysPressed)
+static void otaServer_processKey(Button_Handle keysPressed)
 {
     zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
     //Button 1
-    if(keysPressed == CONFIG_BTN_LEFT)
+    if(keysPressed == gLeftButtonHandle)
     {
         if(ZG_BUILD_COORDINATOR_TYPE && ZG_DEVICE_COORDINATOR_TYPE)
         {
@@ -1586,7 +1562,7 @@ static void otaServer_processKey(uint32_t keysPressed)
 
     }
     //Button 2
-    if(keysPressed == CONFIG_BTN_RIGHT)
+    if(keysPressed == gRightButtonHandle)
     {
 
     }

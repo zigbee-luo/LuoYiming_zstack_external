@@ -40,25 +40,23 @@
 // Get common utility functions
 const Common = system.getScript("/ti/ti154stack/ti154stack_common.js");
 
+// Get common rf settings
+const rfCommon = system.getScript("/ti/ti154stack/rf_config/"
+    + "ti154stack_rf_config_common.js");
+
+// Get RF command handler
+const CmdHandler = system.getScript("/ti/devices/radioconfig/cmd_handler.js");
+
+// Get RF design functions
+const RfDesign = system.getScript("/ti/devices/radioconfig/rfdesign");
+
+// Get radio config parameter handler
+const ParameterHandler = system.getScript("/ti/devices/radioconfig/"
+    + "parameter_handler.js");
+
 // Get power setting descriptions
 const Docs = system.getScript("/ti/ti154stack/power_config/"
     + "ti154stack_power_config_docs.js");
-
-// Dictionary mapping device to value at which forceVddr needs to be defined
-// Values taken from radio config module
-const boardToForceVddrTxPower = {
-    CC1312R: "14",
-    CC1352R: "14",
-    CC1352P1: "14",
-    CC1352P_2: "14",
-    CC1352P_4: "14.5"
-};
-
-// Default tx power value for subG
-const defaultTxPowerValueSubG = 0;
-
-// Default tx power value for 2.4G
-const defaultTxPowerValue24G = 0;
 
 // Configurables for the static 15.4 Power Settings group
 const config = {
@@ -66,22 +64,12 @@ const config = {
     description: "Configure power settings for radio operation",
     config: [
         {
-            name: "transmitPowerSubG",
+            name: "transmitPower",
             displayName: "Transmit Power",
-            options: getTxPowerConfigOptions(true),
-            default: getDefaultTxPower(true),
-            hidden: !Common.IS_SUB1GHZ_DEVICE(),
-            description: Docs.transmitPowerSubG.description,
-            longDescription: Docs.transmitPowerSubG.longDescription
-        },
-        {
-            name: "transmitPower24G",
-            displayName: "Transmit Power",
-            options: getTxPowerConfigOptions(false),
-            default: getDefaultTxPower(false),
-            hidden: Common.IS_SUB1GHZ_DEVICE(),
-            description: Docs.transmitPower24G.description,
-            longDescription: Docs.transmitPower24G.longDescription
+            options: getTxPowerConfigOptions,
+            default: "0",
+            description: Docs.transmitPower.description,
+            longDescription: Docs.transmitPower.longDescription
         },
         {
             name: "rxOnIdle",
@@ -90,6 +78,34 @@ const config = {
             hidden: true,
             description: Docs.rxOnIdle.description,
             longDescription: Docs.rxOnIdle.longDescription
+        },
+        /* Note: transmitPowerSubG and transmitPower24G are legacy configs. In
+         * order to seamlessly handle custom board changes at runtime, the new
+         * trasmit power config, transmitPower, is dynamically updated with the
+         * correct power level range based on the user's selected RF reference
+         * board and frequency band.
+         *
+         * For backwards compatibility, any changes to legacy transmit power
+         * configs (from legacy files) that are valid in the new config will
+         * trigger an update to the corresponding new config.
+         */
+        {
+            name: "transmitPowerSubG",
+            displayName: "Legacy Transmit Power",
+            default: 0,
+            hidden: true,
+            description: "Legacy configurable that should always be hidden",
+            longDescription: "Legacy configurable that should always be hidden",
+            onChange: onLegacyTransmitPowerChange
+        },
+        {
+            name: "transmitPower24G",
+            displayName: "Legacy Transmit Power",
+            default: 0,
+            hidden: true,
+            description: "Legacy configurable that should always be hidden",
+            longDescription: "Legacy configurable that should always be hidden",
+            onChange: onLegacyTransmitPowerChange
         }
     ]
 };
@@ -100,108 +116,75 @@ const config = {
  *******************************************************************************
  */
 
-/*!
- *  ======== getRFSettingsConfig ========
- *  Get list of RF settings from Radio Config
+/*
+ * ======== onLegacyTransmitPowerChange ========
+ * On change function to ensure backwards compatibility between former tx power
+ * configs (transmitPowerSubG, transmitPower24G) and current, dynamically
+ * updated tx power config (transmitPower)
  *
- * @param isSub1BandSet - Boolean. Determines whether to return the rf settings
- *                     for subG or IEEE band.
- *
- *                     If the band selected is not supported (e.g. when
- *                     populating the tx power config pertaining to an
- *                     unsupported band), the supported band settings will be
- *                     used as 'dummy' values.
- * @returns          - Config for RF settings
+ * @param inst - 15.4 module instance
+ * @param ui   - user interface object
  */
-function getRFSettingsConfig(isSub1BandSet)
+function onLegacyTransmitPowerChange(inst, ui)
 {
-    // RF Settings from Radio Config
-    let rfSettings;
+    // Retrieve list of valid transmit power from new mask config
+    const currTxPowerOptions = getTxPowerConfigOptions(inst);
+    const txPowerLevelsSupported = _.map(currTxPowerOptions, "name");
 
-    // Return RF setting based on selection and support for that band
-    if((isSub1BandSet && Common.IS_SUB1GHZ_DEVICE())
-        || !Common.IS_24GHZ_DEVICE())
+    let legacyTransmitPower;
+    if(inst.freqBand === "freqBandSub1")
     {
-        rfSettings = system.getScript("/ti/devices/radioconfig/settings/prop");
-    }
-    else if((!isSub1BandSet && Common.IS_24GHZ_DEVICE())
-        || !Common.IS_SUB1GHZ_DEVICE())
-    {
-        rfSettings = system.getScript("/ti/devices/radioconfig/settings/"
-        + "ieee_15_4");
-    }
-
-    return(_.cloneDeep(rfSettings.config));
-}
-
-/*!
- *  ======== getDefaultTxPower ========
- *  Get the default tx power value for a given band
- *
- * @param isSub1BandSet - Boolean. Determines whether to return the default
- *                     power option for subG or IEEE bands
- *
- *  @returns         - default tx power option defined by constant if
- *                     available, otherwise returns first value in
- *                     tx power list
- */
-function getDefaultTxPower(isSub1BandSet)
-{
-    let defaultTxPower;
-    let desiredDefault;
-    const txPowerList = getTxPowerConfigOptions(isSub1BandSet);
-
-    if(isSub1BandSet)
-    {
-        desiredDefault = defaultTxPowerValueSubG;
+        legacyTransmitPower = String(inst.transmitPowerSubG);
     }
     else
     {
-        desiredDefault = defaultTxPowerValue24G;
+        legacyTransmitPower = String(inst.transmitPower24G);
     }
 
-    // Check if desired default is supported
-    if(_.some(txPowerList, {name: desiredDefault}))
+    // Accept only transmit power level from legacy config that are valid
+    // Update current transmit power config with value from legacy config
+    if(_.includes(txPowerLevelsSupported, legacyTransmitPower))
     {
-        defaultTxPower = desiredDefault;
+        inst.transmitPower = legacyTransmitPower;
     }
-    else
-    {
-        defaultTxPower = txPowerList[0].name;
-    }
-
-    return(defaultTxPower);
 }
 
 /*!
- *  ======== getTxPowerConfigOptions ========
- *  Get list of available Tx power values based on board and band set
+ * ======== getTxPowerConfigOptions ========
+ * Get list of available Tx power values based on board and band set
  *
- * @param isSub1BandSet - Boolean. Determines whether to return the transmit
- *                      power options for subG or IEEE bands
- *
- *  @returns          - list of transmit power options available
+ * @param inst - 15.4 module instance (null during initialization)
+ * @returns - list of transmit power options available
  */
-function getTxPowerConfigOptions(isSub1BandSet)
+function getTxPowerConfigOptions(inst)
 {
+    // Retrieve phy and phy group from rf_defaults files
+    const rfPhySettings = rfCommon.getPhyTypeGroupFromRFConfig(inst);
+    const rfPhyType = rfPhySettings.phyType;
+    const rfPhyGroup = rfPhySettings.phyGroup;
+
     // Get drop down options of RF tx power config
-    const txPowerOptsObj = getTxPowerRFConfig(isSub1BandSet);
-    const txPowerHiOpts = txPowerOptsObj.txPowerHi.options;
-    const txPowerOpts = txPowerOptsObj.txPower.options;
+    const freqBand = rfCommon.getSafeFreqBand(inst);
+    const txPowerOptsObj = getTxPowerRFConfig(inst, freqBand, rfPhyType,
+        rfPhyGroup);
+    const txPowerHiOpts = txPowerOptsObj.txPowerHi;
+    const txPowerOpts = txPowerOptsObj.txPower;
 
     let txPowerValueList = _.unionWith(txPowerOpts, txPowerHiOpts, _.isEqual);
 
     // Round all tx power values
     _.forEach(txPowerValueList, (option) =>
     {
-        option.name = _.round(option.name);
+        // option.name = _.round(option.name);
+        option.name = `${_.round(option.name)}`;
     });
 
     // Remove any duplicates
     txPowerValueList = _.uniqBy(txPowerValueList, "name");
 
     // Sort values in descending order
-    txPowerValueList = _.orderBy(txPowerValueList, "name", "desc");
+    txPowerValueList = _.orderBy(txPowerValueList, (opt) => Number(opt.name),
+        "desc");
 
     return(txPowerValueList);
 }
@@ -210,45 +193,43 @@ function getTxPowerConfigOptions(isSub1BandSet)
  *  ======== getTxPowerRFConfig ========
  *  Get the transmit power value options list from radio config module
  *
- * @param isSub1BandSet - Boolean. Determines whether to return the default
- *                        power option for subG or IEEE bands
- * @returns             - Object that holds radio config txPower configs for
- *                        regular and high PA
+ * @param inst - 15.4 module instance (null during initialization)
+ * @param phyType - value set in phyType config in radio config module
+ * @param phyGroup - String. Either "prop" or "ieee_15_4" depending on selected
+ *                   frequency band
+ * @returns - object with tx power config options for high and default PA
  */
-function getTxPowerRFConfig(isSub1BandSet)
+function getTxPowerRFConfig(inst, freqBand, phyType, phyGroup)
 {
-    // Dummy empty values
-    let txPowerOptions = {options: []};
+    // Retrieve launchpad type
+    let board;
+    if(inst === null)
+    {
+        board = Common.getLaunchPadFromDevice();
+    }
+    else
+    {
+        board = inst.rfDesign;
+    }
+
+    // Get the command handler for this phy instance
+    const cmdHandler = CmdHandler.get(phyGroup, phyType);
+    const freq = cmdHandler.getFrequency();
+
+    // Get drop down options of RF tx power config
+    // All boards support default PA
+    // High PA not supported for 1312R1, 1352R1, 1352P2 (Sub-1), 26X2R1, 2652RB
+    const txPowerOptions = RfDesign.getTxPowerOptions(freq, false);
     let txPowerHiOptions = {options: []};
 
-    // Get RF settings from Radio Config
-    const rfSettings = getRFSettingsConfig(isSub1BandSet, Common.BOARD);
-
-    switch(Common.BOARD)
+    if((board.includes("CC1352P1") && freqBand === "freqBandSub1")
+        || (((board.includes("CC1352P-2") || board.includes("CC1352P_2"))
+        || (board.includes("CC1352P-4") || board.includes("CC1352P_4")))
+        && (freqBand === "freqBand24")))
     {
-        case "CC1352P1_LAUNCHXL":
-            // 1352P1 only supports Sub-1 GHz
-            txPowerOptions = Common.findConfig(rfSettings, "txPower");
-            txPowerHiOptions = Common.findConfig(rfSettings, "txPowerHi");
-            break;
-        case "CC1352P_2_LAUNCHXL":
-            txPowerOptions = Common.findConfig(rfSettings, "txPower");
-
-            // On 1352P2 the high PA is enabled for 2.4 GHz
-            if(!isSub1BandSet)
-            {
-                txPowerHiOptions = Common.findConfig(rfSettings, "txPowerHi");
-            }
-            break;
-        case "CC1352P_4_LAUNCHXL":
-            // 1352P4 only supports Sub-1 GHz
-            txPowerOptions = Common.findConfig(rfSettings, "txPower433");
-            txPowerHiOptions = Common.findConfig(rfSettings, "txPower433Hi");
-            break;
-        default:
-            // High PA not supported for 1312R1, 1352R1, 26X2R1, 2652RB
-            txPowerOptions = Common.findConfig(rfSettings, "txPower");
-            break;
+        // On 1352P1 the high PA is enabled for Sub-1 GHz
+        // On 1352P2 and P4 the high PA is enabled for 2.4 GHz
+        txPowerHiOptions = RfDesign.getTxPowerOptions(freq, true);
     }
 
     return{
@@ -258,7 +239,7 @@ function getTxPowerRFConfig(isSub1BandSet)
 }
 
 /*!
- *  ======== mapCurrTxPowerToRFConfig ========
+ *  ======== getRFTxPowerFrom154TxPower ========
  * Returns an object containing parameters that must be set in radio config
  * module to set radio config tx power to that of 15.4 transmit power
  *
@@ -275,65 +256,64 @@ function getTxPowerRFConfig(isSub1BandSet)
  *                                        otherwise
  *                              - txPower: unrounded tx power value
  */
-function mapCurrTxPowerToRFConfig(inst)
+function getRFTxPowerFrom154TxPower(inst, freqBand, phyType, phyGroup)
 {
     let retHighPA;
     let retTxPower;
     let retCfgName;
-    let curTxPower;
-
-    // Get current tx power
-    const isSub1BandSet = (inst.freqBand === "freqBandSub1");
-    if(isSub1BandSet)
-    {
-        curTxPower = inst.transmitPowerSubG;
-    }
-    else
-    {
-        curTxPower = inst.transmitPower24G;
-    }
 
     // Get drop down options of RF tx power config
-    const txPowerOptsObj = getTxPowerRFConfig(isSub1BandSet);
-    const txPowerHiOpts = txPowerOptsObj.txPowerHi.options;
-    const txPowerOpts = txPowerOptsObj.txPower.options;
+    const txPowerOptsObj = getTxPowerRFConfig(inst, freqBand, phyType,
+        phyGroup);
+    const txPowerHiOpts = txPowerOptsObj.txPowerHi;
+    const txPowerOpts = txPowerOptsObj.txPower;
+    const transmitPower = getSafeTransmitPower(inst);
 
     // Find the first value that is less than current transmit power since
     // transmit power values in drop down are rounded up. Will be undefined
     // if config not found (e.g. high PA not supported for set band and board)
     const mappedRFTxPowerHi = _.find(txPowerHiOpts,
-        (option) => (option.name <= curTxPower));
+        (option) => (Number(option.name) <= Number(transmitPower)));
 
     const mappedRFTxPower = _.find(txPowerOpts,
-        (option) => (option.name <= curTxPower));
+        (option) => (Number(option.name) <= Number(transmitPower)));
 
-    // First check if current tx power valid with high PA since high PA will be
-    // used if transmit power is available with and without high PA
+    // Check if current tx power is valid with high PA since high PA will be
+    // used to transmit if power level is available for both default and high PA
     if(!_.isUndefined(mappedRFTxPowerHi))
     {
         // txPowerHi config only available on high PA boards
         retHighPA = true;
         retTxPower = mappedRFTxPowerHi;
 
-        // Get tx power config name based on board
-        retCfgName = Common.IS_433MHZ_DEVICE() ? "txPower433Hi" : "txPowerHi";
+        // Get tx power config name (independent of board as highPA on P4 is on
+        // 2.4 GHz band)
+        retCfgName = "txPowerHi";
     }
     else
     {
-        if(Common.IS_HIGHPA_DEVICE())
+        if(Common.isHighPADevice())
         {
-            // highPA config must be set to false for high PA devices
+            // Must set to false for high PA-capable devices to disable high PA
             retHighPA = false;
         }
         else
         {
-            // highPA config does not exist for non-high PA devices
+            // Set to undefined for devices that do not support high PA
             retHighPA = undefined;
         }
+
         retTxPower = mappedRFTxPower;
 
-        // Get tx power config name based on board
-        retCfgName = Common.IS_433MHZ_DEVICE() ? "txPower433" : "txPower";
+        // Get tx power config name based on board and band
+        if(Common.is433MHzDevice(inst) && freqBand === "freqBandSub1")
+        {
+            retCfgName = "txPower433";
+        }
+        else
+        {
+            retCfgName = "txPower";
+        }
     }
 
     return{
@@ -343,6 +323,28 @@ function mapCurrTxPowerToRFConfig(inst)
     };
 }
 
+/*!
+ * ======== getSafeTransmitPower ========
+ * Safely retrieve the value of the config by returning the instance value it's
+ * valid, otherwise returns the default value.
+ *
+ * Due to their nature, dynamic enum configurables may be incorrectly modified
+ * through the .syscfg file. While all dynamic configs have validation functions
+ * to detect such errors, the dependency of the radio config module requires
+ * safe access to some configs to avoid SysCOnfig breaks.
+ *
+ * @param inst - 15.4 module instance (null during initialization)
+ * @returns - config value in instance (if valid), otherwise config default
+ *            value
+ */
+function getSafeTransmitPower(inst)
+{
+    const validOptions = getTxPowerConfigOptions(inst);
+    const transmitPower = Common.getSafeDynamicConfig(inst, "transmitPower",
+        "0", validOptions);
+
+    return(transmitPower);
+}
 
 /*
  * ======== validate ========
@@ -355,46 +357,41 @@ function mapCurrTxPowerToRFConfig(inst)
  */
 function validate(inst, validation)
 {
-    const ccfg = system.modules["/ti/devices/CCFG"];
+    // Validate dynamic transmit power config
+    const validOptions = getTxPowerConfigOptions(inst);
+    Common.validateDynamicEnum(inst, validation, "transmitPower", validOptions);
 
-    // Get current 15.4 transmit power config
-    const isSub1BandSet = (inst.freqBand === "freqBandSub1");
-    let txPower154CfgName;
-    if(isSub1BandSet)
+    // Retrieve phy and phy group from rf_defaults files
+    const rfPhySettings = rfCommon.getPhyTypeGroupFromRFConfig(inst);
+    const rfPhyType = rfPhySettings.phyType;
+    const rfPhyGroup = rfPhySettings.phyGroup;
+
+    // Get the command handler for this phy instance
+    const cmdHandler = CmdHandler.get(rfPhyGroup, rfPhyType);
+    const freq = cmdHandler.getFrequency();
+
+    // Get transmit power from RF config module
+    const freqBand = rfCommon.getSafeFreqBand(inst);
+    const rfTxPowerSettings = getRFTxPowerFrom154TxPower(inst, freqBand,
+        rfPhyType, rfPhyGroup);
+    const rfTransmitPower = rfTxPowerSettings.txPower;
+    const rfHighPA = rfTxPowerSettings.highPA;
+
+    // Verify that ccfg forceVddr is set if required
+    const ccfg = system.modules["/ti/devices/CCFG"].$static;
+
+    if(ParameterHandler.validateTXpower(rfTransmitPower, freq, rfHighPA)
+        && !ccfg.forceVddr)
     {
-        txPower154CfgName = "transmitPowerSubG";
-    }
-    else
-    {
-        txPower154CfgName = "transmitPower24G";
+        validation.logWarning(`The selected RF TX Power requires `
+                + `${system.getReference(ccfg, "forceVddr")} to be enabled in `
+                + `the Device Configuration module`, inst, "transmitPower");
     }
 
-    // Get params that map current 15.4 tx power config value to radio config
-    // tx power config
-    const rfTxPowerValObj = mapCurrTxPowerToRFConfig(inst);
-
-    // Force VDDR only applicable to non-high PA
-    if(!rfTxPowerValObj.cfgName.includes("Hi"))
+    if(rfHighPA)
     {
-        let key = null;
-        for(key in boardToForceVddrTxPower)
-        {
-            // Verify that at force VDDR on at required level
-            if((Common.BOARD.includes(key))
-                && (rfTxPowerValObj.txPower === boardToForceVddrTxPower[key])
-                && (ccfg.$static.forceVddr === false))
-            {
-                validation.logWarning("The selected RF TX Power requires Force "
-                + "VDDR to be enabled in the Device Configuration module",
-                inst, txPower154CfgName);
-                break;
-            }
-        }
-    }
-    else
-    {
-        validation.logInfo("The selected RF TX Power enables high PA ",
-            inst, txPower154CfgName);
+        validation.logInfo("The selected RF TX Power enables high PA ", inst,
+            "transmitPower");
     }
 }
 
@@ -412,13 +409,10 @@ function getPowerConfigHiddenState(inst, cfgName)
     switch(cfgName)
     {
         case "transmitPowerSubG":
-        {
-            isVisible = (inst.freqBand === "freqBandSub1");
-            break;
-        }
         case "transmitPower24G":
         {
-            isVisible = (inst.freqBand === "freqBand24");
+            // Legacy transmit power configs that should always remain hidden
+            isVisible = false;
             break;
         }
         case "rxOnIdle":
@@ -426,6 +420,7 @@ function getPowerConfigHiddenState(inst, cfgName)
             isVisible = inst.project.includes("sensor");
             break;
         }
+        case "transmitPower":
         default:
         {
             isVisible = true;
@@ -468,9 +463,7 @@ function setPowerConfigHiddenState(inst, ui, cfgName)
 exports = {
     config: config,
     validate: validate,
-    mapCurrTxPowerToRFConfig: mapCurrTxPowerToRFConfig,
-    getDefaultTxPower: getDefaultTxPower,
-    boardToForceVddrTxPower: boardToForceVddrTxPower,
+    getRFTxPowerFrom154TxPower: getRFTxPowerFrom154TxPower,
     getTxPowerConfigOptions: getTxPowerConfigOptions,
     setPowerConfigHiddenState: setPowerConfigHiddenState,
     getPowerConfigHiddenState: getPowerConfigHiddenState

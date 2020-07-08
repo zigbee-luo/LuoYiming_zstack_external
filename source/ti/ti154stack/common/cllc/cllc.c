@@ -11,7 +11,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -58,9 +58,13 @@
 #include "cllc_linux.h"
 #endif
 #ifdef FEATURE_SECURE_COMMISSIONING
+#ifdef USE_DMM
+#include "remote_display.h"
+#include <sm_commissioning_gatt_profile.h>
+#endif /* USE_DMM */
 #include "sm_ti154.h"
 #include "icall_osal_rom_jt.h"
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 #ifdef POWER_MEAS
 #include "collector.h"
 #endif
@@ -317,7 +321,7 @@ bool networkStarted = 0;
 STATIC ApiMac_deviceDescriptor_t assocDevInfo;
 /* Copy of RX on Idle info received in Assoc Request: to be used for commissioning */
 STATIC bool assocDevRxOnIdle;
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 /******************************************************************************
  Local Function Prototypes
  *****************************************************************************/
@@ -327,6 +331,7 @@ static void beaconNotifyIndCb(ApiMac_mlmeBeaconNotifyInd_t *pData);
 static void scanCnfCb(ApiMac_mlmeScanCnf_t *pData);
 static void startCnfCb(ApiMac_mlmeStartCnf_t *pData);
 static void disassocIndCb(ApiMac_mlmeDisassociateInd_t *pData);
+static void disassocCnfCb(ApiMac_mlmeDisassociateCnf_t *pData);
 static void wsAsyncIndCb(ApiMac_mlmeWsAsyncInd_t *pData);
 static void dataIndCb(ApiMac_mcpsDataInd_t *pData);
 static void orphanIndCb(ApiMac_mlmeOrphanInd_t *pData);
@@ -397,6 +402,7 @@ void Cllc_init(ApiMac_callbacks_t *pMacCbs, Cllc_callbacks_t *pCllcCbs)
     pMacCbs->pAssocIndCb = assocIndCb;
     pMacCbs->pStartCnfCb = startCnfCb;
     pMacCbs->pDisassociateIndCb = disassocIndCb;
+    pMacCbs->pDisassociateCnfCb = disassocCnfCb;
     pMacCbs->pDataIndCb = dataIndCb;
     pMacCbs->pCommStatusCb = commStatusIndCb;
 #ifdef __unix__
@@ -850,8 +856,7 @@ void Cllc_restoreNetwork(Llc_netInfo_t *pNetworkInfo, uint16_t numDevices,
                     /* Do not update key refresh info here. It should be done when CM is done */
                 }
             }
-#endif
-
+#endif /* FEATURE_SECURE_COMMISSIONING */
         }
     }
 }
@@ -908,8 +913,16 @@ void Cllc_removeDevice(ApiMac_sAddrExt_t *pExtAddr)
 #endif
 
 #ifdef FEATURE_SECURE_COMMISSIONING
-                SM_removeEntryFromSeedKeyTable(pExtAddr);
-#endif
+                if (SM_Current_State == SM_CM_InProgress)
+                {
+                   SM_stopCMProcess();
+                   return;
+                }
+                else
+                {
+                  SM_removeEntryFromSeedKeyTable(pExtAddr);
+                }
+#endif /* FEATURE_SECURE_COMMISSIONING */
                 /* Clear the entry - delete */
                 memset(&Cllc_associatedDevList[i], 0xFF,
                        sizeof(Cllc_associated_devices_t));
@@ -987,7 +1000,7 @@ void Cllc_securityInit(uint32_t frameCounter, uint8_t *key)
                (APIMAC_MAX_KEY_LOOKUP_LEN));
 #ifdef FEATURE_SECURE_COMMISSIONING
         secInfo.networkKey = true;
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
         ApiMac_secAddKeyInitFrameCounter(&secInfo);
         ApiMac_mlmeSetSecurityReqArray(
                         ApiMac_securityAttribute_defaultKeySource,
@@ -1069,7 +1082,7 @@ ApiMac_status_t Cllc_addSecDevice(uint16_t panID, uint16_t shortAddr,
         ApiMac_secAddDevice_t device;
 #ifndef FEATURE_SECURE_COMMISSIONING
         uint8_t keyIndex = 0;
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
         device.panID = panID;
         device.shortAddr = shortAddr;
         memcpy(device.extAddr, pExtAddr, sizeof(ApiMac_sAddrExt_t));
@@ -1083,7 +1096,7 @@ ApiMac_status_t Cllc_addSecDevice(uint16_t panID, uint16_t shortAddr,
 
         device.uniqueDevice = false;
         device.duplicateDevFlag = false;
-#endif
+#endif /* !FEATURE_SECURE_COMMISSIONING */
         return(ApiMac_secAddDevice(&device));
     }
     else
@@ -1314,7 +1327,7 @@ static void startCnfCb(ApiMac_mlmeStartCnf_t *pData)
         ApiMac_srcMatchEnable();
 #endif
 #else
-        if(CONFIG_PHY_ID == APIMAC_PHY_ID_NONE)
+        if(CONFIG_PHY_ID == APIMAC_250KBPS_IEEE_PHY_0)
         {
             ApiMac_srcMatchEnable();
         }
@@ -1485,7 +1498,7 @@ static void assocIndCb(ApiMac_mlmeAssociateInd_t *pData)
     uint32_t duration=0;
     /* Disable Join Permit during CM process */
     Cllc_setJoinPermit(duration);
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
     /* Setup the device information structure */
     Util_copyExtAddr(&devInfo.extAddress, &pData->deviceAddress);
@@ -1547,7 +1560,7 @@ static void assocIndCb(ApiMac_mlmeAssociateInd_t *pData)
     /* Keep local copy of info from sensor in Assoc Req: to be used in commissioning */
     OsalPort_memcpy(&assocDevInfo, &devInfo, sizeof(ApiMac_deviceDescriptor_t));
     assocDevRxOnIdle = pData->capabilityInformation.rxOnWhenIdle;
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
     /* Fill assoc rsp fields */
     memset(&assocRsp.sec, 0, sizeof(ApiMac_sec_t));
@@ -1561,6 +1574,28 @@ static void assocIndCb(ApiMac_mlmeAssociateInd_t *pData)
     {
         /* pass back to MAC API */
         macCallbacksCopy.pAssocIndCb(pData);
+    }
+}
+
+/*!
+ * @brief       Handle Disassociate indication callback
+ *
+ * @param       pData - pointer to disassociate indication structure
+ */
+static void disassocCnfCb(ApiMac_mlmeDisassociateCnf_t *pData)
+{
+
+    ApiMac_sAddrExt_t extAddr;
+
+    // get ext address from short address
+    Csf_getDeviceExtAdd(pData->deviceAddress.addr.shortAddr, &extAddr);
+
+    /* remove device from association table */
+    Cllc_removeDevice(&extAddr);
+
+    if(macCallbacksCopy.pDisassociateCnfCb)
+    {
+        macCallbacksCopy.pDisassociateCnfCb(pData);
     }
 }
 
@@ -1768,6 +1803,11 @@ static void commStatusIndCb(ApiMac_mlmeCommStatusInd_t *pCommStatusInd)
                 /* Kick off commissioning process to obtain security information */
                 SM_startCMProcess(&assocDevInfo, &devSec, CONFIG_FH_ENABLE,
                                   assocDevRxOnIdle, SM_type_coordinator, SM_COLLECTOR_AUTH_METHODS);
+
+#ifdef USE_DMM
+                RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_STARTING);
+#endif /* USE_DMM */
+
         }
         else /* not a success for assocRsp */
         {

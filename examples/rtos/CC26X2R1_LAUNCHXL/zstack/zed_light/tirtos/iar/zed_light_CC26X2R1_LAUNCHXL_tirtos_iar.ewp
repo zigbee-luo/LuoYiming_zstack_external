@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <project>
-  <fileVersion>0</fileVersion>
+  <fileVersion>3</fileVersion>
   <configuration>
     <name>default</name>
     <toolchain>
@@ -12,7 +12,7 @@
       <name>General</name>
       <archiveVersion>3</archiveVersion>
       <data>
-        <version>24</version>
+        <version>31</version>
         <wantNonLocal>1</wantNonLocal>
         <debug>1</debug>
         <option>
@@ -32,18 +32,8 @@
           <state>0</state>
         </option>
         <option>
-          <name>Input variant</name>
-          <version>3</version>
-          <state>0</state>
-        </option>
-        <option>
           <name>Input description</name>
           <state></state>
-        </option>
-        <option>
-          <name>Output variant</name>
-          <version>2</version>
-          <state>0</state>
         </option>
         <option>
           <name>Output description</name>

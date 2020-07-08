@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2006-2019, Texas Instruments Incorporated
+ Copyright (c) 2006-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -241,6 +241,9 @@
 #define MAC_ACK_TIMEOUT_ADJ                           (2400)
 
 #define MAC_AIFS_PERIOD                               (1000/ macSpecUsecsPerSymbol)
+
+/* Offset time to start AIFS time */
+#define MAC_AIFS_RX_OFFSET                            (170/ macSpecUsecsPerSymbol)
 
 #define MAC_AIFS_ADJ_PERIOD                           ((1000 + MAC_ACK_TIMEOUT_ADJ)/ macSpecUsecsPerSymbol)
 

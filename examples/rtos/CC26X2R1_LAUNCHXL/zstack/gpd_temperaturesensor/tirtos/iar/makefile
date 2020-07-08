@@ -12,7 +12,7 @@ LNK = "$(IAR_ARMCOMPILER)/bin/ilinkarm"
 XDCTARGET = iar.targets.arm.M4F
 PLATFORM = ti.platforms.simplelink:CC2652R1F
 
-OBJECTS = ti_drivers_config.obj ti_devices_config.obj ti_radio_config.obj CC26X2R1_LAUNCHXL_fxns.obj mac_user_config.obj mac_settings.obj gpd_temperaturesensor.obj gpd_temperaturesensor_data.obj main.obj cui.obj crc.obj nvocmp.obj saddr.obj mac_util.obj util_timer.obj gpd.obj gpd_memory.obj macTask.obj api_mac.obj osal_port.obj osal_port_timers.obj hal_appasrt.obj dbg.obj mac_cfg.obj rom_init_154.obj fh_rom_init.obj hmac_rom_init.obj lmac_rom_init.obj icall_osal_rom_init.obj
+OBJECTS = ti_drivers_config.obj ti_devices_config.obj ti_radio_config.obj CC26X2R1_LAUNCHXL_fxns.obj mac_user_config.obj mac_settings.obj gpd_temperaturesensor.obj gpd_temperaturesensor_data.obj main.obj cui.obj crc.obj nvocmp.obj saddr.obj mac_util.obj util_timer.obj gpd.obj gpd_memory.obj macTask.obj api_mac.obj osal_port.obj osal_port_timers.obj dbg.obj mac_cfg.obj rom_init_154.obj fh_rom_init.obj hmac_rom_init.obj lmac_rom_init.obj icall_osal_rom_init.obj
 
 CONFIGPKG = gpd_temperaturesensor
 
@@ -36,7 +36,6 @@ CFLAGS = -I../.. \
     -DMAX_DEVICE_TABLE_ENTRIES=1 \
     -DZSTACK_GPD \
     -DFREQ_2_4G \
-    -DHAL_ASSERT_SPIN \
     -DNV_RESTORE \
     -DNV_INIT \
     -DFEATURE_NON_BEACON_MODE \
@@ -48,8 +47,6 @@ CFLAGS = -I../.. \
     "-I$(PROJ_DIR)/Application" \
     "-I$(PROJ_DIR)/Stack/Config" \
     "-I$(PROJ_DIR)/Stack/osal_port" \
-    "-I$(PROJ_DIR)/Stack/HAL/Assert" \
-    "-I$(PROJ_DIR)/Stack/HAL/Appasrt" \
     "-I$(PROJ_DIR)/Stack/HAL/Crypto" \
     "-I$(PROJ_DIR)/Stack/HAL/Platform" \
     "-I$(PROJ_DIR)/Stack/HAL/RF" \
@@ -61,8 +58,6 @@ CFLAGS = -I../.. \
     "-I$(PROJ_DIR)/Stack/sec" \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/services/saddr" \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/services/sdata" \
-    "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/hal/assert" \
-    "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/hal/appasrt" \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/hal/crypto" \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/hal/platform" \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/hal/rf" \
@@ -218,10 +213,6 @@ osal_port.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154s
 	@ $(CC) $(CFLAGS) $< -f $(CONFIGPKG)/compiler.opt -o $@
 
 osal_port_timers.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/common/osal_port/osal_port_tirtos/osal_port_timers.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
-	@ echo Building $@
-	@ $(CC) $(CFLAGS) $< -f $(CONFIGPKG)/compiler.opt -o $@
-
-hal_appasrt.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/hal/appasrt/hal_appasrt.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
 	@ echo Building $@
 	@ $(CC) $(CFLAGS) $< -f $(CONFIGPKG)/compiler.opt -o $@
 

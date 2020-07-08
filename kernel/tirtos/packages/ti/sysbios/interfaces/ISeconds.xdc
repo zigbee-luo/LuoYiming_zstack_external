@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, Texas Instruments Incorporated
+ * Copyright (c) 2014-2019, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,7 @@ interface ISeconds
      *  Structure to hold a time value in seconds plus nanoseconds.
      */
     struct Time {
+        UInt32 secsHi;  /*! Upper 32 bits for 64-bit seconds */
         UInt32 secs;    /*! Seconds */
         UInt32 nsecs;   /*! Nanoseconds */
     };

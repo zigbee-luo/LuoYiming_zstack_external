@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2015-2019, Texas Instruments Incorporated
+ Copyright (c) 2015-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -111,6 +111,7 @@ uint8 macCcmDecrypt(AESCCM_Transaction *trans);
 #if defined (FEATURE_BEACON_MODE) || defined (FEATURE_NON_BEACON_MODE)
 void macTrackTimeoutCallback(uint8 param);
 void macTrackStartCallback(uint8 param);
+void macBeaconStopTrack(void);
 #endif
 
 MAC_INTERNAL_API void macScanRxCoordRealign(macEvent_t *pEvent);
@@ -140,6 +141,18 @@ MAC_INTERNAL_API uint8 macBeaconCheckStartTime(macEvent_t *pEvent);
 MAC_INTERNAL_API uint8_t getLostBeaconCount(void);
 
 uint8 macCheckPendAddr(uint8 pendAddrSpec, uint8 *pAddrList);
+
+void MAC_ResumeReq(void);
+void macMgmtReset(void);
+#ifdef FEATURE_FREQ_HOP_MODE
+extern MAC_INTERNAL_API void macApiWSAsyncReq(macEvent_t *pEvent);
+#endif /* FEATURE_FREQ_HOP_MODE */
+
+MAC_INTERNAL_API void macTxBackoffHandler(macEvent_t *pEvent);
+MAC_INTERNAL_API void macRxBackoffHandler(macEvent_t *pEvent);
+
+MAC_INTERNAL_API uint8 macBuildDataFrame(macEvent_t *pEvent);
+
 #endif /* defined(TIMAC_ROM_PATCH) */
 
 #endif /* MAC_HL_PATCH_H */

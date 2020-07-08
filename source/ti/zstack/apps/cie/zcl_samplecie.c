@@ -75,6 +75,9 @@
 
 #include "zcl_samplecie.h"
 
+#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/apps/LED.h>
+
 #ifdef USE_ZCL_SAMPLEAPP_UI
 #include "zcl_sampleapps_ui.h"
 #include "zcl_sample_app_def.h"
@@ -171,6 +174,8 @@ uint8_t lastEvent = 0;
 uint16_t lastEventAddr = 0xFFFF;
 #endif
 
+static LED_Handle gRedLedHandle;
+
 #ifdef USE_ZCL_SAMPLEAPP_UI
 CONST char zclSampleCIE_appStr[] = APP_TITLE_STR;
 CUI_clientHandle_t gCuiHandle;
@@ -194,7 +199,7 @@ static void zclSampleCIE_processEndDeviceRejoinTimeoutCallback(UArg a0);
 #endif
 static void zclSampleCIE_processDiscoverDeviceTimeoutCallback(UArg a0);
 
-static void zclSampleCIE_processKey(uint32_t _btn, Button_EventMask _buttonEvents);
+static void zclSampleCIE_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleCIE_Init( void );
 
 static void zclSampleCIE_BasicResetCB( void );
@@ -470,20 +475,17 @@ static void zclSampleCIE_Init( void )
             &appServiceTaskEvents,                // The events processed by the sample application
             appSemHandle,                         // Semaphore to post the events in the application thread
             &zclSampleCIE_IdentifyTime,
-            &zclSampleCIE_BdbCommissioningModes,   // a pointer to the applications bdbCommissioningModes
-            zclSampleCIE_appStr,
-            zclSampleCIE_processKey,
-            zclSampleCIE_RemoveAppNvmData         // A pointer to the app-specific NV Item reset function
+            &zclSampleCIE_BdbCommissioningModes,   // A pointer to the application's bdbCommissioningModes
+            zclSampleCIE_appStr,                   // A pointer to the app-specific name string
+            zclSampleCIE_processKey,               // A pointer to the app-specific key process function
+            zclSampleCIE_RemoveAppNvmData          // A pointer to the app-specific NV Item reset function
             );
 
-   //Request the Red LED for App
-   CUI_retVal_t retVal;
-   /* Initialize the LEDS */
-   CUI_ledRequest_t ledRequest;
-   ledRequest.index = CONFIG_LED_RED;
 
-   retVal = CUI_ledResourceRequest(gCuiHandle, &ledRequest);
-   (void) retVal;
+   //Request the Red LED for App
+   LED_Params ledParams;
+   LED_Params_init(&ledParams);
+   gRedLedHandle = LED_open(CONFIG_LED_RED, &ledParams);
 
 
    //Initialize the SampleCIE UI status line
@@ -1044,11 +1046,7 @@ static void zclSampleCIE_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *b
     case BDB_COMMISSIONING_FORMATION:
       if(bdbCommissioningModeMsg->bdbCommissioningStatus == BDB_COMMISSIONING_SUCCESS)
       {
-        zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
-
-        //After formation, perform nwk steering again plus the remaining commissioning modes that has not been process yet
-        zstack_bdbStartCommissioningReq.commissioning_mode = BDB_COMMISSIONING_MODE_NWK_STEERING | bdbCommissioningModeMsg->bdbRemainingCommissioningModes;
-        Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
+        //YOUR JOB:
       }
       else
       {
@@ -1419,7 +1417,8 @@ static ZStatus_t zclSampleCIE_ChangeNotificationCB(zclZoneChangeNotif_t *pCmd, a
       lastEventAddr = (srcAddr->addr.shortAddr);
 
       //setting params for the Warning Message
-      CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOff(gRedLedHandle);
       alarm.warningmessage.warningbits.warnMode = SS_IAS_START_WARNING_WARNING_MODE_STOP;
       alarm.warningmessage.warningbits.warnStrobe = SS_IAS_START_WARNING_STROBE_NO_STROBE_WARNING;
       zclSampleCIE_UpdateStatusLine();
@@ -1432,7 +1431,8 @@ static ZStatus_t zclSampleCIE_ChangeNotificationCB(zclZoneChangeNotif_t *pCmd, a
       lastEventAddr = (srcAddr->addr.shortAddr);
 
       //setting params for the Warning Message
-      CUI_ledOn(gCuiHandle, CONFIG_LED_RED, NULL);
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
       alarm.warningmessage.warningbits.warnMode = SS_IAS_START_WARNING_WARNING_MODE_FIRE;
       alarm.warningmessage.warningbits.warnStrobe = SS_IAS_START_WARNING_STROBE_USE_STPOBE_IN_PARALLEL_TO_WARNING;
       zclSampleCIE_UpdateStatusLine();
@@ -1596,24 +1596,25 @@ static void zclSendWarningToAllWD(zclWDStartWarning_t *alarm)
  *
  * @brief   Key event handler function
  *
- * @param   keysPressed - keys to be process in application context
+ * @param   key - key to handle action for
+ *          buttonEvents - event to handle action for
  *
  * @return  none
  */
-static void zclSampleCIE_processKey(uint32_t _btn, Button_EventMask _buttonEvents)
+static void zclSampleCIE_processKey(uint8_t key, Button_EventMask buttonEvents)
 {
-    if (_buttonEvents & Button_EV_CLICKED)
+    if (buttonEvents & Button_EV_CLICKED)
     {
-        if(_btn == CONFIG_BTN_LEFT)
+        if(key == CONFIG_BTN_LEFT)
         {
             zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
 
             zstack_bdbStartCommissioningReq.commissioning_mode = zclSampleCIE_BdbCommissioningModes;
             Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
         }
-        if(_btn == CONFIG_BTN_RIGHT)
+        if(key == CONFIG_BTN_RIGHT)
         {
-
+            //unused
         }
     }
 }
@@ -1661,7 +1662,7 @@ static void zclSampleCIE_UpdateStatusLine(void)
 static void zclSampleCIE_InitializeStatusLine(CUI_clientHandle_t gCuiHandle)
 {
     /* Request Async Line for Light application Info */
-    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gSampleCIEInfoLine);
+    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gSampleCIEInfoLine);
 
     zclSampleCIE_UpdateStatusLine();
 }

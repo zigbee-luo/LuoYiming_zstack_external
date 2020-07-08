@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Texas Instruments Incorporated
+ * Copyright (c) 2015-2019, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -183,6 +183,7 @@ UInt32 Seconds_getTime(Seconds_Time *ts)
 {
     /* Clock granularity does not allow for nanosecs */
     ts->secs = Seconds_get();
+    ts->secsHi = 0;
     ts->nsecs = 0;
 
     return (0);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2018, Texas Instruments Incorporated
+ * Copyright (c) 2014-2019, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -76,6 +76,7 @@ UInt32 Seconds_getTime(Seconds_Time *ts)
 
     getTime(&curTs);
 
+    ts->secsHi = Seconds_module->setSecondsHi;
     ts->secs = curTs.secs - Seconds_module->refSeconds +
             Seconds_module->setSeconds;
     ts->nsecs = curTs.nsecs + Seconds_module->deltaNSecs;
@@ -83,7 +84,17 @@ UInt32 Seconds_getTime(Seconds_Time *ts)
         ts->secs = ts->secs + 1;
         ts->nsecs = ts->nsecs - 1000000000;
     }
+
+    /* Add 0 or -1, depending on relation of ref nsecs to nsecs at set time */
     ts->secs = ts->secs + Seconds_module->deltaSecs;
+
+    if (ts->secs < Seconds_module->setSeconds) {
+        /*
+         *  Seconds have wrapped because setSeconds is close to 0xFFFFFFFF.
+         *  This shouldn't happen again for another 136 years.
+         */
+        ts->secsHi++;
+    }
 
     Hwi_restore(key);
 
@@ -97,6 +108,7 @@ Void Seconds_set(UInt32 seconds)
 {
     Seconds_Time ts;
 
+    ts.secsHi = 0;
     ts.secs = seconds;
     ts.nsecs = 0;
 
@@ -115,6 +127,7 @@ UInt32 Seconds_setTime(Seconds_Time *ts)
 
     getTime(&refTs);
 
+    Seconds_module->setSecondsHi = ts->secsHi;
     Seconds_module->setSeconds = ts->secs;
     Seconds_module->refSeconds = refTs.secs;
 
@@ -147,10 +160,11 @@ static Void getTime(Seconds_Time *ts)
     seconds = (UInt32) (temp >> 32);
     subseconds = (UInt32) (temp & 0xFFFFFFFF);
     ts->secs = seconds;
+    ts->secsHi = 0;  // It will take 136 years for seconds to roll over.
 
     /*
      *  Throw away the lower 16 bits of the subseconds since this
-     *  used for temparature correction and does not accurately
+     *  is used for temparature correction and does not accurately
      *  reflect the time.
      */
     subseconds = subseconds >> 16;

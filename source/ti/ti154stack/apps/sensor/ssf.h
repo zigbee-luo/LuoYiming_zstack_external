@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -106,7 +106,7 @@ extern void Ssf_init(void *sem);
  */
 extern void Ssf_processEvents(void);
 
-#ifdef USE_DMM
+#if USE_DMM && !(DMM_CENTRAL)
  /*!
  * @brief       Key event handler function
  *
@@ -429,7 +429,7 @@ extern void Ssf_OffLED(void);
 extern void Ssf_displayPerStats(Smsgs_msgStatsField_t* stats);
 #endif /* DISPLAY_PER_STATS */
 
-#ifdef USE_DMM
+#if (USE_DMM) && !(DMM_CENTRAL)
 /*!
  * @brief       Initialize the provisioning clock.
  */
@@ -447,6 +447,13 @@ extern void Ssf_setProvisioningClock(bool provision);
  * @brief       A callback calls this function to post the application task semaphore..
  */
 void Ssf_PostAppSem(void);
+
+#ifdef LPSTK
+/*!
+ * @brief       A callback calls this function to pend the application task semaphore..
+ */
+void Ssf_PendAppSem(void);
+#endif
 
 #ifdef FEATURE_SECURE_COMMISSIONING
 /*!

@@ -377,7 +377,7 @@ b20 � b23    | Reserved                                             | 0b0
  */
 
 /**
- * @defgroup Green Power Stack Messages
+ * @defgroup GP_STACK_MSGS Green Power Stack Messages
  * @{
  * @brief gp stack messages
  */
@@ -399,6 +399,8 @@ typedef struct gpCmdPayloadMsg
   uint8_t*                       pMsg;   //!< Pointer to the message
   struct gpCmdPayloadMsg*      pNext;  //!< Pointer to next message
 }gpCmdPayloadMsg_t;
+
+/** @} End GP_STACK_MSGS */
 
 /**
  * @defgroup ATTRIBUTE_FORMATS Attribute formats
@@ -659,6 +661,8 @@ typedef struct
   uint8_t  *cmdPayload;            //!< Command payolad.
 } gpResponseCmd_t;
 
+/** @} End GP_COMMANDS */
+
 /**
  * @defgroup COMMAND_OPTIONS Options for commands
  * @{
@@ -685,6 +689,8 @@ typedef struct _gpdCommissioningCmd_t
   uint16_t *pServerList;                               //!< Server list.
   uint16_t *pClientList;                               //!< Client list.
 } gpdCommissioningCmd_t;
+
+/** @} End COMMAND_OPTIONS */
 
 #if defined (ENABLE_GREENPOWER_COMBO_BASIC)
 /// From CT to Sink to (de)register for tunneling service or to remove GPD from the network

@@ -87,6 +87,9 @@
 
 #include "zcl_samplezone.h"
 
+#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/apps/LED.h>
+
 #ifdef USE_ZCL_SAMPLEAPP_UI
 #include "zcl_sampleapps_ui.h"
 #include "zcl_sample_app_def.h"
@@ -157,6 +160,7 @@ afAddrType_t zclSampleZone_DstAddr;
 //Temporal variable to store the CIE endpoint
 static uint8_t tempCIEsrcEndpoint = 0;
 
+static LED_Handle gRedLedHandle;
 
 #ifdef USE_ZCL_SAMPLEAPP_UI
 CONST char zclSampleZone_appStr[] = APP_TITLE_STR;
@@ -186,7 +190,7 @@ static void zclSampleZone_processEndDeviceRejoinTimeoutCallback(UArg a0);
 #endif
 static void zclSampleZone_processAutoEnrollReqTimeoutCallback(UArg a0);
 
-static void zclSampleZone_processKey(uint32_t _btn, Button_EventMask _buttonEvents);
+static void zclSampleZone_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleZone_Init( void );
 
 #ifdef USE_ZCL_SAMPLEAPP_UI
@@ -404,7 +408,7 @@ static void zclSampleZone_Init( void )
   zcl_registerAttrList( SAMPLEFIREDETECTOR_ENDPOINT, zclSampleZone_NumAttributes, zclSampleZone_Attrs );
 
   // Register the Application to receive the unprocessed Foundation command/response messages
-  zclport_registerZclHandleExternal( SAMPLEFIREDETECTOR_ENDPOINT, zclSampleZone_ProcessIncomingMsg );
+  zclport_registerZclHandleExternal(zclSampleZone_ProcessIncomingMsg);
 
   zcl_registerReadWriteCB( SAMPLEFIREDETECTOR_ENDPOINT, NULL, zclSampleZone_AuthenticateCIE );
 
@@ -439,21 +443,16 @@ static void zclSampleZone_Init( void )
             &appServiceTaskEvents,                // The events processed by the sample application
             appSemHandle,                         // Semaphore to post the events in the application thread
             &zclSampleZone_IdentifyTime,
-            &zclSampleZone_BdbCommissioningModes,   // a pointer to the applications bdbCommissioningModes
-            zclSampleZone_appStr,
-            zclSampleZone_processKey,
-            zclSampleZone_RemoveAppNvmData         // A pointer to the app-specific NV Item reset function
+            &zclSampleZone_BdbCommissioningModes,   // A pointer to the application's bdbCommissioningModes
+            zclSampleZone_appStr,                   // A pointer to the app-specific name string
+            zclSampleZone_processKey,               // A pointer to the app-specific key process function
+            zclSampleZone_RemoveAppNvmData          // A pointer to the app-specific NV Item reset function
             );
 
   //Request the Red LED for App
-  CUI_retVal_t retVal;
-  /* Initialize the LEDS */
-  CUI_ledRequest_t ledRequest;
-  ledRequest.index = CONFIG_LED_RED;
-
-  retVal = CUI_ledResourceRequest(gCuiHandle, &ledRequest);
-  (void) retVal;
-
+  LED_Params ledParams;
+  LED_Params_init(&ledParams);
+  gRedLedHandle = LED_open(CONFIG_LED_RED, &ledParams);
 
   //Initialize the SampleZone UI status line
   zclSampleZone_InitializeStatusLine(gCuiHandle);
@@ -991,11 +990,7 @@ static void zclSampleZone_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *
     case BDB_COMMISSIONING_FORMATION:
       if(bdbCommissioningModeMsg->bdbCommissioningStatus == BDB_COMMISSIONING_SUCCESS)
       {
-        zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
-
-        //After formation, perform nwk steering again plus the remaining commissioning modes that has not been process yet
-        zstack_bdbStartCommissioningReq.commissioning_mode = BDB_COMMISSIONING_MODE_NWK_STEERING | bdbCommissioningModeMsg->bdbRemainingCommissioningModes;
-        Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
+        //YOUR JOB:
       }
       else
       {
@@ -1329,22 +1324,23 @@ static uint8_t zclSampleZone_ProcessInDiscAttrsExtRspCmd( zclIncoming_t *pInMsg 
  *
  * @brief   Key event handler function
  *
- * @param   keysPressed - keys to be process in application context
+ * @param   key - key to handle action for
+ *          buttonEvents - event to handle action for
  *
  * @return  none
  */
-static void zclSampleZone_processKey(uint32_t _btn, Button_EventMask _buttonEvents)
+static void zclSampleZone_processKey(uint8_t key, Button_EventMask buttonEvents)
 {
-    if (_buttonEvents & Button_EV_CLICKED)
+    if (buttonEvents & Button_EV_CLICKED)
     {
-        if(_btn == CONFIG_BTN_LEFT)
+        if(key == CONFIG_BTN_LEFT)
         {
           zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
 
           zstack_bdbStartCommissioningReq.commissioning_mode = zclSampleZone_BdbCommissioningModes;
           Zstackapi_bdbStartCommissioningReq(appServiceTaskId, &zstack_bdbStartCommissioningReq);
         }
-        if(_btn == CONFIG_BTN_RIGHT)
+        if(key == CONFIG_BTN_RIGHT)
         {
             if(zclSampleZone_ZoneState == SS_IAS_ZONE_STATE_ENROLLED)
             {
@@ -1362,8 +1358,8 @@ static void zclSampleZone_processKey(uint32_t _btn, Button_EventMask _buttonEven
 static void zclSampleZone_InitializeStatusLine(CUI_clientHandle_t gCuiHandle)
 {
     /* Request Async Line for Light application Info */
-    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gSampleZoneInfoLine1);
-    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"2"CUI_DEBUG_MSG_END, &gSampleZoneInfoLine2);
+    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gSampleZoneInfoLine1);
+    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"2"CUI_DEBUG_MSG_END, false, &gSampleZoneInfoLine2);
 
     zclSampleZone_UpdateStatusLine();
 }
@@ -1536,11 +1532,12 @@ static void zclSampleZone_SendChangeNotification(void)
 
   if(zclSampleZone_ZoneStatus == SS_IAS_ZONE_STATUS_ALARM1_ALARMED)
   {
-    CUI_ledBlink(gCuiHandle, CONFIG_LED_RED, CUI_BLINK_CONTINUOUS);
+    LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
   }
   else
   {
-    CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
+    LED_stopBlinking(gRedLedHandle);
+    LED_setOff(gRedLedHandle);
   }
 }
 
@@ -1702,11 +1699,12 @@ void zclSampleZone_UiActionToggleAlarm(const int32_t _itemEntry)
 
     if(zclSampleZone_ZoneStatus == SS_IAS_ZONE_STATUS_ALARM1_ALARMED)
     {
-      CUI_ledBlink(gCuiHandle, CONFIG_LED_RED, CUI_BLINK_CONTINUOUS);
+      LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
     }
     else
     {
-      CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOff(gRedLedHandle);
     }
 
     zclSampleZone_UpdateStatusLine();

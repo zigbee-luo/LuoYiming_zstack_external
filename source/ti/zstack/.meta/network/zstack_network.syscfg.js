@@ -83,7 +83,8 @@ const defaultNwkKeyLongDescription = defaultNwkKeyDescription + `\n\n\
 const distributedGlobalLinkKeyDescription = `ZigBee Alliance Pre-configured \
 Distributed Link Key (for Distributed networks)`;
 
-const distributedGlobalLinkKeyLongDescription = distributedGlobalLinkKeyDescription
+const distributedGlobalLinkKeyLongDescription = ""
++ distributedGlobalLinkKeyDescription
 + `\n\n **Default:** D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF
 
 **Range:** Any ${Common.NWK_KEY_LEN * 8} bit number (hexidecimal format)`;
@@ -133,7 +134,7 @@ const networkModule = {
         },
         {
             name: "epidAsExtAddr",
-            displayName: "Set Extended PAN ID to Extended Address",
+            displayName: "Extended PAN ID to Extended Address",
             description: epidAsExtAddrDescription,
             longDescription: epidAsExtAddrLongDescription,
             default: true,
@@ -144,7 +145,7 @@ const networkModule = {
             displayName: "Extended PAN ID",
             description: epidDescription,
             longDescription: epidLongDescription,
-            default: "0x0123456789ABCDEF",
+            default: "0123456789ABCDEF",
             hidden: true
         },
         {
@@ -195,18 +196,18 @@ function onDeviceTypeChange(inst, ui)
     if(inst.deviceType === "zc" || inst.deviceType === "zr"
        || inst.deviceType === "znp")
     {
-        ui.nwkMaxDeviceList.hidden  = false;
-        if (inst.deviceType === "zc" || inst.deviceType === "znp")
+        ui.nwkMaxDeviceList.hidden = false;
+        if(inst.deviceType === "zc" || inst.deviceType === "znp")
         {
             ui.zdsecmgrTcDeviceMax.hidden = false;
             inst.zdsecmgrTcDeviceMax = 40;
         }
         else /* zr */
         {
-            ui.zdsecmgrTcDeviceMax.hidden  = true;
+            ui.zdsecmgrTcDeviceMax.hidden = true;
             inst.zdsecmgrTcDeviceMax = 3;
         }
-        if (inst.deviceType === "zc")
+        if(inst.deviceType === "zc")
         {
             ui.distributedGlobalLinkKey.hidden = true;
         }
@@ -214,12 +215,11 @@ function onDeviceTypeChange(inst, ui)
         {
             ui.distributedGlobalLinkKey.hidden = false;
         }
-        
     }
     else /* zed */
     {
         ui.distributedGlobalLinkKey.hidden = false;
-        ui.nwkMaxDeviceList.hidden  = true;
+        ui.nwkMaxDeviceList.hidden = true;
         ui.zdsecmgrTcDeviceMax.hidden = true;
         inst.zdsecmgrTcDeviceMax = 3;
     }
@@ -260,29 +260,29 @@ function validate(inst, validation)
 
     /* Validate EPID */
     const epidReg = new RegExp(
-        "^0x[0-9A-Fa-f]{" + Common.EPID_LEN * 2 + "}$", "g"
+        "^[0-9A-Fa-f]{" + Common.EPID_LEN * 2 + "}$", "g"
     );
     if(epidReg.test(inst.epid) === false)
     {
         validation.logError(
-            "Extended PAN ID must be a valid hexidecimal number (0x...) of "
+            "Extended PAN ID must be a valid hexidecimal number (...) of "
             + "length " + Common.EPID_LEN * 8 + " bits", inst, "epid"
         );
     }
 
     /* Error for reserved EPIDs (0x0 and 0xFFFFFFFFFFFFFFFF) */
     const epidReservedReg1 = new RegExp(
-        "^0x[0]{" + Common.EPID_LEN * 2 + "}$", "g"
+        "^[0]{" + Common.EPID_LEN * 2 + "}$", "g"
     );
     const epidReservedReg2 = new RegExp(
-        "^0x[Ff]{" + Common.EPID_LEN * 2 + "}$", "g"
+        "^[Ff]{" + Common.EPID_LEN * 2 + "}$", "g"
     );
     if(epidReservedReg1.test(inst.epid) === true
        || epidReservedReg2.test(inst.epid) === true)
     {
         validation.logError(
-            "Extended PAN ID values of 0x0000000000000000 and "
-            + "0xFFFFFFFFFFFFFFFF are reserved", inst, "epid"
+            "Extended PAN ID values of 0000000000000000 and "
+            + "FFFFFFFFFFFFFFFF are reserved", inst, "epid"
         );
     }
 
@@ -318,8 +318,8 @@ function validate(inst, validation)
     if(distGlobalLinkKeyReg.test(inst.distributedGlobalLinkKey) === false)
     {
         validation.logError(
-            "Distributed Global Link Key must be a valid hexidecimal number (...) "
-            + "of length " + Common.NWK_KEY_LEN * 8 + " bits",
+            "Distributed Global Link Key must be a valid hexidecimal number"
+            + " (...) of length " + Common.NWK_KEY_LEN * 8 + " bits",
             inst, "distributedGlobalLinkKey"
         );
     }
@@ -338,17 +338,17 @@ function validate(inst, validation)
     }
 
     /* Warn when TC Link Key is changed */
-    if (inst.tcLinkKey !== "5a6967426565416c6c69616e63653039")
+    if(inst.tcLinkKey !== "5a6967426565416c6c69616e63653039")
     {
         validation.logWarning(
             "If the TC Link Key is changed from the default value,"
-            + " it might break interoperability between Zigbee Devices, and might "
-            + "not be certifiable.", inst, "tcLinkKey"
+            + " it might break interoperability between Zigbee Devices,"
+            + " and might not be certifiable.", inst, "tcLinkKey"
         );
     }
 
     /* Warn when TC Link Key is changed */
-    if (inst.nwkMaxDeviceList !== 20)
+    if(inst.nwkMaxDeviceList !== 20)
     {
         validation.logWarning(
             "Consider NV size when changing this value",

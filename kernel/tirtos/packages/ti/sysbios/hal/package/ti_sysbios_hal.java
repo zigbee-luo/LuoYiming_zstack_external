@@ -2,7 +2,7 @@
  *  Do not modify this file; it is automatically 
  *  generated and any modifications will be overwritten.
  *
- * @(#) xdc-H32
+ * @(#) xdc-I11
  */
 import java.util.*;
 import org.mozilla.javascript.*;
@@ -11,7 +11,7 @@ import xdc.services.spec.Session;
 
 public class ti_sysbios_hal
 {
-    static final String VERS = "@(#) xdc-H32\n";
+    static final String VERS = "@(#) xdc-I11\n";
 
     static final Proto.Elm $$T_Bool = Proto.Elm.newBool();
     static final Proto.Elm $$T_Num = Proto.Elm.newNum();
@@ -1124,6 +1124,7 @@ public class ti_sysbios_hal
 
         so = (Proto.Str)om.findStrict("ti.sysbios.hal.SecondsClock.Module_State", "ti.sysbios.hal");
         sizes.clear();
+        sizes.add(Global.newArray("secondsHi", "UInt32"));
         sizes.add(Global.newArray("seconds", "UInt32"));
         sizes.add(Global.newArray("c1", "UInt32"));
         sizes.add(Global.newArray("c2", "UInt32"));
@@ -1485,11 +1486,17 @@ public class ti_sysbios_hal
         if (isCFG) {
             po.addFld("getFxn", new Proto.Adr("xdc_UInt32(*)(xdc_Void)", "PFn"), "&ti_sysbios_hal_SecondsCallback_defaultGet", "w");
             po.addFld("setFxn", new Proto.Adr("xdc_Void(*)(xdc_UInt32)", "PFv"), "&ti_sysbios_hal_SecondsCallback_defaultSet", "w");
+            po.addFld("getTimeFxn", new Proto.Adr("xdc_UInt32(*)(ti_sysbios_hal_SecondsCallback_Time*)", "PFn"), "&ti_sysbios_hal_SecondsCallback_defaultGetTime", "w");
+            po.addFld("setTimeFxn", new Proto.Adr("xdc_UInt32(*)(ti_sysbios_hal_SecondsCallback_Time*)", "PFn"), "&ti_sysbios_hal_SecondsCallback_defaultSetTime", "w");
         }//isCFG
         // typedef SecondsCallback.GetFxn
         om.bind("ti.sysbios.hal.SecondsCallback.GetFxn", new Proto.Adr("xdc_UInt32(*)(xdc_Void)", "PFn"));
         // typedef SecondsCallback.SetFxn
         om.bind("ti.sysbios.hal.SecondsCallback.SetFxn", new Proto.Adr("xdc_Void(*)(xdc_UInt32)", "PFv"));
+        // typedef SecondsCallback.GetTimeFxn
+        om.bind("ti.sysbios.hal.SecondsCallback.GetTimeFxn", new Proto.Adr("xdc_UInt32(*)(ti_sysbios_hal_SecondsCallback_Time*)", "PFn"));
+        // typedef SecondsCallback.SetTimeFxn
+        om.bind("ti.sysbios.hal.SecondsCallback.SetTimeFxn", new Proto.Adr("xdc_UInt32(*)(ti_sysbios_hal_SecondsCallback_Time*)", "PFn"));
     }
 
     void SecondsClock$$TYPES()
@@ -1523,6 +1530,7 @@ public class ti_sysbios_hal
         po = (Proto.Obj)om.findStrict("ti.sysbios.hal.SecondsClock$$Module_State", "ti.sysbios.hal");
         po.init("ti.sysbios.hal.SecondsClock.Module_State", null);
                 po.addFld("$hostonly", $$T_Num, 0, "r");
+                po.addFld("secondsHi", Proto.Elm.newCNum("(xdc_UInt32)"), $$UNDEF, "w");
                 po.addFld("seconds", Proto.Elm.newCNum("(xdc_UInt32)"), $$UNDEF, "w");
                 po.addFld("c1", Proto.Elm.newCNum("(xdc_UInt32)"), $$UNDEF, "w");
                 po.addFld("c2", Proto.Elm.newCNum("(xdc_UInt32)"), $$UNDEF, "w");
@@ -2913,8 +2921,12 @@ public class ti_sysbios_hal
         tdefs.add(om.findStrict("ti.sysbios.interfaces.ISeconds.Time", "ti.sysbios.hal"));
         vo.bind("GetFxn", om.findStrict("ti.sysbios.hal.SecondsCallback.GetFxn", "ti.sysbios.hal"));
         vo.bind("SetFxn", om.findStrict("ti.sysbios.hal.SecondsCallback.SetFxn", "ti.sysbios.hal"));
+        vo.bind("GetTimeFxn", om.findStrict("ti.sysbios.hal.SecondsCallback.GetTimeFxn", "ti.sysbios.hal"));
+        vo.bind("SetTimeFxn", om.findStrict("ti.sysbios.hal.SecondsCallback.SetTimeFxn", "ti.sysbios.hal"));
         mcfgs.add("getFxn");
         mcfgs.add("setFxn");
+        mcfgs.add("getTimeFxn");
+        mcfgs.add("setTimeFxn");
         vo.bind("$$tdefs", Global.newArray(tdefs.toArray()));
         vo.bind("$$proxies", Global.newArray(proxies.toArray()));
         vo.bind("$$mcfgs", Global.newArray(mcfgs.toArray()));

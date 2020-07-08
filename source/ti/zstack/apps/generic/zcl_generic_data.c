@@ -1,5 +1,5 @@
 /**************************************************************************************************
-  Filename:       zcl_generic_data.c
+  Filename:       zcl_genericapp_data.c
   Revised:        $Date: 2014-05-12 13:14:02 -0700 (Mon, 12 May 2014) $
   Revision:       $Revision: 38502 $
 

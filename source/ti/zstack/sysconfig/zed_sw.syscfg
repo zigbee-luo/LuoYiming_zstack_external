@@ -79,6 +79,15 @@ AESCCM1.interruptPriority = "2";
 /* AESECB */
 AESECB1.interruptPriority = "1";
 
+/* ======== RF Design ======== */
+var rfDesign = scripting.addModule("ti/devices/radioconfig/rfdesign");
+const rfDesignSettings = system.getScript("/ti/common/lprf_rf_design_settings.js").rfDesignSettings;
+for(var setting in rfDesignSettings)
+{
+    rfDesign[setting] = rfDesignSettings[setting];
+}
+
+
 /* CCFG */
 const ccfgSettings = system.getScript("/ti/common/lprf_ccfg_settings.js").ccfgSettings;
 for(var setting in ccfgSettings)
@@ -161,4 +170,4 @@ UART1.$name               = "CONFIG_DISPLAY_UART";
 /* Z-Stack */
 zstack.deviceType = "zed";
 zstack.deviceTypeReadOnly = true;
-
+zstack.rf.rfDesign = rfDesignSettings.rfDesign;

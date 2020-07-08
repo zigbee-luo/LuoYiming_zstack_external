@@ -10,7 +10,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2012-2019, Texas Instruments Incorporated
+ Copyright (c) 2012-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -148,7 +148,7 @@ void powerUpGpio(void)
 {
     /* GPIO power up*/
     PRCMPowerDomainOn(PRCM_DOMAIN_PERIPH);
-    while (PRCMPowerDomainStatus(PRCM_DOMAIN_PERIPH)
+    while (PRCMPowerDomainsAllOn(PRCM_DOMAIN_PERIPH)
            != PRCM_DOMAIN_POWER_ON);
 
     PRCMPeripheralRunEnable(PRCM_PERIPH_GPIO);
@@ -179,7 +179,7 @@ void powerDownGpio(void)
     while (!PRCMLoadGet());
 
     PRCMPowerDomainOff(PRCM_DOMAIN_PERIPH);
-    while (PRCMPowerDomainStatus(PRCM_DOMAIN_PERIPH)
+    while (PRCMPowerDomainsAllOn(PRCM_DOMAIN_PERIPH)
            != PRCM_DOMAIN_POWER_OFF);
 }
 /**************************************************************************************************

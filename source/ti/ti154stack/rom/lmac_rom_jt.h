@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -52,6 +52,7 @@
 #include "mac_low_level.h"
 #include "mac_symbol_timer.h"
 #include "mac_radio.h"
+#include "mac_radio_tx.h"
 
 
 #include "rom_jt_def_154.h"

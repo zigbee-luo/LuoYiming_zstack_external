@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2006-2019, Texas Instruments Incorporated
+ Copyright (c) 2006-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -124,7 +124,8 @@ extern rfc_CMD_PROP_RX_ADV_t RF_cmdPropRxAdv;
 extern rfc_CMD_PROP_CS_t RF_cmdPropCs;
 extern rfc_CMD_PROP_CS_t RF_cmdPropCsSlotted;
 #endif
-extern rfc_CMD_FS_t RF_cmdFs;
+extern rfc_CMD_FS_t RF_cmdFsRx;
+extern rfc_CMD_FS_t RF_cmdFsTx;
 extern rfc_CMD_NOP_t RF_cmdNop;
 extern rfc_CMD_NOP_t RF_cmdNopFg;
 extern rfc_CMD_SCH_IMM_t RF_cmdScheduleImmediate;

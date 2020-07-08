@@ -80,9 +80,8 @@ const rfCommon = system.getScript("/ti/ti154stack/rf_config/"
 // Object containing SimpleLink Long Range, 5kbps setting for CC1352P_4_LAUNCHXL
 const devSpecificSlLr5KbpsSettings = {
     args: {
-        freqBand: "433", // options: 868 or 433
-        phyType433: "slr5kbps2gfsk433mhz", // phyType suffix must match freqBand
-        carrierFrequency: 433.92032,
+        freqBand: "433",
+        phyType433: "slr5kbps2gfsk433mhz",
         whitening: `Dynamically IEEE 802.15.4g compatible whitener and \
 16/32-bit CRC`,
         packetLengthConfig: "Fixed",
@@ -106,10 +105,8 @@ const devSpecificSlLr5KbpsSettings = {
 // Object containing 2GFSK, 50kbps settings for the CC1352P_4_LAUNCHXL
 const devSpecific2Gfsk50KbpsSettings = {
     args: {
-        freqBand: "433", // options: 868 or 433
-        // phyType suffix must match freqBand
+        freqBand: "433",
         phyType433: "2gfsk50kbps154g433mhz",
-        carrierFrequency: 433.92032,
         whitening: `Dynamically IEEE 802.15.4g compatible whitener and \
 16/32-bit CRC`,
         codeExportConfig: {
@@ -125,6 +122,19 @@ const devSpecific2Gfsk50KbpsSettings = {
             cmdPropTxAdv: "RF_cmdPropTxAdv_2gfsk50kbps154g433mhz",
             cmdPropRxAdv: "RF_cmdPropRxAdv_2gfsk50kbps154g433mhz",
             cmdPropCs: "RF_cmdPropCs_2gfsk50kbps154g433mhz"
+        }
+    }
+};
+
+// Object containing IEEE settings for the CC1352P_4_LAUNCHXL
+const devSpecificIEEESettings = {
+    args: {
+        phyType: "ieee154p10",
+        highPA: true,
+        codeExportConfig: {
+            cmdList_ieee_15_4: ["cmdRadioSetupPa"],
+            cmdRadioSetupPa: "RF_cmdRadioSetup_ieee154",
+            paExport: "combined"
         }
     }
 };
@@ -147,7 +157,10 @@ const defaultPropPhyList = [
 ];
 
 // IEEE phy setting not supported on the CC1352P_4_LAUNCHXL
+// Order of merge matters for P4 settings to overwrite common settings
 const defaultIEEEPhyList = [
+    rfCommon.mergeRFSettings(rfCommon.commonIEEESettings,
+        devSpecificIEEESettings)
 ];
 
 exports = {

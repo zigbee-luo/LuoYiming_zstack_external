@@ -73,6 +73,8 @@
 #include "gpd_temperaturesensor.h"
 
 #include "ti_drivers_config.h"
+#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/apps/LED.h>
 #include "cui.h"
 #include <ti/sysbios/knl/Semaphore.h>
 #include "api_mac.h"
@@ -119,7 +121,7 @@ static Clock_Handle ReportTempClkHandle;
 static Clock_Struct ReportTempClkStruct;
 
 // Key press parameters
-static uint8_t keys = 0xFF;
+static Button_Handle keys = NULL;
 
 // Task pending events
 static uint16_t events = 0;
@@ -128,19 +130,22 @@ static uint16_t events = 0;
 static uint8_t commissioningMsg;
 
 uint8_t tempKeyState = 0;
-static CUI_clientHandle_t gCuiHandle;
+static Button_Handle gRightButtonHandle;
+static Button_Handle gLeftButtonHandle;
+static LED_Handle gGreenLedHandle;
+static LED_Handle gRedLedHandle;
 /*********************************************************************
  * LOCAL FUNCTIONS
  */
 static void     gpdSampleTempSensor_initialization(void);
-static void     gpdSampleTempSensor_changeKeyCallback(uint32_t _btn, Button_EventMask _buttonEvents);
-static void     gpdSampleTempSensor_processKey(uint32_t keysPressed, Button_Events btnEvent);
+static void     gpdSampleTempSensor_changeKeyCallback(Button_Handle _btn, Button_EventMask _buttonEvents);
+static void     gpdSampleTempSensor_processKey(Button_Handle keysPressed, Button_Events btnEvent);
 static uint16_t gpdSampleTempSensor_process_loop( void );
 static void     gpdSampleTempSensor_Init(void);
 static void     gpdSampleTempSensor_processReportTempTimeoutCallback(UArg a0);
 static void     gpdSampleTempSensor_initializeClocks(void);
 static void     dataCnfCB(ApiMac_mcpsDataCnf_t *pDataCnf);
-static void     Initialize_CUI(void);
+static void     Initialize_UI(void);
 /*********************************************************************
  * CONSTANTS
  */
@@ -241,7 +246,7 @@ static void gpdSampleTempSensor_initialization(void)
     /* Initialize user clocks */
     gpdSampleTempSensor_initializeClocks();
 
-    Initialize_CUI();
+    Initialize_UI();
 
     //Initialize stack
     gpdSampleTempSensor_Init();
@@ -351,7 +356,7 @@ static uint16_t gpdSampleTempSensor_process_loop( void )
             // Process Key Presses
             gpdSampleTempSensor_processKey(keys, Button_EV_CLICKED);
 
-            keys = 0xFF;
+            keys = NULL;
             events &= ~SAMPLEAPP_KEY_EVT;
         }
 
@@ -360,15 +365,17 @@ static uint16_t gpdSampleTempSensor_process_loop( void )
             // Process Key Presses
             gpdSampleTempSensor_processKey(keys, Button_EV_LONGCLICKED);
 
-            keys = 0xFF;
+            keys = NULL;
             events &= ~SAMPLEAPP_LONG_KEY_EVT;
         }
 
 
         if( events & SAMPLEAPP_REPORT_TEMP_EVT )
         {
-            CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
-            CUI_ledOff(gCuiHandle, CONFIG_LED_GREEN);
+            LED_stopBlinking(gGreenLedHandle);
+            LED_stopBlinking(gRedLedHandle);
+            LED_setOff(gGreenLedHandle);
+            LED_setOff(gRedLedHandle);
 
             GreenPowerAttributeReportingSend(ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT, 1, &attributeReportCmd, gpdChannel);
 
@@ -391,7 +398,7 @@ static uint16_t gpdSampleTempSensor_process_loop( void )
  *
  * @return  none
  */
-static void gpdSampleTempSensor_changeKeyCallback(uint32_t _btn, Button_EventMask _buttonEvents)
+static void gpdSampleTempSensor_changeKeyCallback(Button_Handle _btn, Button_EventMask _buttonEvents)
 {
     if (_buttonEvents & Button_EV_CLICKED)
     {
@@ -422,18 +429,18 @@ static void gpdSampleTempSensor_changeKeyCallback(uint32_t _btn, Button_EventMas
  *
  * @return  none
  */
-static void gpdSampleTempSensor_processKey(uint32_t keysPressed, Button_Events btnEvent)
+static void gpdSampleTempSensor_processKey(Button_Handle keysPressed, Button_Events btnEvent)
 {
     if (btnEvent & Button_EV_LONGCLICKED)
     {
         //LongPress detected
-        if(keysPressed == CONFIG_BTN_LEFT)
+        if(keysPressed == gLeftButtonHandle)
         {
             GreenPowerAttributeReportingSend(ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT, 1, &attributeReportCmd, gpdChannel);
             Timer_setTimeout( ReportTempClkHandle, GPD_REPORT_TEMP_DELAY );
             Timer_start(&ReportTempClkStruct);
         }
-        else if (keysPressed == CONFIG_BTN_RIGHT)
+        else if (keysPressed == gRightButtonHandle)
         {
             GreenPowerCommissioningSend( &commissioningReq, gpdChannel);
         }
@@ -441,11 +448,11 @@ static void gpdSampleTempSensor_processKey(uint32_t keysPressed, Button_Events b
     else if (btnEvent & Button_EV_CLICKED)
     {
         //ShortPress detected
-        if(keysPressed == CONFIG_BTN_LEFT)
+        if(keysPressed == gLeftButtonHandle)
         {
             gpd_attr_CurrentTemperature++;
         }
-        else if (keysPressed == CONFIG_BTN_RIGHT)
+        else if (keysPressed == gRightButtonHandle)
         {
             gpd_attr_CurrentTemperature--;
         }
@@ -453,8 +460,10 @@ static void gpdSampleTempSensor_processKey(uint32_t keysPressed, Button_Events b
 
 
     //clear the states
-    CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
-    CUI_ledOff(gCuiHandle, CONFIG_LED_GREEN);
+    LED_stopBlinking(gGreenLedHandle);
+    LED_stopBlinking(gRedLedHandle);
+    LED_setOff(gGreenLedHandle);
+    LED_setOff(gRedLedHandle);
 }
 
 /*!
@@ -475,12 +484,13 @@ static void dataCnfCB(ApiMac_mcpsDataCnf_t *pDataCnf)
       if(duplicates < frameDuplicates)
       {
           //Keep blinking to indicate fail to send all the duplicates
-          CUI_ledBlink(gCuiHandle, CONFIG_LED_RED, CUI_BLINK_CONTINUOUS);
+          LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
       }
       else
       {
           //Fail and not a single frame got send
-          CUI_ledOn(gCuiHandle, CONFIG_LED_RED, NULL);
+          LED_stopBlinking(gRedLedHandle);
+          LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
       }
   }
   else if(pDataCnf->status == ApiMac_status_success)
@@ -497,7 +507,8 @@ static void dataCnfCB(ApiMac_mcpsDataCnf_t *pDataCnf)
     else
     {
       //Solid Green due to successful transmission
-      CUI_ledOn(gCuiHandle, CONFIG_LED_GREEN, NULL);
+      LED_stopBlinking(gGreenLedHandle);
+      LED_setOn(gGreenLedHandle, LED_BRIGHTNESS_MAX);
       OsalPort_free(gpdfDuplicate.msdu.p);
       duplicates = frameDuplicates;
     }
@@ -506,60 +517,27 @@ static void dataCnfCB(ApiMac_mcpsDataCnf_t *pDataCnf)
 
 
 /*******************************************************************************
- * @fn          Initialize_CUI
+ * @fn          Initialize_UI
  *
- * @brief       Initialize the Common User Interface
+ * @brief       Initialize the User Interface
  *
  * @param       none
  *
  * @return      none
  */
-static void Initialize_CUI(void)
+static void Initialize_UI(void)
 {
-    CUI_params_t params;
-    CUI_paramsInit(&params);
-
-    //Do not initialize the UART, GPD do not use APP menues
-    params.manageUart = FALSE;
-
-    CUI_retVal_t retVal = CUI_init(&params);
-    if (CUI_SUCCESS != retVal)
-        while(1){};
-
-    CUI_clientParams_t clientParams;
-    CUI_clientParamsInit(&clientParams);
-
-    strncpy(clientParams.clientName, "GPD TempSensor", MAX_CLIENT_NAME_LEN);
-
-    gCuiHandle = CUI_clientOpen(&clientParams);
-    if (gCuiHandle == NULL)
-        while(1){};
-
     /* Initialize btns */
-    CUI_btnRequest_t btnRequest;
-    btnRequest.index = CONFIG_BTN_RIGHT;
-    btnRequest.appCB = gpdSampleTempSensor_changeKeyCallback;
+    Button_Params bparams;
+    Button_Params_init(&bparams);
+    gLeftButtonHandle = Button_open(CONFIG_BTN_LEFT, gpdSampleTempSensor_changeKeyCallback, &bparams);
+    // Open Right button without appCallBack
+    gRightButtonHandle = Button_open(CONFIG_BTN_RIGHT, gpdSampleTempSensor_changeKeyCallback, &bparams);
 
-    retVal = CUI_btnResourceRequest(gCuiHandle, &btnRequest);
-    if (CUI_SUCCESS != retVal)
-        while(1){};
 
-    btnRequest.index = CONFIG_BTN_LEFT;
-
-    retVal = CUI_btnResourceRequest(gCuiHandle, &btnRequest);
-    if (CUI_SUCCESS != retVal)
-        while(1){};
-
-    //Request the LEDs for App
     /* Initialize the LEDS */
-    CUI_ledRequest_t ledRequest;
-    ledRequest.index = CONFIG_LED_RED;
-
-    retVal = CUI_ledResourceRequest(gCuiHandle, &ledRequest);
-
-    ledRequest.index = CONFIG_LED_GREEN;
-
-    retVal = CUI_ledResourceRequest(gCuiHandle, &ledRequest);
-    (void) retVal;
-
+    LED_Params ledParams;
+    LED_Params_init(&ledParams);
+    gGreenLedHandle = LED_open(CONFIG_LED_GREEN, &ledParams);
+    gRedLedHandle = LED_open(CONFIG_LED_RED, &ledParams);
 }

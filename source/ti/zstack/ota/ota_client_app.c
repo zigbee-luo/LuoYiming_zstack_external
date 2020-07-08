@@ -55,6 +55,7 @@
 #include "zcl_ota.h"
 #include "ota_client_app.h"
 #include "ota_common.h"
+#include <crc32.h>
 
 #include "ti_drivers_config.h"
 #include "nvintf.h"
@@ -81,6 +82,7 @@
 
 #include "flash_interface.h"
 #include "oad_image_header.h"
+#include "oad_image_header_app.h"
 #include "ext_flash_layout.h"
 #include "oad_switch_agama.h"
 #include "sys_ctrl.h"
@@ -98,6 +100,11 @@
 
 #define MINIMUM_IMAGE_BLOCK_REQUEST_TIMEOUT  300   //This is to avoid the device storming the network with many request, consider increasing this if the device is several hops away
 
+#define PROGRESS_WIDTH 30
+/* Must be PROGRESS_WIDTH hashes */
+#define HASHES_STR "##############################"
+/* Must be PROGRESS_WITDH spaces */
+#define SPACES_STR "                              "
 /*********************************************************************
  * CONSTANTS
  */
@@ -189,7 +196,7 @@ uint8_t zclOTA_ImageBlockFC = OTA_BLOCK_FC_REQ_DELAY_PRESENT; // set bitmask fie
 
 CUI_clientHandle_t gOTAClientCuiHandle;
 static uint32_t gOTAClientInfoLine;
-
+static uint32_t gOTAClientInfoLine2;
 uint8_t (*zclOTAClientUserMsgCB)(zclIncoming_t *pInMsg) = NULL;
 
 /******************************************************************************
@@ -233,12 +240,9 @@ static void OTA_processSendMatchDescriptorTimeoutCallback(UArg a0);
 
 //static void OTA_loadExtImage(void);
 #ifdef FACTORY_IMAGE
-static bool OTA_hasFactoryImage(void);
-static bool OTA_saveFactoryImage(void);
+static uint8_t OTA_EraseExtFlashPages(uint8_t imgStartPage, uint32_t imgLen, uint32_t pageSize);
+static uint32_t OTA_FindFactoryImgAddr();
 #endif
-
-static void OTA_UpdateStatusLine(void);
-
 
 /******************************************************************************
  * OTA SIMPLE DESCRIPTOR
@@ -255,28 +259,6 @@ SimpleDescriptionFormat_t zclOTA_SimpleDesc =
   ZCL_OTA_MAX_OUTCLUSTERS,          //  byte  AppNumInClusters;
   ( cId_t * ) zclOTA_OutClusterList //  byte *pAppInClusterList;
 };
-
-#ifdef OTA_STANDALONE
-// Endpoint for OTA Cluster
-static endPointDesc_t zclOTA_Ep =
-{
-  ZCL_OTA_ENDPOINT,
-#ifndef ZCL_STANDALONE
-  &zcl_TaskID,
-#else
-  &zclOTA_TaskID,
-#endif
-  ( SimpleDescriptionFormat_t * ) &zclOTA_SimpleDesc,
-  ( afNetworkLatencyReq_t ) 0
-};
-
-
-CONST zclAttrRec_t zclOTA_Attrs[ZCL_OTA_MAX_ATTRIBUTES] =
-{
-  OTA_ATTR_LIST
-};
-#endif
-
 
 /******************************************************************************
  * @fn      OTAClientApp_initializeClocks
@@ -376,21 +358,6 @@ void OTA_Client_Init ( Semaphore_Handle appSem, uint8_t stEnt, CUI_clientHandle_
   zclOTA_CurrentZigBeeStackVersion = OTA_STACK_VER_PRO;
   zclOTA_ImageUpgradeStatus = OTA_STATUS_NORMAL;
 
-#ifdef OTA_STANDALONE
-  // Register for the cluster endpoint
-  afRegister ( &zclOTA_Ep );
-
-  // Register attribute list
-  zcl_registerAttrList ( ZCL_OTA_ENDPOINT,
-                         ZCL_OTA_MAX_ATTRIBUTES,
-                         zclOTA_Attrs );
-#ifndef OTA_HA
-  // Register the application's cluster option list
-  zcl_registerClusterOptionList ( ZCL_OTA_ENDPOINT, ZCL_OTA_MAX_OPTIONS, zclOta_Options );
-#endif // OTA_HA
-
-#endif
-
   OTAClientApp_initializeClocks();
 
   OTAClient_InitializeSettings ();
@@ -398,17 +365,64 @@ void OTA_Client_Init ( Semaphore_Handle appSem, uint8_t stEnt, CUI_clientHandle_
 
   flash_init();
 
-  CUI_statusLineResourceRequest(gOTAClientCuiHandle, "   OTA Info", &gOTAClientInfoLine);
+  CUI_statusLineResourceRequest(gOTAClientCuiHandle, "   OTA Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gOTAClientInfoLine);
+  CUI_statusLineResourceRequest(gOTAClientCuiHandle, "   OTA Info"CUI_DEBUG_MSG_START"2"CUI_DEBUG_MSG_END, false, &gOTAClientInfoLine2);
   OTA_UpdateStatusLine();
+#if defined(FACTORY_IMAGE) && defined(EXTERNAL_IMAGE_CHECK)
+  // Check if external flash memory is available
+  if(hasExternalFlash() == true)
+  {
+      // Save factory image if there is not one
+      if(!OTA_hasFactoryImage())
+      {
+          OTA_saveFactoryImage();
+      }
+  }
+#endif
 }
 
-static void OTA_UpdateStatusLine(void)
+
+/*********************************************************************
+ * @fn          OTA_UpdateStatusLine
+ *
+ * @brief       Generate part of the OTA Info string
+ *
+ * @param       none
+ *
+ * @return      none
+ */
+extern void OTA_UpdateStatusLine(void)
 {
     char lineFormat[MAX_STATUS_LINE_VALUE_LEN] = {'\0'};
-
     strcat(lineFormat, "["CUI_COLOR_YELLOW"Current File Version"CUI_COLOR_RESET"] 0x%08x");
 
     CUI_statusLinePrintf(gOTAClientCuiHandle, gOTAClientInfoLine, lineFormat, zclOTA_CurrentFileVersion);
+
+    char lineFormat2[MAX_STATUS_LINE_VALUE_LEN] = {'\0'};
+    strcat(lineFormat2, "["CUI_COLOR_YELLOW"Status"CUI_COLOR_RESET"] ");
+
+    if (zclOTA_ImageUpgradeStatus == OTA_STATUS_NORMAL)
+    {
+      strcat(lineFormat2, ""CUI_COLOR_RED"Stopped"CUI_COLOR_RESET"");
+      CUI_statusLinePrintf(gOTAClientCuiHandle, gOTAClientInfoLine2, lineFormat2);
+    }
+    else if (zclOTA_ImageUpgradeStatus == OTA_STATUS_IN_PROGRESS)
+    {
+      uint32_t numHashes = (zclOTA_FileOffset / (zclOTA_DownloadedImageSize / PROGRESS_WIDTH));
+
+      strcat(lineFormat2, "In Progress [%s%.*s%.*s%s] (%d%%)");
+      CUI_statusLinePrintf(gOTAClientCuiHandle, gOTAClientInfoLine2, lineFormat2,
+                          CUI_COLOR_GREEN,
+                          numHashes,                       HASHES_STR,
+                          (PROGRESS_WIDTH - numHashes),    SPACES_STR,
+                          CUI_COLOR_RESET,
+                          (uint32_t)((100 * zclOTA_FileOffset) / zclOTA_DownloadedImageSize));
+    }
+    else
+    {
+      strcat(lineFormat2, ""CUI_COLOR_GREEN"Completed"CUI_COLOR_RESET"");
+      CUI_statusLinePrintf(gOTAClientCuiHandle, gOTAClientInfoLine2, lineFormat2);
+    }
 }
 
 
@@ -427,7 +441,7 @@ static void zclOTA_StartTimer ( Clock_Handle cHandle, Clock_Struct *cStruct,  ui
   // Record the number of whole minutes to wait
   zclOTA_UpdateDelay = ( seconds / 60 );
 
-  if(Timer_isActive(cStruct) == true)
+  if (Timer_isActive(cStruct) == true)
   {
       Timer_stop(cStruct);
   }
@@ -460,10 +474,6 @@ static void zclOTA_StartTimer ( Clock_Handle cHandle, Clock_Struct *cStruct,  ui
   {
     if ( pInMsg->msg->endPoint == currentOtaEndpoint )
     {
-#if defined (OTA_STANDALONE) || defined (SWITCH_OTA)
-      zclOTA_Permit = TRUE;
-#endif
-
       if ( zcl_ClusterCmd ( pInMsg->hdr.fc.type ) )
       {
         // Is this a manufacturer specific command?
@@ -803,7 +813,6 @@ static ZStatus_t zclOTA_ProcessQueryNextImageRsp ( zclIncoming_t *pInMsg )
 {
   zclOTA_QueryImageRspParams_t  param;
   uint8_t *pData;
-  uint8_t status = ZFailure;
 
   // verify message length
   if ( ( pInMsg->pDataLen != PAYLOAD_MAX_LEN_QUERY_NEXT_IMAGE_RSP ) &&
@@ -823,7 +832,6 @@ static ZStatus_t zclOTA_ProcessQueryNextImageRsp ( zclIncoming_t *pInMsg )
   pData = pInMsg->pData;
   param.status = *pData++;
 
-#if defined (OTA_STANDALONE) || defined (SWITCH_OTA)
   // if status is success
   if ( param.status == ZCL_STATUS_SUCCESS )
   {
@@ -858,12 +866,9 @@ static ZStatus_t zclOTA_ProcessQueryNextImageRsp ( zclIncoming_t *pInMsg )
       //OsalPort_memcpy ( &zclOTA_CurrentDlFileId, &param.fileId, sizeof ( zclOTA_FileID_t ) );
       OsalPort_memcpy ( &zclOTA_CurrentDlFileId, &param.fileId, sizeof ( zclOTA_FileID_t ) );
 
-
       // send image block request
       //OsalPortTimers_startTimer ( zclOTA_TaskID, ZCL_OTA_IMAGE_BLOCK_REQ_DELAY_EVT, zclOTA_MinBlockReqDelay );
       OTA_StartTimeoutEvent( imageBlockReqDelayClkHandle, &imageBlockReqDelayClkStruct, zclOTA_MinBlockReqDelay);
-
-      status = ZCL_STATUS_CMD_HAS_RSP;
 
       // Request the IEEE address of the server to put into the
       // ATTRID_UPGRADE_SERVER_ID attribute
@@ -873,8 +878,6 @@ static ZStatus_t zclOTA_ProcessQueryNextImageRsp ( zclIncoming_t *pInMsg )
       pReq.type = zstack_NwkAddrReqType_SINGLE_DEVICE;
       pReq.startIndex = 0;
 
-
-
       Zstackapi_ZdoIeeeAddrReq( stAppID, &pReq);
 
       //OsalPortTimers_stopTimer ( zclOTA_TaskID, ZCL_OTA_IMAGE_QUERY_TO_EVT );
@@ -883,8 +886,12 @@ static ZStatus_t zclOTA_ProcessQueryNextImageRsp ( zclIncoming_t *pInMsg )
           Timer_stop(&imageQueryToClkStruct);
       }
     }
+    else
+    {
+        // Return ZCL_STATUS_MALFORMED_COMMAND if ImageType or ManufacturerID are invalid
+        return ZCL_STATUS_MALFORMED_COMMAND;
+    }
   }
-#endif
 
   // Notify the application task of the failure
   zclOTA_CallbackMsg_t *pMsg;
@@ -901,8 +908,7 @@ static ZStatus_t zclOTA_ProcessQueryNextImageRsp ( zclIncoming_t *pInMsg )
     OTA_ProcessOTAMsgs ( pMsg );
   }
 
-
-  return status;
+  return ZSuccess;
 }
 
 /******************************************************************************
@@ -958,7 +964,7 @@ static ZStatus_t zclOTA_ProcessImageBlockRsp ( zclIncoming_t *pInMsg )
          ( param.rsp.success.fileId.manufacturer != zclOTA_ManufacturerID ) ||
          ( param.rsp.success.fileId.version != zclOTA_DownloadedFileVersion ) )
     {
-      status = ZCL_STATUS_INVALID_IMAGE;
+      return ZCL_STATUS_MALFORMED_COMMAND;
     }
     else
     {
@@ -1171,6 +1177,13 @@ static ZStatus_t zclOTA_ProcessUpgradeEndRsp ( zclIncoming_t *pInMsg )
   pData += 4;
   param.upgradeTime = BUILD_UINT32( pData[0], pData[1], pData[2], pData[3] );//OsalPort_buildUint32 ( pData, 4 );
 
+  if ( ( param.fileId.type != zclOTA_ImageType ) ||
+         ( param.fileId.manufacturer != zclOTA_ManufacturerID ) )
+  {
+    // Return ZCL_STATUS_MALFORMED_COMMAND if ImageType or ManufacturerID are invalid
+    return ZCL_STATUS_MALFORMED_COMMAND;
+  }
+
   // verify in 'download complete'  or 'waiting for upgrade' state
   if ( ( zclOTA_ImageUpgradeStatus == OTA_STATUS_COMPLETE ) ||
        ( ( zclOTA_ImageUpgradeStatus == OTA_STATUS_UPGRADE_WAIT ) && ( param.upgradeTime!=OTA_UPGRADE_TIME_WAIT ) ) )
@@ -1271,10 +1284,16 @@ static ZStatus_t zclOTA_ProcessQuerySpecificFileRsp ( zclIncoming_t *pInMsg )
       // send image block request
       sendImageBlockReq ( & ( pInMsg->msg->srcAddr ) );
     }
+    else
+    {
+      // Return ZCL_STATUS_MALFORMED_COMMAND if ImageType or ManufacturerID are invalid
+        return ZCL_STATUS_MALFORMED_COMMAND;
+    }
   }
 
   return ZSuccess;
 }
+
 /******************************************************************************
  * @fn      zclOTA_UpgradeComplete
  *
@@ -1520,7 +1539,7 @@ bool OTAClient_SetEndpoint( uint8_t endpoint, zclport_pFnZclHandleExternal pfnCB
     zclOTAClientUserMsgCB = pfnCB;
     return TRUE;
   }
-  else if( endpoint == currentOtaEndpoint )
+  else if( endpoint == currentOtaEndpoint)
   {
     return TRUE;
   }
@@ -1776,6 +1795,7 @@ static uint8_t OTA_ProcessUnhandledFoundationZCLMsgs ( zclIncoming_t *pMsg )
 
   if ( pMsg->attrCmd )
   {
+    //OsalPort_free( pMsg->attrCmd );
     OsalPort_free(pMsg->attrCmd);
     pMsg->attrCmd = NULL;
   }
@@ -1852,7 +1872,7 @@ void OTA_loadExtImage(uint8_t imageSelect)
 
   if(imageSelect == ST_FULL_IMAGE)
   {
-      if(flash_open() != 0)
+      if(flash_open() == TRUE)
       {
           // Copy the metadata to the meta page
           ExtImageInfo_t storedImgHdr;
@@ -1884,39 +1904,43 @@ void OTA_loadExtImage(uint8_t imageSelect)
   }
 
 }
+
 #ifdef FACTORY_IMAGE
 /******************************************************************************
- * @fn          SampleApp_hasFactoryImage
+ * @fn          OTA_hasFactoryImage
  *
- * @brief       Is the factory image available?
+ * @brief   This function check if the valid factory image exists on external
+ *          flash
  *
- * @param       none
+ * @param   None
  *
- * @return      none
+ * @return  TRUE If factory image exists on external flash, else FALSE
+ *
  */
-static bool OTA_hasFactoryImage(void)
+bool OTA_hasFactoryImage(void)
 {
 #if defined(EXTERNAL_IMAGE_CHECK)
-  bool  valid;
-  valid = extFlashOpen();
-
-  if(valid)
-  {
-    uint16_t  buffer[2];
-
-    // 1. Check reset vector
-    valid = extFlashRead(EFL_ADDR_RECOVERY, sizeof(buffer),
-                         (uint8_t *) buffer);
-    if(valid)
+  bool rtn = FALSE;
+    /* initialize external flash driver */
+    if(flash_open() != 0)
     {
-      valid = (buffer[0] != 0xFFFF && buffer[1] != 0xFFFF) &&
-              (buffer[0] != 0x0000 && buffer[1] != 0x0000);
+        // First check if there is a need to create the factory image
+        imgHdr_t metadataHdr;
+
+        // Read First metadata page for getting factory image information
+        if(readFlash(EFL_ADDR_META_FACT_IMG, (uint8_t *)&metadataHdr, EFL_METADATA_LEN) == FLASH_SUCCESS)
+        {
+          /* check Metadata version */
+          if( (metadataHdr.fixedHdr.imgType == OAD_IMG_TYPE_FACTORY) &&
+              (metadataHdr.fixedHdr.crcStat != CRC_INVALID) )  /* Not an invalid CRC */
+          {
+              rtn = TRUE; /* Factory image exists return from here */
+          }
+        }
+        //close flash
+        flash_close();
     }
-
-    extFlashClose();
-  }
-
-  return valid;
+    return rtn;
 #else
   return (true);
 #endif
@@ -1924,61 +1948,153 @@ static bool OTA_hasFactoryImage(void)
 
 
 /*******************************************************************************
- * @fn      SampleAppSaveFactoryImage
+ * @fn      OTA_saveFactoryImage
  *
- * @brief   Save the current image to external flash as a factory image
+ * @brief   This function creates factory image backup of current running image
  *
- * @return  none
+ * @return  rtn  OTA_Storage_Status_Success/OTA_Storage_FlashError
  */
-static bool OTA_saveFactoryImage(void)
+uint8_t OTA_saveFactoryImage(void)
 {
-  bool success;
+  uint8_t rtn = OTA_Storage_Status_Success;
+  uint32_t dstAddr = OTA_FindFactoryImgAddr();
+  uint32_t dstAddrStart = dstAddr;
+  uint32_t imgStart = _imgHdr.imgPayload.startAddr;
+  uint32_t imgLen = _imgHdr.fixedHdr.imgEndAddr - (uint32_t)&_imgHdr;
 
-  success = extFlashOpen();
-
-  if (success)
+  /* initialize external flash driver */
+  if(flash_open() == TRUE)
   {
-    uint32_t address;
-
-    // Erase external flash
-    for (address= 0; address<EFL_FLASH_SIZE; address+=EFL_PAGE_SIZE)
-    {
-      extFlashErase(address,EFL_PAGE_SIZE);
-    }
-
-    // Install factory image
-    for (address=0; address<EFL_SIZE_RECOVERY && success; address+=EFL_PAGE_SIZE)
-    {
-      success = extFlashErase(EFL_ADDR_RECOVERY+address, EFL_PAGE_SIZE);
-      if (success)
+      // First erase factory image metadata page
+      if(eraseFlashPg(EXT_FLASH_PAGE(EFL_ADDR_META)) != FLASH_SUCCESS)
       {
-        size_t offset;
-        static uint8_t buf[256];  // RAM storage needed due to SPI/DMA limitation
-
-        for (offset=0; offset<EFL_PAGE_SIZE; offset+=sizeof(buf))
-        {
-          const uint8_t *pIntFlash;
-
-          // Copy from internal to external flash
-          pIntFlash = (const uint8_t*)address + offset;
-          OsalPort_memcpy(buf,pIntFlash,sizeof(buf));
-          success = extFlashWrite(EFL_ADDR_RECOVERY+address+offset, sizeof(buf), buf);
-
-          // Verify first few bytes
-          if (success)
-          {
-            extFlashRead(EFL_ADDR_RECOVERY+address+offset, sizeof(buf), buf);
-            success = buf[2] == pIntFlash[2] && buf[3] == pIntFlash[3];
-          }
-        }
+          /* close driver */
+          flash_close();
+          return OTA_Storage_FlashError;
       }
 
+      /* Erase - external portion to be written*/
+      if(OTA_EraseExtFlashPages(EXT_FLASH_PAGE(dstAddr),
+        (_imgHdr.fixedHdr.imgEndAddr - _imgHdr.imgPayload.startAddr -1),
+        EFL_PAGE_SIZE) == OTA_Storage_Status_Success)
+      {
+          /* COPY - image from internal to external */
+        if(writeFlash(dstAddr, (uint8_t *)(imgStart), imgLen) == FLASH_SUCCESS)
+          {
+              imgHdr_t imgHdr = { .fixedHdr.imgID = OAD_EXTFL_ID_VAL }; /* Write OAD flash metadata identification */
 
+              /* Copy Image header from internal flash image, skip ID values */
+              memcpy( ((uint8_t *)&imgHdr + CRC_OFFSET), ((uint8_t *)imgStart + 8) , OAD_IMG_HDR_LEN);
+
+              /*
+              * Calculate the CRC32 value and update that in image header as CRC32
+              * wouldn't be available for running image.
+              */
+              imgHdr.fixedHdr.crc32 = CRC32_calc(imgHdr.imgPayload.startAddr, INTFLASH_PAGE_SIZE, 0,  imgLen, false);
+
+              /* Update CRC status */
+              imgHdr.fixedHdr.crcStat = CRC_VALID;
+
+              /* Update image length */
+              imgHdr.fixedHdr.len = imgHdr.fixedHdr.imgEndAddr - (uint32_t)&_imgHdr;
+
+              uint32_t *ptr = (uint32_t *)&imgHdr;
+
+              /* update external flash storage address */
+              ptr[OAD_IMG_HDR_LEN/4] = dstAddrStart;
+
+              /* Allow application or some other place in BIM to mark factory image as
+                pending copy (OAD_IMG_COPY_PEND). Should not be done here, as
+                what is in flash at this time will already be the factory
+                image. */
+              imgHdr.fixedHdr.imgCpStat = DEFAULT_STATE;
+              imgHdr.fixedHdr.imgType = OAD_IMG_TYPE_FACTORY;
+
+              /* WRITE METADATA */
+              if(writeFlash(EFL_ADDR_META, (uint8_t *)&imgHdr, OAD_IMG_HDR_LEN + 8) != FLASH_SUCCESS)
+              {
+                  rtn = OTA_Storage_FlashError;
+              }
+          } // end of if(writeFlash(...))
+          else
+          {
+              rtn = OTA_Storage_FlashError;
+          }
+      }
+      else //  if(extFlashErase(dstAddr, imgLen))
+      {
+          rtn = OTA_Storage_FlashError;
+      } //  end of if(extFlashErase(dstAddr, imgLen))
+
+      /* close driver */
+      flash_close();
+
+    } // end of flash_Open
+
+  return(rtn);
+}
+
+
+/*********************************************************************
+ * @fn      OTA_FindFactoryImgAddr
+ *
+ * @brief   Find a place for factory image in external flash
+ *          This will grow the image down from the top of flash
+ *
+ * @return  destAddr   Destination of Factory image in ext fl
+ */
+static uint32_t OTA_FindFactoryImgAddr()
+{
+    // Create factory image if there isn't one
+    uint32_t imgLen = _imgHdr.fixedHdr.imgEndAddr - (uint32_t)&_imgHdr;
+    uint8_t numFlashPages = EXT_FLASH_PAGE(imgLen);
+    if(EXTFLASH_PAGE_MASK & imgLen)
+    {
+        numFlashPages += 1;
+    }
+    // Note currently we have problem in erasing last flash page,
+    // workaround to leave last page
+    return (EFL_FLASH_SIZE - EXT_FLASH_ADDRESS(numFlashPages + 1, 0));
+}
+
+
+/*********************************************************************
+ * @fn      OTA_EraseExtFlashPages
+ *
+ * @brief   This function erases external flash pages
+ *
+ * @param   imgStartPage  Image start page on external flash
+ * @param   imgLen        Image length
+ * @param   pageSize      Page size of external flash.
+ *
+ * @return  status        OTA_Storage_Status_Success/OTA_Storage_FlashError
+ *
+ */
+static uint8_t OTA_EraseExtFlashPages(uint8_t imgStartPage, uint32_t imgLen, uint32_t pageSize)
+{
+    if(pageSize == 0 )
+    {
+        return OTA_Storage_FlashError;
+    }
+    uint8_t status = OTA_Storage_Status_Success;
+    uint8_t page;
+    uint8_t numFlashPages = imgLen/pageSize;
+    if(0 != (imgLen % pageSize))
+    {
+        numFlashPages += 1;
     }
 
-    extFlashClose();
-  }
-
-  return success;
+    // Erase the correct amount of pages
+    for(page=imgStartPage; page<(imgStartPage + numFlashPages); ++page)
+    {
+        uint8_t flashStat = eraseFlashPg(page);
+        if(flashStat == FLASH_FAILURE)
+        {
+            // If we fail to pre-erase, then halt the OTA process
+            status = OTA_Storage_FlashError;
+            break;
+        }
+    }
+    return status;
 }
 #endif

@@ -10,7 +10,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2009-2019, Texas Instruments Incorporated
+ Copyright (c) 2009-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -77,7 +77,12 @@
 #define MAC_SFD_HALT_CLEANED_UP        3
 #define MAC_SFD_CRC_ERROR              4
 
+#define BACKOFF_TYPE_TX                (1)
+#define BACKOFF_TYPE_RX                (2)
+#define BACKOFF_TYPE_NOP               (3)
 
+/* Backoff time prior to rescheduling a rejected MAC command, in us */
+#define MAC_REJECTED_PKT_BACKOFF       (5000)
 /*******************************************************************************
  * MACROS
  */
@@ -214,6 +219,7 @@ typedef struct
     uint16    ackTimeOut;
     uint16    txAckCancelTimer;
     uint16    ackCbErr;
+    uint16    ackTimeRollover;
 } MAC_ACK_DBG;
 
 #ifdef FH_HOP_DEBUG
@@ -269,8 +275,6 @@ extern macFrmFilter_t macFrmFilter;
 /* RX command handle and callback event mask */
 extern RF_CmdHandle rxCmdHandle;
 extern RF_EventMask rxCbEventMask;
-/* Fs command handle */
-extern RF_CmdHandle fsCmdHandle;
 
 /* SFD registration */
 extern void macRegisterSfdDetect( macSfdDetectCBack_t sfdCback );
@@ -307,8 +311,11 @@ extern uint32 macRatCount(void);
 extern void macRatDisableChannels(void);
 extern void macRatDisableChannelB(void);
 extern void macRxCb(RF_Handle h, RF_CmdHandle ch, RF_EventMask e);
+extern void macRequestBackoff(uint8_t backoffType, uint32_t backOffDur);
 MAC_INTERNAL_API uint32 macGetRFCmdDuration(uint32_t len, bool ackRequest);
-
+MAC_INTERNAL_API void macTxBackoffTimerExpiry(void *arg);
+MAC_INTERNAL_API void macRxBackoffTimerExpiry(void *arg);
+MAC_INTERNAL_API void macNopBackoffTimerExpiry(void *arg);
 
 /*******************************************************************************
  */

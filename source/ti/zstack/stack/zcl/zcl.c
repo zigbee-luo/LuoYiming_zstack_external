@@ -4885,7 +4885,7 @@ static uint8_t zclProcessInWriteCmd( zclIncoming_t *pInMsg )
       //direction has been matched in zclFindAttrRecEx, fixed by luoyiming, 2019-11-16
       if ( statusRec->dataType == attrRec.attr.dataType )
       {
-        uint8_t status;
+        uint8_t status = ZCL_STATUS_FAILURE;
 
         // Write the new attribute value
         if ( attrRec.attr.dataPtr != NULL )

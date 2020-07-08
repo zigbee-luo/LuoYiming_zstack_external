@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2005-2019, Texas Instruments Incorporated
+ Copyright (c) 2005-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -260,6 +260,7 @@ MAC_INTERNAL_API void macRxBeacon(macEvent_t *pEvent);
 #ifdef FEATURE_FREQ_HOP_MODE
 MAC_INTERNAL_API void macBcTimerHandler(macEvent_t *pEvent);
 #endif
+
 void copyApiMacAddrToMacAddr(sAddr_t *pDst, ApiMac_sAddr_t *pSrc);
 
 //bool macCheckPhyLRMMode(void);

@@ -57,7 +57,7 @@ const config = {
         {
             name: "oadBlockSize",
             displayName: "Block Size (bytes)",
-            default: getDefaultOadBlockSize(Common.IS_SUB1GHZ_DEVICE()),
+            default: getDefaultOadBlockSize(Common.isSub1GHzDevice()),
             hidden: true,
             description: Docs.oadBlockSize.description,
             longDescription: Docs.oadBlockSize.longDescription
@@ -235,7 +235,7 @@ function moduleInstances(inst)
         const isToadHidden = !(extFlashModule in system.modules);
 
         // Prevent adding module so it will not show in 'other dependencies'
-        if (!isToadHidden)
+        if(!isToadHidden)
         {
             dependencyModule.push({
                 name: "toadSettings",

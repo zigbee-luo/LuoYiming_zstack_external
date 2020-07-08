@@ -2109,9 +2109,9 @@ extern afIncomingMSGPacket_t *zcl_getRawAFMsg( void );
  */
 extern zclIncoming_t *zcl_getRawZCLCommand( void );
 
+
 /*!
  *
- * @param   none
  *
  * @return  next ZCL frame counter
  */

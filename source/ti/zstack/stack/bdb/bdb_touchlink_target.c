@@ -816,8 +816,8 @@ void* targetZdoLeaveCnfCB( void *pParam )
     AddrMgrSetDefaultNV();
     // Immediately store empty tables in NV
     OsalPort_setEvent( ZDAppTaskID, ZDO_NWK_UPDATE_NV );
-    // Notify our task to join the new network
-    OsalPortTimers_startTimer( touchLinkTarget_TaskID, TOUCHLINK_JOIN_ATTEMPT_EVT, 100 );
+    // Notify our task to start the network
+    OsalPortTimers_startTimer( touchLinkTarget_TaskID, TOUCHLINK_NWK_START_EVT, 100 );
   }
 
   return ( (void *)&touchLinkLeaveInitiated );

@@ -98,6 +98,8 @@
 #include "zstackapi.h"
 #include "util_timer.h"
 
+#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/apps/LED.h>
 
 #ifdef USE_ZCL_SAMPLEAPP_UI
 #include "zcl_sampleapps_ui.h"
@@ -116,11 +118,11 @@
 #include "touchlink_target_app.h"
 #endif
 
-#ifdef USE_DMM
+#if defined(USE_DMM) && defined(BLE_START)
 #include "ti_dmm_application_policy.h"
 #include "remote_display.h"
 #include "mac_util.h"
-#endif
+#endif // defined(USE_DMM) && defined(BLE_START)
 #ifdef PER_TEST
 #include "per_test.h"
 #endif
@@ -190,9 +192,9 @@ static Clock_Struct LevelControlClkStruct;
 static Clock_Handle DiscoveryClkHandle;
 static Clock_Struct DiscoveryClkStruct;
 
-#if USE_DMM
+#if defined(USE_DMM) && defined(BLE_START)
 static Clock_Struct SyncAttrClkStruct;
-#endif
+#endif // defined(USE_DMM) && defined(BLE_START)
 
 // Passed in function pointers to the NV driver
 static NVINTF_nvFuncts_t *pfnZdlNV = NULL;
@@ -225,6 +227,7 @@ static uint16_t powerTestZEDAddr = 0xFFFE;
 #ifdef USE_ZCL_SAMPLEAPP_UI
 CONST char zclSampleLight_appStr[] = APP_TITLE_STR;
 CUI_clientHandle_t gCuiHandle;
+static LED_Handle gRedLedHandle;
 static uint32_t gSampleLightInfoLine;
 #endif
 
@@ -256,7 +259,7 @@ static void zclSampleLight_Init( void );
 static void zclSampleLight_BasicResetCB( void );
 static void zclSampleLight_IdentifyQueryRspCB(zclIdentifyQueryRsp_t *pRsp);
 #ifdef USE_ZCL_SAMPLEAPP_UI
-static void zclSampleLight_processKey(uint32_t _btn, Button_EventMask _buttonEvents);
+static void zclSampleLight_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleLight_RemoveAppNvmData(void);
 static void zclSampleLight_InitializeStatusLine(CUI_clientHandle_t gCuiHandle);
 static void zclSampleLight_UpdateStatusLine(void);
@@ -314,8 +317,7 @@ static void zclSampleLight_GPSink_Off(zclGpNotification_t *zclGpNotification);
 static void zclSampleLight_GPSink_Identify(zclGpNotification_t *zclGpNotification);
 #endif
 
-#ifdef USE_DMM
-
+#if defined(USE_DMM) && defined(BLE_START)
 // Clock callback functions
 static void zclSampleLight_processSyncAttrTimeoutCallback(UArg a0);
 
@@ -328,7 +330,7 @@ static void provisionConnectCb(void);
 static void provisionDisconnectCb(void);
 static void setProvisioningCb(RemoteDisplay_ProvisionAttr_t provisioningAttr, void *const value, uint8_t len);
 static void getProvisioningCb(RemoteDisplay_ProvisionAttr_t provisioningAttr, void *value, uint8_t len);
-#endif
+#endif // defined(USE_DMM) && defined(BLE_START)
 
 #ifdef DMM_OAD
 static void zclSampleLight_dmmPausePolicyCb(uint16_t _pause);
@@ -454,7 +456,7 @@ GpSink_AppCallbacks_t zclSampleLight_GpSink_AppCallbacks =
 };
 #endif
 
-#ifdef USE_DMM
+#if defined(USE_DMM) && defined(BLE_START)
 RemoteDisplay_clientProvisioningtCbs_t zclSwitch_ProvissioningCbs =
 {
     setProvisioningCb,
@@ -472,8 +474,8 @@ RemoteDisplay_LightCbs_t zclSwitch_LightCbs =
 zstack_DevState provState = zstack_DevState_HOLD;
 uint16_t provPanId = ZDAPP_CONFIG_PAN_ID;
 uint32_t provChanMask = DEFAULT_CHANLIST;
+#endif // defined(USE_DMM) && defined(BLE_START)
 
-#endif
 /*******************************************************************************
  * @fn          sampleApp_task
  *
@@ -669,10 +671,10 @@ static void zclSampleLight_Init( void )
 
   zcl_registerReadWriteCB(SAMPLELIGHT_ENDPOINT,zclSampleLight_ReadWriteAttrCB,NULL);
 
-#ifdef USE_DMM
+#if defined(USE_DMM) && defined(BLE_START)
   RemoteDisplay_registerClientProvCbs(zclSwitch_ProvissioningCbs);
   RemoteDisplay_registerLightCbs(zclSwitch_LightCbs);
-#endif
+#endif // defined(USE_DMM) && defined(BLE_START)
 
 #ifdef USE_ZCL_SAMPLEAPP_UI
   // set up default application BDB commissioning modes based on build type
@@ -697,13 +699,9 @@ static void zclSampleLight_Init( void )
            );
 
   //Request the Red LED for App
-  CUI_retVal_t retVal;
-  /* Initialize the LEDS */
-  CUI_ledRequest_t ledRequest;
-  ledRequest.index = CONFIG_LED_RED;
-
-  retVal = CUI_ledResourceRequest(gCuiHandle, &ledRequest);
-  (void) retVal;
+  LED_Params ledParams;
+  LED_Params_init(&ledParams);
+  gRedLedHandle = LED_open(CONFIG_LED_RED, &ledParams);
 
 
   //Initialize the sampleLight UI status line
@@ -821,14 +819,14 @@ static void zclSampleLight_initializeClocks(void)
     100,
     0, false, 0);
 #endif
-#if USE_DMM
+#if defined(USE_DMM) && defined(BLE_START)
     // Clock for synchronizing application configuration parameters for BLE
     Timer_construct(
     &SyncAttrClkStruct,
     zclSampleLight_processSyncAttrTimeoutCallback,
     SAMPLEAPP_CONFIG_SYNC_TIMEOUT,
     SAMPLEAPP_CONFIG_SYNC_TIMEOUT, true, 0);
-#endif
+#endif // defined(USE_DMM) && defined(BLE_START)
 
     // Initialize the timers needed for this application
     DiscoveryClkHandle = Timer_construct(
@@ -934,7 +932,7 @@ static void zclSampleLight_process_loop(void)
               appServiceTaskEvents &= ~SAMPLEAPP_DISCOVERY_TIMEOUT_EVT;
             }
 
-#ifdef USE_DMM
+#if defined(USE_DMM) && defined(BLE_START)
             if(appServiceTaskEvents & SAMPLEAPP_PROV_CONNECT_EVT)
             {
                 zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
@@ -998,7 +996,7 @@ static void zclSampleLight_process_loop(void)
                 }
                 appServiceTaskEvents &= ~SAMPLEAPP_SYNC_ATTR_EVT;
             }
-#endif
+#endif // defined(USE_DMM) && defined(BLE_START)
 
 #ifdef ZCL_LEVEL_CTRL
             if(appServiceTaskEvents & SAMPLELIGHT_LEVEL_CTRL_EVT)
@@ -1100,7 +1098,7 @@ static void zclSampleLight_process_loop(void)
         }
     }
 }
-#ifdef USE_DMM
+#if defined(USE_DMM) && defined(BLE_START)
 static void provisionConnectCb(void)
 {
     appServiceTaskEvents |= SAMPLEAPP_PROV_CONNECT_EVT;
@@ -1304,7 +1302,7 @@ static void zclSampleLight_processSyncAttrTimeoutCallback(UArg a0)
     Semaphore_post(appSemHandle);
 }
 
-#endif
+#endif //defined(USE_DMM) && defined(BLE_START)
 
 /*********************************************************************
  * @fn      zclSampleLight_IdentifyQueryRspCB
@@ -1424,14 +1422,14 @@ static void zclSampleLight_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 #endif
 
 
-#ifdef USE_DMM
+#if defined(USE_DMM) && defined(BLE_START)
             provState = pInd->req.state;
 
             appServiceTaskEvents |= SAMPLEAPP_POLICY_UPDATE_EVT;
 
             // Wake up the application thread when it waits for clock event
             Semaphore_post(appSemHandle);
-#endif
+#endif // defined(USE_DMM) && defined(BLE_START)
         }
         break;
 
@@ -1674,11 +1672,7 @@ static void zclSampleLight_ProcessCommissioningStatus(bdbCommissioningModeMsg_t 
     case BDB_COMMISSIONING_FORMATION:
       if(bdbCommissioningModeMsg->bdbCommissioningStatus == BDB_COMMISSIONING_SUCCESS)
       {
-        zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
-
-        //After formation, perform nwk steering again plus the remaining commissioning modes that has not been process yet
-        zstack_bdbStartCommissioningReq.commissioning_mode = BDB_COMMISSIONING_MODE_NWK_STEERING | bdbCommissioningModeMsg->bdbRemainingCommissioningModes;
-        Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
+        //YOUR JOB:
       }
       else
       {
@@ -1838,10 +1832,10 @@ static void zclSampleLight_OnOffCB( uint8_t cmd )
 
   zclSampleLight_UpdateLedState();
 
-#ifdef USE_DMM
+#if defined(USE_DMM) && defined(BLE_START)
   // update BLE application
   RemoteDisplay_updateLightProfData();
-#endif
+#endif // defined(USE_DMM) && defined(BLE_START)
 
 #ifdef USE_ZCL_SAMPLEAPP_UI
   //Update status line
@@ -2692,14 +2686,17 @@ static void zclSampleLight_UpdateLedState(void)
     uint8_t lightLevel = zclSampleLight_getCurrentLevelAttribute();
 
     // lightLevel is a value from 0-255. We must map this to a percentage (0-100%)
-    CUI_ledOn(gCuiHandle, CONFIG_LED_RED, (lightLevel * 100) / 255);
+    LED_stopBlinking(gRedLedHandle);
+    LED_setOn(gRedLedHandle, (lightLevel * 100) / 255);
 #else
-    CUI_ledOn(gCuiHandle, CONFIG_LED_RED, LED_BRIGHTNESS_MAX);
-#endif
+    LED_stopBlinking(gRedLedHandle);
+    LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
+    #endif
   }
   else
   {
-    CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
+    LED_stopBlinking(gRedLedHandle);
+    LED_setOff(gRedLedHandle);
   }
 #endif
 
@@ -2716,22 +2713,23 @@ static void zclSampleLight_UpdateLedState(void)
  *
  * @brief   Key event handler function
  *
- * @param   keysPressed - keys to be process in application context
+ * @param   key - key to handle action for
+ *          buttonEvents - event to handle action for
  *
  * @return  none
  */
-static void zclSampleLight_processKey(uint32_t _btn, Button_EventMask _buttonEvents)
+static void zclSampleLight_processKey(uint8_t key, Button_EventMask buttonEvents)
 {
-    if (_buttonEvents & Button_EV_CLICKED)
+    if (buttonEvents & Button_EV_CLICKED)
     {
-        if(_btn == CONFIG_BTN_LEFT)
+        if(key == CONFIG_BTN_LEFT)
         {
             zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
 
             zstack_bdbStartCommissioningReq.commissioning_mode = zclSampleLight_BdbCommissioningModes;
             Zstackapi_bdbStartCommissioningReq(appServiceTaskId, &zstack_bdbStartCommissioningReq);
         }
-        if(_btn == CONFIG_BTN_RIGHT)
+        if(key == CONFIG_BTN_RIGHT)
         {
 
         }
@@ -2756,7 +2754,7 @@ static void zclSampleLight_dmmPausePolicyCb(uint16_t pause)
 static void zclSampleLight_InitializeStatusLine(CUI_clientHandle_t gCuiHandle)
 {
     /* Request Async Line for Light application Info */
-    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gSampleLightInfoLine);
+    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gSampleLightInfoLine);
 
     zclSampleLight_UpdateStatusLine();
 }

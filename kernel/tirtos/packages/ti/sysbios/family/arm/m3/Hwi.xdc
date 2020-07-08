@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, Texas Instruments Incorporated
+ * Copyright (c) 2015-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -960,6 +960,31 @@ module Hwi inherits ti.sysbios.interfaces.IHwi
      *  register description provided by ARM.
      */
     config UInt priGroup = 0;
+
+    /*!
+     *  Generate linker commands to place vector tables. Default is true.
+     *
+     *  When set to true (the default), then 
+     *  {@link #resetVectorAddress Hwi.resetVectorAddress}
+     *  and {@link #vectorTableAddress Hwi.vectorTableAddress} are used to place
+     *  the reset and runtime vector tables.
+     *
+     *  When set to false, it is up to the user to provide linker commands
+     *  to place the sections the vector tables are contained in.
+     *
+     *  The following  table maps the tool chain used with the section names
+     *  for the reset and runtime vector tables:
+     *
+     *  @p(code)
+     *  Tool Chain       Reset Vectors          Runtime Vectors
+     *  TI               .resetVecs             .vecs
+     *  TI CLANG         .resetVecs             .vecs
+     *  GNU              .intvecs               .vtable
+     *  IAR              .intvec                .vecs
+     *  @p
+     *
+     */
+    metaonly config Bool placeVectorTables = true;
 
     // -------- Module Functions --------
 

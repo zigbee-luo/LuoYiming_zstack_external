@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Texas Instruments Incorporated
+ * Copyright (c) 2012-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,10 +51,10 @@ function module$use()
         "allowed is 6. The current value is " + Task.numPriorities, this);
     }
     ThreadSupport.lowestPriority = 1;
-    ThreadSupport.belowNormalPriority = 
+    ThreadSupport.belowNormalPriority =
         Math.ceil((Task.numPriorities * 2/5) - 1);
     ThreadSupport.normalPriority = Math.ceil((Task.numPriorities* 3/5) - 1);
-    ThreadSupport.aboveNormalPriority = 
+    ThreadSupport.aboveNormalPriority =
         Math.ceil((Task.numPriorities * 4/5) - 1);
     ThreadSupport.highestPriority = (Task.numPriorities) - 1;
 }
@@ -87,15 +87,15 @@ function instance$static$init(obj, fxn, params)
             taskParams.priority = ThreadSupport.highestPriority;
         }
         else {
-            TaskSupport.$logFatal("Invalid priority value " + params.priority, 
+            ThreadSupport.$logFatal("Invalid priority value " + params.priority,
                 this, "priority");
         }
     }
 
     taskParams.stackSize = params.stackSize;
     taskParams.env = obj;
-    
-    obj.task = Task.create("&ti_sysbios_xdcruntime_ThreadSupport_runStub", 
+
+    obj.task = Task.create("&ti_sysbios_xdcruntime_ThreadSupport_runStub",
         taskParams);
     obj.tls = params.tls;
     obj.startFxn = fxn;

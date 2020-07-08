@@ -72,3 +72,9 @@ TI-15.4 Stack Getting Started Guide's Application Overview section.
 > For IAR users: When using the CC13x2SDK, the TI XDS110v3 USB Emulator must
 be selected. For the CC13x2_LAUNCHXL, select TI XDS110 Emulator. In both cases,
 select the cJTAG interface.
+
+### Building for CC2652P
+
+Note that to build the coprocessor for the CC2652P, you will need to use the CC1352P-4 coprocessor project. Additionally,
+you will need to manually enable the `COPROCESSOR_CC2652P` symbol for the build. You can do this by removing the `x` in
+front of the definition of this symbol in the `application/defines/coprocessor.opts` file.

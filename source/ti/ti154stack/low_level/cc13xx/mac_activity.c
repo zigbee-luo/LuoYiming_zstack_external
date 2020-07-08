@@ -12,7 +12,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2019, Texas Instruments Incorporated
+ Copyright (c) 2019-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -432,12 +432,8 @@ static uint32_t getActivityPriorityRx(void)
 
         case MAC_ACTIVITY_FH:
         {
-           /* Default Priority is Normal */
-           if(rxActivityData.numRxBCAbort < MAC_ACTIVITY_THRESHOLD_PRI_NORMAL)
-           {
-               currPri = CALC_ACTIVITY_PRIORITY(MAC_ACTIVITY_FH, MAC_ACTIVITY_PRI_NORMAL_INDEX);
-           }
-           else if(rxActivityData.numRxBCAbort < MAC_ACTIVITY_THRESHOLD_PRI_HIGH)
+           /* Default Priority is High */
+           if(rxActivityData.numRxBCAbort < MAC_ACTIVITY_THRESHOLD_PRI_URGENT)
            {
                currPri = CALC_ACTIVITY_PRIORITY(MAC_ACTIVITY_FH, MAC_ACTIVITY_PRI_HIGH_INDEX);
            }

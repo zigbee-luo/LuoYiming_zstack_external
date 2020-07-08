@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Texas Instruments Incorporated
+ * Copyright (c) 2012-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@ function module$use()
  *  ======== instance$static$init ========
  */
 function instance$static$init(obj, params)
-{    
+{
 }
 
 /*
@@ -58,19 +58,19 @@ function queryMeta(qual)
     var IGateProvider = xdc.module('xdc.runtime.IGateProvider');
 
     switch (qual) {
-        case IGateProvider.Q_BLOCKING:            
-            rc = false; 
+        case IGateProvider.Q_BLOCKING:
+            rc = false;
             break;
-           
+
         case IGateProvider.Q_PREEMPTING:
-            rc = true; 
+            rc = true;
             break;
-           
+
         default:
-           GateSwi.$logWarning("Invalid quality. Returning false", this, qual);
-           break;  
+            this.$logWarning("Invalid quality. Returning false", this, qual);
+            break;
     }
-   
+
     return (rc);
 }
 
@@ -81,4 +81,4 @@ function queryMeta(qual)
 function viewInitBasic(view, obj)
 {
     view.label     = Program.getShortName(obj.$label);
-}   
+}

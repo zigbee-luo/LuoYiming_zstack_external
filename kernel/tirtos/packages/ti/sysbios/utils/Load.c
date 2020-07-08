@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018, Texas Instruments Incorporated
+ * Copyright (c) 2012-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,12 +58,6 @@
 #include <ti/sysbios/knl/Task.h>
 
 #include "package/internal/Load.xdc.h"
-
-#ifdef __ti__
-/* disable unused local variable warning during optimized compile */
-#pragma diag_suppress=179
-#pragma diag_suppress=552
-#endif
 
 /*
  *************************************************************************

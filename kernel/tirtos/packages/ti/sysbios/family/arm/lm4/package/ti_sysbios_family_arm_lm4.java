@@ -2,7 +2,7 @@
  *  Do not modify this file; it is automatically 
  *  generated and any modifications will be overwritten.
  *
- * @(#) xdc-H32
+ * @(#) xdc-I11
  */
 import java.util.*;
 import org.mozilla.javascript.*;
@@ -11,7 +11,7 @@ import xdc.services.spec.Session;
 
 public class ti_sysbios_family_arm_lm4
 {
-    static final String VERS = "@(#) xdc-H32\n";
+    static final String VERS = "@(#) xdc-I11\n";
 
     static final Proto.Elm $$T_Bool = Proto.Elm.newBool();
     static final Proto.Elm $$T_Num = Proto.Elm.newNum();
@@ -290,6 +290,7 @@ public class ti_sysbios_family_arm_lm4
 
         so = (Proto.Str)om.findStrict("ti.sysbios.family.arm.lm4.Seconds.Module_State", "ti.sysbios.family.arm.lm4");
         sizes.clear();
+        sizes.add(Global.newArray("setSecondsHi", "UInt32"));
         sizes.add(Global.newArray("setSeconds", "UInt32"));
         sizes.add(Global.newArray("refSeconds", "UInt32"));
         sizes.add(Global.newArray("deltaNSecs", "UInt32"));
@@ -407,6 +408,7 @@ public class ti_sysbios_family_arm_lm4
         po = (Proto.Obj)om.findStrict("ti.sysbios.family.arm.lm4.Seconds$$Module_State", "ti.sysbios.family.arm.lm4");
         po.init("ti.sysbios.family.arm.lm4.Seconds.Module_State", null);
                 po.addFld("$hostonly", $$T_Num, 0, "r");
+                po.addFld("setSecondsHi", Proto.Elm.newCNum("(xdc_UInt32)"), $$UNDEF, "w");
                 po.addFld("setSeconds", Proto.Elm.newCNum("(xdc_UInt32)"), $$UNDEF, "w");
                 po.addFld("refSeconds", Proto.Elm.newCNum("(xdc_UInt32)"), $$UNDEF, "w");
                 po.addFld("deltaNSecs", Proto.Elm.newCNum("(xdc_UInt32)"), $$UNDEF, "w");

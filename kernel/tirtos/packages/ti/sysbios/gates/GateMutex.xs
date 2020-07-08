@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018, Texas Instruments Incorporated
+ * Copyright (c) 2012-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -74,8 +74,8 @@ function queryMeta(qual)
             break;
 
         default:
-           GateMutex.$logWarning("Invalid quality. Returning false", this, qual);
-           break;  
+            this.$logWarning("Invalid quality. Returning false", this, qual);
+            break;
     }
 
     return (rc);
@@ -114,7 +114,7 @@ function viewCheckForNullObject(mod, obj)
  *  Initialize the 'Basic' Task instance view.
  */
 function viewInitBasic(view, obj)
-{   
+{
     var GateMutex = xdc.useModule('ti.sysbios.gates.GateMutex');
     if (viewCheckForNullObject(GateMutex, obj)) {
         view.status = "Uninitialized GateMutex object";
@@ -152,7 +152,7 @@ function viewInitBasic(view, obj)
      */
     try {
         var semView =
-                Program.scanObjectView('ti.sysbios.knl.Semaphore', obj.sem, 
+                Program.scanObjectView('ti.sysbios.knl.Semaphore', obj.sem,
                 'Basic');
     }
     catch (e) {
@@ -162,7 +162,7 @@ function viewInitBasic(view, obj)
     }
 
     if (semView.pendedTasks.length > 0) {
-        view.pendedTasks = semView.pendedTasks; 
+        view.pendedTasks = semView.pendedTasks;
     }
     else {
          view.pendedTasks.$add("There are no Tasks currently pending.");

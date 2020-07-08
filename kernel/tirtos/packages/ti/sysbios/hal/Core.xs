@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Texas Instruments Incorporated
+ * Copyright (c) 2015-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -90,7 +90,7 @@ function module$use()
  */
 function module$static$init(mod, params)
 {
-    Build = xdc.module("ti.sysbios.Build");
+    var Build = xdc.module("ti.sysbios.Build");
 
     /* add -D to compile line to optimize exception code */
     Build.ccArgs.$add("-Dti_sysbios_hal_Core_numCores__D=" + Core.numCores);

@@ -23,11 +23,13 @@ A15F.xdc
 A15F.xs
 A53F.xdc
 A53F.xs
+A72F.xdc
+A72F.xs
 package/gnu.targets.arm.sch
 package/.vers_g200
 package/.vers_r200
 package/.vers_b200
-package/.xdc-H32
+package/.xdc-I11
 package/gnu_targets_arm.java
 package/gnu_targets_arm.class
 package/package_gnu.targets.arm.c
@@ -46,4 +48,5 @@ A8F.h
 A9F.h
 A15F.h
 A53F.h
+A72F.h
 package/gnu.targets.arm.ccs

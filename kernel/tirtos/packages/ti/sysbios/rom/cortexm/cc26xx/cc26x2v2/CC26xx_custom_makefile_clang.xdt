@@ -122,7 +122,7 @@ endef
 
 define COMPILE
 	@echo cl`TARGET.suffix` $< ...
-	@$(CC) -Os $(BIOS_DEFS) $(XOPTS) $(INCS) $<
+	@$(CC) $(BIOS_DEFS) $(XOPTS) $(INCS) $<
 endef
 
 %var LIB = "rom_sysbios.a" + TARGET.suffix;

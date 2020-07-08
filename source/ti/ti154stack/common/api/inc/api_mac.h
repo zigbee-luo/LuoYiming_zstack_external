@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -280,33 +280,35 @@ extern "C"
 /*! Maximum number of Generic PHY descriptor entries */
 #define APIMAC_GENERIC_PHY_DESCRIPTOR_ENTRIES   10
 
- /*! PHY IDs - 915MHz US Frequency band operating mode # 1 */
- #define APIMAC_STD_US_915_PHY_1                 1
- /*! 863MHz ETSI Frequency band operating mode #1 */
- #define APIMAC_STD_ETSI_863_PHY_3               3
-  /*! 433MHz China Frequency band operating mode #1 */
- #define APIMAC_GENERIC_CHINA_433_PHY_128        128
-  /*! PHY IDs - 915MHz LRM US Frequency band operating mode # 1 */
- #define APIMAC_GENERIC_US_LRM_915_PHY_129       129
-  /*! 433MHz China LRM Frequency band operating mode #1 */
- #define APIMAC_GENERIC_CHINA_LRM_433_PHY_130    130
-  /*! 863MHz ETSI LRM Frequency band operating mode #1 */
- #define APIMAC_GENERIC_ETSI_LRM_863_PHY_131     131
- /*! PHY IDs - 915MHz US Frequency band operating mode # 3 */
-#define APIMAC_GENERIC_US_915_PHY_132            132
- /*! 863MHz ETSI Frequency band operating mode #2 */
-#define APIMAC_GENERIC_ETSI_863_PHY_133          133
+ /*! PHY IDs - 915MHz Frequency band operating mode # 1 */
+ #define APIMAC_50KBPS_915MHZ_PHY_1                 1
+ /*! 868MHz Frequency band operating mode #1 */
+ #define APIMAC_50KBPS_868MHZ_PHY_3               3
+  /*! 433MHz Frequency band operating mode #1 */
+ #define APIMAC_50KBPS_433MHZ_PHY_128        128
+  /*! PHY IDs - 915MHz LRM Frequency band operating mode # 1 */
+ #define APIMAC_5KBPS_915MHZ_PHY_129       129
+  /*! 433MHz LRM Frequency band operating mode #1 */
+ #define APIMAC_5KBPS_433MHZ_PHY_130    130
+  /*! 868MHz LRM Frequency band operating mode #1 */
+ #define APIMAC_5KBPS_868MHZ_PHY_131     131
+ /*! PHY IDs - 915MHz Frequency band operating mode # 3 */
+#define APIMAC_200KBPS_915MHZ_PHY_132            132
+ /*! 868MHz Frequency band operating mode #3 */
+#define APIMAC_200KBPS_868MHZ_PHY_133          133
  /*! Channel Page - none for IEEE modes */
-#define APIMAC_PHY_ID_NONE                      0
-/*! PHY IDs - MRFSK Generic Phy ID start */
-#define APIMAC_MRFSK_GENERIC_PHY_ID_BEGIN APIMAC_GENERIC_CHINA_433_PHY_128
-/*! PHY IDs - MRFSK Generic Phy ID end */
-#define APIMAC_MRFSK_GENERIC_PHY_ID_END ( APIMAC_MRFSK_GENERIC_PHY_ID_BEGIN + APIMAC_GENERIC_PHY_DESCRIPTOR_ENTRIES - 1 )
+#define APIMAC_250KBPS_IEEE_PHY_0                      0
 
 /*! PHY IDs - MRFSK Standard Phy ID start */
-#define APIMAC_MRFSK_STD_PHY_ID_BEGIN APIMAC_STD_US_915_PHY_1
+#define APIMAC_MRFSK_STD_PHY_ID_BEGIN APIMAC_50KBPS_915MHZ_PHY_1
 /*! PHY IDs - MRFSK Standard Phy ID end */
 #define APIMAC_MRFSK_STD_PHY_ID_END ( APIMAC_MRFSK_STD_PHY_ID_BEGIN + APIMAC_STANDARD_PHY_DESCRIPTOR_ENTRIES - 1 )
+
+ /*! PHY IDs - MRFSK Generic Phy ID start */
+ #define APIMAC_MRFSK_GENERIC_PHY_ID_BEGIN APIMAC_50KBPS_433MHZ_PHY_128
+ /*! PHY IDs - MRFSK Generic Phy ID end */
+ #define APIMAC_MRFSK_GENERIC_PHY_ID_END ( APIMAC_MRFSK_GENERIC_PHY_ID_BEGIN + APIMAC_GENERIC_PHY_DESCRIPTOR_ENTRIES - 1 )
+
 
 /*! PHY descriptor table entry */
 #define APIMAC_PHY_DESCRIPTOR 0x01

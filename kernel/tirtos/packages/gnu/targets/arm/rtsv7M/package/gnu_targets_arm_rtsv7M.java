@@ -2,7 +2,7 @@
  *  Do not modify this file; it is automatically 
  *  generated and any modifications will be overwritten.
  *
- * @(#) xdc-H32
+ * @(#) xdc-I11
  */
 import java.util.*;
 import org.mozilla.javascript.*;
@@ -11,7 +11,7 @@ import xdc.services.spec.Session;
 
 public class gnu_targets_arm_rtsv7M
 {
-    static final String VERS = "@(#) xdc-H32\n";
+    static final String VERS = "@(#) xdc-I11\n";
 
     static final Proto.Elm $$T_Bool = Proto.Elm.newBool();
     static final Proto.Elm $$T_Num = Proto.Elm.newNum();
@@ -170,12 +170,10 @@ public class gnu_targets_arm_rtsv7M
         sb.append("pkg.build.libraries = [\n");
             sb.append("'lib/gnu.targets.arm.rtsv7M.am4fg',\n");
             sb.append("'lib/boot.am4fg',\n");
-            sb.append("'lib/syscalls.am4fg',\n");
         sb.append("];\n");
         sb.append("pkg.build.libDesc = [\n");
             sb.append("['lib/gnu.targets.arm.rtsv7M.am4fg', {target: 'gnu.targets.arm.M4F', suffix: 'm4fg'}],\n");
             sb.append("['lib/boot.am4fg', {target: 'gnu.targets.arm.M4F', suffix: 'm4fg'}],\n");
-            sb.append("['lib/syscalls.am4fg', {target: 'gnu.targets.arm.M4F', suffix: 'm4fg'}],\n");
         sb.append("];\n");
         Global.eval(sb.toString());
     }

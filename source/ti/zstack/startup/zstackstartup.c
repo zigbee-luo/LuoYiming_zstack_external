@@ -415,13 +415,6 @@ static void stackServiceFxnsInit( void )
     {
         // handle malloc error
     }
-#if defined(FLASH_ROM_BUILD)
-  // initialize the Common ROM
-  CommonROM_Init();
-
-  // initialize the TIMAC ROM
-  ROM_Init();
-#endif /* FLASH_ROM_BUILD */
 
   return;
 }
@@ -648,6 +641,8 @@ static void stackInit(void)
 
     uint8_t responseWaitTime = 16;
     ZMacSetReq(MAC_RESPONSE_WAIT_TIME, &responseWaitTime);
+
+    ZMacSetTransmitPower( (ZMacTransmitPower_t)TXPOWER );
 
     if(RFD_RCVC_ALWAYS_ON == TRUE)
     {

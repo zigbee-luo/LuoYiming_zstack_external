@@ -135,8 +135,8 @@ Nwk: Started
 Sensor 0x0001: FW Ver sv:0001 bv:01
 
 
-Info: OAD file ../../prebuilt/bin/sensor_oad_offchip_secure_CC1352R1_LAUNCHXL_tirtos_ccs_syscfg.bin
-cmd: f ../../prebuilt/bin/sensor_oad_offchip_secure_CC1352R1_LAUNCHXL_tirtos_ccs_syscfg.bin
+Info: OAD file ../../prebuilt/bin/sensor_oad_offchip_secure_CC1352R1_LAUNCHXL_tirtos_ccs.bin
+cmd: f ../../prebuilt/bin/sensor_oad_offchip_secure_CC1352R1_LAUNCHXL_tirtos_ccs.bin
 ```
 
 Entering just `f` will report the currently selected file.
@@ -210,8 +210,8 @@ The user application image is created as part of the post build process in the s
 To update the version in the OAD header, open the project in your IDE and change the `SOFTWARE_VER` define in application/sensor/oad/oad_image_header_app.c. The two most significant bytes indicate the stack version, and the two least significant bytes indicate the application version.
 
 When the project is built under the default build configuration, the resulting bin can be found in the following output directory:
-* CCS: `<WORKSPACE_DIR>/sensor_oad_offchip_secure_CC13X2R1_LAUNCHXL_tirtos_ccs_syscfg/Release/sensor_oad_offchip_secure_CC13X2R1_LAUNCHXL_tirtos_ccs_syscfg.bin`
-* IAR: `<WORKSPACE_DIR>/Release/sensor_oad_offchip_secure_src_CC13X2R1_LAUNCHXL_tirtos_iar_syscfg`
+* CCS: `<WORKSPACE_DIR>/sensor_oad_offchip_secure_CC13X2R1_LAUNCHXL_tirtos_ccs/Release/sensor_oad_offchip_secure_CC13X2R1_LAUNCHXL_tirtos_ccs.bin`
+* IAR: `<WORKSPACE_DIR>/Release/sensor_oad_offchip_secure_src_CC13X2R1_LAUNCHXL_tirtos_iar`
 
 #### **Note**
 > The generated .out and .hex will not have the correct CRC, hence the BIM will not boot into the image. During development, the BIM can be built with the debug configuration to allow the BIM to ignore the incorrect CRC.
@@ -267,13 +267,13 @@ Settings such as timeouts, retries, and aborts reside in oad_client.c. In non be
 #define OAD_BLOCK_AUTO_RESUME_DELAY   5000
 ```
 
-In Beacon Mode only one data request can be sent during 1 beacon interval. The default OAD settings are:
+In Beacon Mode, data requests are configured to time out after 1 beacon interval. The default OAD settings are:
 
 **oad_client.c**
 ```c
-#define OAD_MAX_TIMEOUTS              3
+#define OAD_MAX_TIMEOUTS              ((uint8_t) ((BEACON_INTERVAL/OAD_BLOCK_REQ_RATE) + 1))
 #define OAD_MAX_RETRIES               3
-#define OAD_BLOCK_AUTO_RESUME_DELAY   (CONFIG_MAC_SUPERFRAME_ORDER * 5)
+#define OAD_BLOCK_AUTO_RESUME_DELAY   BEACON_INTERVAL
 ```
 
 Finally, the sensor_oad project has 3 defines related to the OAD feature, defined by default in the project's .opts file or in the project settings:

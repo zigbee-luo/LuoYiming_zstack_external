@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -186,14 +186,8 @@ static void taskFxn(UArg a0, UArg a1);
 /*! USER assert handler */
 static void userAssertHandler(uint8_t reason);
 
-/*!
- * @brief       MAC HAL assert handler.
- */
-static void macHalAssertHandler(void)
-{
-}
 
-void halAssertHandler(void)
+void assertHandler(void)
 {
 }
 
@@ -210,7 +204,7 @@ int main()
 
 #ifndef USE_DEFAULT_USER_CFG
     /* Register our MAC assert handler */
-    macUser0Cfg[0].pAssertFP = macHalAssertHandler;
+    macUser0Cfg[0].pAssertFP = assertHandler;
 #endif
 
     /*
@@ -260,9 +254,9 @@ xdc_Void Main_excHandler(UInt *excStack, UInt lr)
 }
 
 /*!
- * @brief  HAL assert handler required by OSAL memory module.
+ * @brief  assert handler.
  */
-void Main_halAssertHandler(void)
+void Main_assertHandler(void)
 {
     /* Go to user-defined handler */
     userAssertHandler(MTSYS_ASSERT_HAL);

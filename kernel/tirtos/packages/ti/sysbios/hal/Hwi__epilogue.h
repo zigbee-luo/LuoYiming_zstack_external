@@ -74,7 +74,7 @@ extern void _restore_interrupts(unsigned int key);
 
 #else
 #if defined(xdc_target__isaCompatible_470) \
-    && defined(__32bis__) \
+    && !defined(__thumb__) \
     && !defined(xdc_target__isaCompatible_v7M)
 
 /*

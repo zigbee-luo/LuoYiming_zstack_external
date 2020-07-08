@@ -76,17 +76,6 @@ function getExeContext(prog)
     cpu.deviceName = revision;
     cpu.revision = "";
 
-    if (prog.build.target.$name.match(/gnu/)) {
-        if (this.codeMemory == undefined) {
-            this.codeMemory = "REGION_TEXT";
-        }
-        if (this.dataMemory == undefined) {
-            this.dataMemory = "REGION_DATA";
-        }
-        if (this.stackMemory == undefined) {
-            this.stackMemory = "REGION_STACK";
-        }
-    }
     /* check for the overlap in the memory map */
     var overlap = Utils.checkOverlap(cpu.memoryMap);
 
@@ -185,12 +174,6 @@ function instance$meta$init(name)
         this.$module.$logWarning(this.$package.$name + " does not support "
             + "external memory map, and the parameter 'externalMemoryMap' is "
             + "ignored.", this, this.externalMemoryMap);
-    }
-
-    if (Program.build.target.$name.match(/gnu/)) {
-        this.codeMemory = "REGION_TEXT";
-        this.dataMemory = "REGION_DATA";
-        this.stackMemory = "REGION_STACK";
     }
 
     /* if in the configuration model ... */

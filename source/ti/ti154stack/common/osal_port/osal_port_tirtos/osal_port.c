@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -61,12 +61,6 @@
 // This include file will ensure HEAPMGR_CONFIG is properly setup in the ti-rtos
 // config file.
 #include <xdc/cfg/global.h>
-#include <hal_defs.h> //add by luoyiming 2019-09-07
-
-/***** Macro ******/
-// Heapmgr assert, add by luoyiming 2019-09-07
-extern void halAssertHandler(void);
-#define HEAPMGR_ASSERT(_exp)  st( if (!(_exp)) halAssertHandler(); )
 
 /***** Defines *****/
 /* Only 1 application can talk to the MAC */
@@ -1127,10 +1121,6 @@ void *OsalPort_revmemcpy( void *dst, const void *src, unsigned int len )
  */
 void* OsalPort_malloc(uint32_t size)
 {
-    if( !size )
-    {
-      return NULL;
-    }
     return (OsalPort_heapMalloc(size));
 }
 

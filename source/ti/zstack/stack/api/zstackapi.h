@@ -347,17 +347,6 @@
 
    <BR><BR>
 
-   Application Helper Modules
-   ============================
-   - [LED Support](@ref BoardLED) - Middleware to control the development board
-     LEDs.
-   - [LCD Support](@ref BoardLCD) - Middleware to control the development board
-     LCD.
-   - [Key Press Support](@ref BoardKey) - Middleware to setup and receive key
-     press indications.
-
-   <BR><BR>
-
    ZCL Modules
    ===========
     - [ZCL](@ref ZCL) - All ZCL clusters IDs, common functions/typedefs

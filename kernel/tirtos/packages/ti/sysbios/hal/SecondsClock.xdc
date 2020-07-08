@@ -57,6 +57,7 @@ internal:
     Void increment(UArg arg);
 
     struct Module_State {
+        UInt32        secondsHi;
         UInt32        seconds;
         Clock.Object  clock;
         UInt32        c1;

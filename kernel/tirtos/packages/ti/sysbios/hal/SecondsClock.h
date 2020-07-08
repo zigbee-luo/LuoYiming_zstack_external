@@ -2,7 +2,7 @@
  *  Do not modify this file; it is automatically 
  *  generated and any modifications will be overwritten.
  *
- * @(#) xdc-H32
+ * @(#) xdc-I11
  */
 
 /*
@@ -377,6 +377,7 @@ static inline xdc_Void ti_sysbios_hal_SecondsClock_Module_setMask(xdc_Bits16 mas
 
 /* Module_State */
 struct ti_sysbios_hal_SecondsClock_Module_State {
+    xdc_UInt32 secondsHi;
     xdc_UInt32 seconds;
     xdc_UInt32 c1;
     xdc_UInt32 c2;

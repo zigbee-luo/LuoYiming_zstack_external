@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016, Texas Instruments Incorporated
+ * Copyright (c) 2014-2019, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,8 @@
 #include "package/internal/SecondsClock.xdc.h"
 
 #define NSECSPERSEC 1000000000  /* nanoseconds per second */
+
+#define SECONDS_MAX 0xFFFFFFFF  /* Maximum number of seconds in 32 bits */
 
 /*
  *  ======== Clock_Module_startup ========
@@ -151,6 +153,7 @@ UInt32 SecondsClock_getTime(SecondsClock_Time *ts)
 
     key = Hwi_disable();
 
+    ts->secsHi = SecondsClock_module->secondsHi;
     ts->secs = SecondsClock_module->seconds;
     ticks = Clock_getTicks() - SecondsClock_module->ticks;
 
@@ -166,6 +169,9 @@ UInt32 SecondsClock_getTime(SecondsClock_Time *ts)
  */
 Void SecondsClock_increment(UArg arg)
 {
+    if (SecondsClock_module->seconds == SECONDS_MAX) {
+        SecondsClock_module->secondsHi++;
+    }
     SecondsClock_module->seconds++;
     SecondsClock_module->ticks = Clock_getTicks();
 
@@ -240,6 +246,7 @@ UInt32 SecondsClock_setTime(SecondsClock_Time *ts)
      */
     ticksNSecs = ((nsecs + nsecsPerTick - 1) / 1000) / Clock_tickPeriod;
 
+    SecondsClock_module->secondsHi = ts->secsHi;
     SecondsClock_module->seconds = secs;
     SecondsClock_module->ticks = ticksClock - ticksNSecs;
 

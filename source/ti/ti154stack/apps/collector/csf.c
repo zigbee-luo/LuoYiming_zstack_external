@@ -10,7 +10,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,8 @@
 #include <ti/sysbios/knl/Semaphore.h>
 #include <ti/drivers/Power.h>
 #include <ti/drivers/PIN.h>
+#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/apps/LED.h>
 #include <inc/hw_ints.h>
 #include <aon_event.h>
 #include <ioc.h>
@@ -93,6 +95,13 @@
 #include "icall.h"
 #endif
 
+#ifdef USE_DMM
+#ifdef FEATURE_SECURE_COMMISSIONING
+#include "remote_display.h"
+#include <sm_commissioning_gatt_profile.h>
+#endif /* FEATURE_SECURE_COMMISSIONING */
+#endif /* USE_DMM */
+
 #if defined(DEVICE_TYPE_MSG)
 #include <ti/devices/DeviceFamily.h>
 #include <ti/boards/device_type.h>
@@ -101,6 +110,9 @@
 /******************************************************************************
  Constants and definitions
  *****************************************************************************/
+
+/* Milliseconds to seconds conversion */
+#define MSEC_PER_SEC 1000
 
 /* Initial timeout value for the tracking clock */
 #define TRACKING_INIT_TIMEOUT_VALUE 100
@@ -136,7 +148,7 @@
 #if defined(USE_DMM)
 #define FH_ASSOC_TIMER              2000
 #define PROVISIONING_ASSOC_TIMER    1000
-#endif
+#endif /* USE_DMM */
 
 /*
  The increment value needed to save a frame counter. Example, setting this
@@ -153,6 +165,9 @@
 /*! NV driver item ID for reset reason */
 #define NVID_RESET {NVINTF_SYSID_APP, CSF_NV_RESET_REASON_ID, 0}
 
+/* Mask of all supported channels for input validation */
+static const uint8_t validChannelMask[APIMAC_154G_CHANNEL_BITMAP_SIZ] = CUI_VALID_CHANNEL_MASK;
+
 /******************************************************************************
  External variables
  *****************************************************************************/
@@ -168,7 +183,7 @@ extern SM_lastState_t SM_Current_State;
 
 /* Need to re-do commissioning*/
 extern bool fCommissionRequired;
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 /******************************************************************************
  Local variables
  *****************************************************************************/
@@ -227,7 +242,7 @@ static const NVINTF_itemID_t nvResetId = NVID_RESET;
  Global variables
  *****************************************************************************/
 /* Key press parameters */
-uint8_t Csf_keys = 0xFF;
+Button_Handle Csf_keys = NULL;
 
 /* pending Csf_events */
 uint16_t Csf_events = 0;
@@ -239,9 +254,18 @@ Cllc_states_t savedCllcState = Cllc_states_initWaiting;
 bool permitJoining = false;
 
 CUI_clientHandle_t csfCuiHndl;
+#if !defined(POWER_MEAS)
+static LED_Handle gGreenLedHandle;
+static LED_Handle gRedLedHandle;
+#endif /* !POWER_MEAS */
+static Button_Handle gRightButtonHandle;
+static Button_Handle gLeftButtonHandle;
 uint32_t collectorStatusLine;
 uint32_t deviceStatusLine;
 uint32_t numJoinDevStatusLine;
+#ifdef LPSTK
+uint32_t lpstkDataStatusLine;
+#endif
 
 static uint16_t SelectedSensor;
 static uint32_t reportInterval;
@@ -254,16 +278,16 @@ static uint8_t Csf_sensorAction;
 
 static void processTrackingTimeoutCallback(UArg a0);
 static void processBroadcastTimeoutCallback(UArg a0);
-static void processKeyChangeCallback(uint32_t _btn, Button_EventMask _events);
+static void processKeyChangeCallback(Button_Handle _buttonHandle, Button_EventMask _buttonEvents);
 static void processPATrickleTimeoutCallback(UArg a0);
 static void processPCTrickleTimeoutCallback(UArg a0);
 static void processJoinTimeoutCallback(UArg a0);
 static void processConfigTimeoutCallback(UArg a0);
-static void processidentifyTimeoutCallback(UArg a0);
+static void processIdentifyTimeoutCallback(UArg a0);
 static uint16_t getNumActiveDevices(void);
 #if defined(USE_DMM)
 static void processProvisioningCallback(UArg a0);
-#endif
+#endif /* USE_DMM */
 static bool addDeviceListItem(Llc_deviceListItem_t *pItem, bool *pNewDevice);
 static void updateDeviceListItem(Llc_deviceListItem_t *pItem);
 static int findDeviceListIndex(ApiMac_sAddrExt_t *pAddr);
@@ -272,14 +296,16 @@ static void saveNumDeviceListEntries(uint16_t numEntries);
 #if defined(TEST_REMOVE_DEVICE)
 static void removeTheFirstDevice(void);
 #else
+#ifndef POWER_MEAS
 static uint16_t getTheFirstDevice(void);
 #endif
+#endif
 
-#if !defined(POWER_MEAS)
 static void updateCollectorStatusLine(bool restored, Llc_netInfo_t *pNetworkInfo);
 static uint8_t moveCursorLeft(uint8_t col, uint8_t left_boundary, uint8_t right_boundary, uint8_t skip_space);
 static uint8_t moveCursorRight(uint8_t col, uint8_t left_boundary, uint8_t right_boundary, uint8_t skip_space);
 static void setPanIdAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
+static void validateChMask(uint8_t *_chanMask, uint8_t byteIdx);
 static void setChMaskAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
 #if CONFIG_FH_ENABLE
 static void setAsyncChMaskAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
@@ -289,31 +315,30 @@ static void setNwkKeyAction(const char _input, char* _pLines[3], CUI_cursorInfo_
 #endif
 #ifdef FEATURE_SECURE_COMMISSIONING
 static void setSmPassKeyAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 static void formNwkAction(int32_t menuEntryInex);
 static void openNwkAction(int32_t menuEntryInex);
 static void closeNwkAction(int32_t menuEntryInex);
-//static void disassocAction(void);
 static void sensorSelectAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
 static void sensorSetReportInterval(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
 static void sensorLedToggleAction(int32_t menuEntryInex);
 static void sensorDisassocAction(int32_t menuEntryInex);
+
 #if defined(DEVICE_TYPE_MSG)
 static void sensorDeviceTypeRequestAction(int32_t menuEntryInex);
 #endif /* DEVICE_TYPE_MSG */
 static void processMenuUpdate(void);
+#ifndef POWER_MEAS
 static void sendToggleAndUpdateUser(uint16_t shortAddr);
+#endif
 static void uintToString (uint32_t value, char * str, uint8_t base, uint8_t num_of_digists, bool pad0, bool reverse);
 
-#endif
 
 /* POWER_MEAS protects the UART in these functions */
 static void formNwkAndUpdateUser(void);
 static void openCloseNwkAndUpdateUser(bool openNwkRequest);
 
 /* Menu */
-#if !defined(POWER_MEAS)
-
 #define SFF_MENU_TITLE " TI Collector "
 
 #if CONFIG_FH_ENABLE
@@ -337,8 +362,8 @@ CUI_SUB_MENU(configureSubMenu, "<      CONFIGURE      >", 2 + FH_MENU_ENABLED + 
 #ifdef FEATURE_MAC_SECURITY
     CUI_MENU_ITEM_INT_ACTION(  "<     SET NWK KEY     >", setNwkKeyAction)
 #endif
-CUI_SUB_MENU_END
 
+CUI_SUB_MENU_END
 CUI_SUB_MENU(commissionSubMenu,"<   NETWORK ACTIONS   >", 3, csfMainMenu)
     CUI_MENU_ITEM_ACTION(      "<       FORM NWK      >", formNwkAction)
     CUI_MENU_ITEM_ACTION(      "<       OPEN NWK      >", openNwkAction)
@@ -356,7 +381,7 @@ menus in this file. */
 CUI_MAIN_MENU(smPassKeyMenu, "<       SM MENU       >", 1, processMenuUpdate)
     CUI_MENU_ITEM_INT_ACTION(  "<    ENTER PASSKEY    >", setSmPassKeyAction)
 CUI_MAIN_MENU_END
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 
 #if defined(DEVICE_TYPE_MSG)
@@ -372,7 +397,6 @@ CUI_SUB_MENU(appSubMenu,       "<         APP         >", 4, csfMainMenu)
 #if defined(DEVICE_TYPE_MSG)
     CUI_MENU_ITEM_ACTION(      "<  SEND TYPE REQUEST  >", sensorDeviceTypeRequestAction)
 #endif /* DEVICE_TYPE_MSG */
-
 CUI_SUB_MENU_END
 
 CUI_MAIN_MENU(csfMainMenu, SFF_MENU_TITLE, 3, processMenuUpdate)
@@ -381,7 +405,6 @@ CUI_MAIN_MENU(csfMainMenu, SFF_MENU_TITLE, 3, processMenuUpdate)
     CUI_MENU_ITEM_SUBMENU(appSubMenu)
 CUI_MAIN_MENU_END
 
-#endif /* !POWER_MEAS */
 /******************************************************************************
  Public Functions
  *****************************************************************************/
@@ -406,17 +429,21 @@ void Csf_init(void *sem)
     CUI_clientParamsInit(&clientParams);
 
     strncpy(clientParams.clientName, "154 Collector", MAX_CLIENT_NAME_LEN);
+#ifdef LPSTK
+    clientParams.maxStatusLines = 4;
+#else
     clientParams.maxStatusLines = 3;
+#endif
 
 #ifdef FEATURE_SECURE_COMMISSIONING
     clientParams.maxStatusLines++;
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 #ifdef SECURE_MANAGER_DEBUG
     clientParams.maxStatusLines++;
-#endif
+#endif /* SECURE_MANAGER_DEBUG */
 #ifdef SECURE_MANAGER_DEBUG2
     clientParams.maxStatusLines++;
-#endif
+#endif /* SECURE_MANAGER_DEBUG2 */
 
     csfCuiHndl = CUI_clientOpen(&clientParams);
 
@@ -426,50 +453,43 @@ void Csf_init(void *sem)
 #endif //FEATURE_SECURE_COMMISSIONING
 
     /* Initialize Keys */
-    CUI_btnRequest_t leftBtnReq;
-    leftBtnReq.index = CONFIG_BTN_LEFT;
-    leftBtnReq.appCB = processKeyChangeCallback;
-    CUI_btnResourceRequest(csfCuiHndl, &leftBtnReq);
+    Button_Params bparams;
+    Button_Params_init(&bparams);
+    gLeftButtonHandle = Button_open(CONFIG_BTN_LEFT, processKeyChangeCallback, &bparams);
+    // Open Right button without appCallBack
+    gRightButtonHandle = Button_open(CONFIG_BTN_RIGHT, NULL, &bparams);
 
-    CUI_btnRequest_t rightBtnReq;
-    rightBtnReq.index = CONFIG_BTN_RIGHT;
-    rightBtnReq.appCB = NULL;
-    CUI_btnResourceRequest(csfCuiHndl, &rightBtnReq);
-
-    bool btnState = false;
-    CUI_btnGetValue(csfCuiHndl, CONFIG_BTN_RIGHT, &btnState);
-    if (!btnState) {
-       /* Right key is pressed on power up, clear all NV */
+    // Read button state
+    if (!GPIO_read(((Button_HWAttrs*)gRightButtonHandle->hwAttrs)->gpioIndex))
+    {
+        /* Right key is pressed on power up, clear all NV */
         Csf_clearAllNVItems();
     }
-
-    CUI_btnSetCb(csfCuiHndl, CONFIG_BTN_RIGHT, processKeyChangeCallback);
-
+    // Set button callback
+    Button_setCallback(gRightButtonHandle, processKeyChangeCallback);
 
 #if !defined(POWER_MEAS)
     /* Initialize the LEDs */
-    CUI_ledRequest_t greenLedReq;
-    greenLedReq.index = CONFIG_LED_GREEN;
-    CUI_ledResourceRequest(csfCuiHndl, &greenLedReq);
-
-    CUI_ledRequest_t redLedReq;
-    redLedReq.index = CONFIG_LED_RED;
-    CUI_ledResourceRequest(csfCuiHndl, &redLedReq);
+    LED_Params ledParams;
+    LED_Params_init(&ledParams);
+    gGreenLedHandle = LED_open(CONFIG_LED_GREEN, &ledParams);
+    gRedLedHandle = LED_open(CONFIG_LED_RED, &ledParams);
 
     // Blink to indicate the application started up correctly
-    CUI_ledBlink(csfCuiHndl, CONFIG_LED_RED, 3);
+    LED_startBlinking(gRedLedHandle, 500, 3);
+#endif /* POWER_MEAS */
 
     CUI_registerMenu(csfCuiHndl, &csfMainMenu);
 
-    CUI_statusLineResourceRequest(csfCuiHndl, "Status", &collectorStatusLine);
-    CUI_statusLineResourceRequest(csfCuiHndl, "Device Status", &deviceStatusLine);
-    CUI_statusLineResourceRequest(csfCuiHndl, "Number of Joined Devices", &numJoinDevStatusLine);
-#endif /* POWER_MEAS */
+    CUI_statusLineResourceRequest(csfCuiHndl, "Status", false, &collectorStatusLine);
+    CUI_statusLineResourceRequest(csfCuiHndl, "Device Status", true, &deviceStatusLine);
+#ifdef LPSTK
+    CUI_statusLineResourceRequest(csfCuiHndl, "LPSTK Data", true, &lpstkDataStatusLine);
+#endif /* LPSTK */
+    CUI_statusLineResourceRequest(csfCuiHndl, "Number of Joined Devices", false, &numJoinDevStatusLine);
 
 #if !defined(AUTO_START)
-#ifndef POWER_MEAS
     CUI_statusLinePrintf(csfCuiHndl, collectorStatusLine, "Waiting...");
-#endif
 #endif /* AUTO_START */
 
 #if defined(MT_CSF)
@@ -492,7 +512,7 @@ void Csf_init(void *sem)
         }
 
         /* Start up the MT message handler */
-        MTCSF_init(resetReseason);
+        MTCSF_init(resetReseason, gLeftButtonHandle);
 
         /* Did we reset because of assert? */
         if(resetReseason > 0)
@@ -501,7 +521,7 @@ void Csf_init(void *sem)
 
             /* Tell the collector to restart */
             Csf_events |= CSF_KEY_EVENT;
-            Csf_keys |= CONFIG_BTN_LEFT;
+            Csf_keys = gLeftButtonHandle;
         }
     }
 #endif
@@ -519,7 +539,7 @@ void Csf_processEvents(void)
     if(Csf_events & CSF_KEY_EVENT)
     {
         /* Process the Left Key */
-        if(Csf_keys == CONFIG_BTN_LEFT)
+        if(Csf_keys == gLeftButtonHandle)
         {
             if(started == false)
             {
@@ -551,12 +571,12 @@ void Csf_processEvents(void)
         }
 
         /* Process the Right Key */
-        if(Csf_keys == CONFIG_BTN_RIGHT)
+        if(Csf_keys == gRightButtonHandle)
         {
             openCloseNwkAndUpdateUser(!permitJoining);
         }
         /* Clear the key press indication */
-        Csf_keys = 0xFF;
+        Csf_keys = NULL;
 
         /* Clear the event */
         Util_clearEvent(&Csf_events, CSF_KEY_EVENT);
@@ -597,16 +617,10 @@ void Csf_processEvents(void)
             }
             case SENSOR_ACTION_DISASSOC:
             {
-                if(Csf_removeDevice(SelectedSensorAddr.addr.shortAddr) == 0)
+                if(Csf_sendDisassociateMsg(SelectedSensorAddr.addr.shortAddr) != 0)
                 {
-                    Csf_deviceDisassocUpdate(SelectedSensorAddr.addr.shortAddr);
-                }
-                else
-                {
-#ifndef POWER_MEAS
                     CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "Disassociate Sensor Error - Addr=0x%04x not found",
                                          SelectedSensorAddr.addr.shortAddr);
-#endif /* endif for POWER_MEAS */
                 }
                 break;
             }
@@ -681,10 +695,11 @@ void Csf_networkUpdate(bool restored, Llc_netInfo_t *pNetworkInfo)
         }
 
         started = true;
-#ifndef POWER_MEAS
         updateCollectorStatusLine(restored, pNetworkInfo);
-        CUI_ledOn(csfCuiHndl, CONFIG_LED_RED, NULL);
-#endif /* endif for POWER_MEAS */
+#ifndef POWER_MEAS
+        LED_stopBlinking(gGreenLedHandle);
+        LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
+#endif
 
 #if defined(MT_CSF)
         MTCSF_networkUpdateIndCB();
@@ -720,28 +735,20 @@ ApiMac_assocStatus_t Csf_deviceUpdate(ApiMac_deviceDescriptor_t *pDevInfo,
 #ifdef NV_RESTORE
         status = ApiMac_assocStatus_panAtCapacity;
 
-#ifndef POWER_MEAS
         CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "Failed - 0x%04x ", pDevInfo->shortAddress);
-#endif /* endif for POWER_MEAS */
 #else
         status = ApiMac_assocStatus_success;
-#ifndef POWER_MEAS
         CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "Joined - 0x%04x ", pDevInfo->shortAddress);
-#endif /* endif for POWER_MEAS */
 #endif
     }
-#ifndef POWER_MEAS
     else if (true == newDevice) {
         CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "Joined - 0x%04x ", pDevInfo->shortAddress);
     }
     else {
         CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "Rejoined - 0x%04x ", pDevInfo->shortAddress);
     }
-#endif /* endif for POWER_MEAS */
 
-#ifndef POWER_MEAS
     CUI_statusLinePrintf(csfCuiHndl, numJoinDevStatusLine, "%x", getNumActiveDevices());
-#endif
 #if defined(MT_CSF)
     MTCSF_deviceUpdateIndCB(pDevInfo, pCapInfo);
 #endif
@@ -759,9 +766,7 @@ ApiMac_assocStatus_t Csf_deviceUpdate(ApiMac_deviceDescriptor_t *pDevInfo,
 void Csf_deviceNotActiveUpdate(ApiMac_deviceDescriptor_t *pDevInfo,
 bool timeout)
 {
-#ifndef POWER_MEAS
     CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "!Responding - 0x%04x ", pDevInfo->shortAddress);
-#endif /* endif for POWER_MEAS */
 #if defined(MT_CSF)
     MTCSF_deviceNotActiveIndCB(pDevInfo, timeout);
 #endif /* endif for MT_CSF */
@@ -776,11 +781,9 @@ bool timeout)
 void Csf_deviceConfigUpdate(ApiMac_sAddr_t *pSrcAddr, int8_t rssi,
                             Smsgs_configRspMsg_t *pMsg)
 {
-#ifndef POWER_MEAS
     CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "ConfigRsp - 0x%04x ", pSrcAddr->addr.shortAddr);
     CUI_statusLinePrintf(csfCuiHndl, numJoinDevStatusLine, "%x", getNumActiveDevices());
 
-#endif /* endif for POWER_MEAS */
 #if defined(MT_CSF)
     MTCSF_configResponseIndCB(pSrcAddr, rssi, pMsg);
 #endif /* endif for MT_CSF */
@@ -798,13 +801,31 @@ void Csf_deviceConfigUpdate(ApiMac_sAddr_t *pSrcAddr, int8_t rssi,
 void Csf_deviceSensorDataUpdate(ApiMac_sAddr_t *pSrcAddr, int8_t rssi,
                                 Smsgs_sensorMsg_t *pMsg)
 {
-    CUI_ledToggle(csfCuiHndl, CONFIG_LED_GREEN);
 #ifndef POWER_MEAS
-    CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "Sensor - Addr=0x%04x, Temp=%d, RSSI=%d",
-                         pSrcAddr->addr.shortAddr, pMsg->tempSensor.ambienceTemp, rssi);
+    LED_toggle(gGreenLedHandle);
+#endif /* endif for POWER_MEAS */
+    if(pMsg->frameControl & Smsgs_dataFields_bleSensor)
+    {
+        CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "ADDR:%2x%2x%2x%2x%2x%2x, UUID:0x%04x, "
+                             "ManFac:0x%04x, Length:%d, Data:0x%02x", pMsg->bleSensor.bleAddr[5],
+                             pMsg->bleSensor.bleAddr[4], pMsg->bleSensor.bleAddr[3], pMsg->bleSensor.bleAddr[2],
+                             pMsg->bleSensor.bleAddr[1], pMsg->bleSensor.bleAddr[0], pMsg->bleSensor.uuid,
+                             pMsg->bleSensor.manFacID, pMsg->bleSensor.dataLength, pMsg->bleSensor.data[0]);
+    }
+    else
+    {
+        CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "Sensor - Addr=0x%04x, Temp=%d, RSSI=%d",
+                             pSrcAddr->addr.shortAddr, pMsg->tempSensor.ambienceTemp, rssi);
+#ifdef LPSTK
+        CUI_statusLinePrintf(csfCuiHndl, lpstkDataStatusLine, "Humid=%d, Light=%d, Accl=(%d, %d, %d, %d, %d)",
+                             pMsg->humiditySensor.humidity, pMsg->lightSensor.rawData,
+                             pMsg->accelerometerSensor.xAxis, pMsg->accelerometerSensor.yAxis,
+                             pMsg->accelerometerSensor.zAxis, pMsg->accelerometerSensor.xTiltDet,
+                             pMsg->accelerometerSensor.yTiltDet);
+#endif
+    }
     CUI_statusLinePrintf(csfCuiHndl, numJoinDevStatusLine, "%x", getNumActiveDevices());
 
-#endif /* endif for POWER_MEAS */
 
 #if defined(MT_CSF)
     MTCSF_sensorUpdateIndCB(pSrcAddr, rssi, pMsg);
@@ -819,10 +840,16 @@ void Csf_deviceSensorDataUpdate(ApiMac_sAddr_t *pSrcAddr, int8_t rssi,
  */
 void Csf_deviceDisassocUpdate(uint16_t shortAddr)
 {
-#ifndef POWER_MEAS
     CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "Disassociate Sensor - Addr=0x%04x", shortAddr);
     CUI_statusLinePrintf(csfCuiHndl, numJoinDevStatusLine, "%x", getNumActiveDevices());
-#endif /* endif for POWER_MEAS */
+#ifdef FEATURE_SECURE_COMMISSIONING
+    CUI_deRegisterMenu(csfCuiHndl, &smPassKeyMenu);
+    CUI_registerMenu(csfCuiHndl, &csfMainMenu);
+    CUI_menuNav(csfCuiHndl, &csfMainMenu, csfMainMenu.numItems - 1);
+#ifdef USE_DMM
+    RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_IDLE);
+#endif /* USE_DMM */
+#endif /* FEATURE_SECURE_COMMISSIONING */
 }
 
 #if defined(DEVICE_TYPE_MSG)
@@ -878,25 +905,30 @@ void Csf_deviceSensorDeviceTypeResponseUpdate(uint8_t deviceFamilyID, uint8_t de
             deviceStr = "generic";
             break;
     }
-#ifndef POWER_MEAS
+
     CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "Sensor - Device=%s, DeviceFamilyID=%i, DeviceTypeID=%i",
                          deviceStr, deviceFamilyID, deviceTypeID);
-#endif /* endif for POWER_MEAS */
 }
 
 #endif /* DEVICE_TYPE_MSG */
 
-/*!
- The application calls this function to toggle an LED.
 
- Public function defined in ssf.h
+/*!
+ * @brief       The application calls this function to blink an LED in
+ *              response to a identify request from a sensor
+ *
+ * @param       identifyTime - duration of LED blink (in seconds)
+ *
+ * Public function defined in csf.h
  */
-void Csf_identifyLED(uint16_t identifyTime)
+void Csf_identifyLED(uint8_t identifyTime)
 {
-    CUI_ledBlink(csfCuiHndl, CONFIG_LED_GREEN, 3);
+#ifndef POWER_MEAS
+    LED_startBlinking(gGreenLedHandle, 200, LED_BLINK_FOREVER);
+#endif
 
     /* Setup timer */
-    Timer_setTimeout(identifyClkHandle, identifyTime);
+    Timer_setTimeout(identifyClkHandle, identifyTime * MSEC_PER_SEC);
     Timer_start(&identifyClkStruct);
 }
 
@@ -937,17 +969,20 @@ void Csf_stateChangeUpdate(Cllc_states_t state)
 {
     if(started == true)
     {
+#ifndef POWER_MEAS
         /* always blink in FH mode because permit join is always on */
         if(state == Cllc_states_joiningAllowed || CONFIG_FH_ENABLE)
         {
             /* Flash LED1 while allowing joining */
-            CUI_ledBlink(csfCuiHndl, CONFIG_LED_RED, CUI_BLINK_CONTINUOUS);
+            LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
         }
         else if(state == Cllc_states_joiningNotAllowed)
         {
             /* Don't flash when not allowing joining */
-            CUI_ledOn(csfCuiHndl, CONFIG_LED_RED, NULL);
+            LED_stopBlinking(gRedLedHandle);
+            LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
         }
+#endif
     }
 
     /* Save the state to be used later */
@@ -1054,7 +1089,7 @@ void Csf_initializeIdentifyClock(void)
 {
     /* Initialize identify clock timer */
     identifyClkHandle = Timer_construct(&identifyClkStruct,
-                                    processidentifyTimeoutCallback,
+                                    processIdentifyTimeoutCallback,
                                     10,
                                     0,
                                     false,
@@ -1629,9 +1664,7 @@ void Csf_openNwk(void)
 {
     permitJoining = true;
     Cllc_setJoinPermit(0xFFFFFFFF);
-#ifndef POWER_MEAS
     updateCollectorStatusLine(false, NULL);
-#endif /* endif for POWER_MEAS */
 }
 
 /*!
@@ -1645,9 +1678,7 @@ void Csf_closeNwk(void)
     {
         permitJoining = false;
         Cllc_setJoinPermit(0);
-#ifndef POWER_MEAS
         updateCollectorStatusLine(false, NULL);
-#endif /* endif for POWER_MEAS */
     }
 }
 
@@ -1656,7 +1687,7 @@ void Csf_closeNwk(void)
  *
  * @param        deviceShortAddr - device short address to remove.
  */
-int Csf_removeDevice(uint16_t deviceShortAddr)
+int Csf_sendDisassociateMsg(uint16_t deviceShortAddr)
 {
     int status = -1;
 
@@ -1691,9 +1722,57 @@ int Csf_removeDevice(uint16_t deviceShortAddr)
                     /* Send a disassociate to the device */
                     Cllc_sendDisassociationRequest(item.devInfo.shortAddress,
                                                    item.capInfo.rxOnWhenIdle);
-                    /* remove device from the NV list */
-                    Cllc_removeDevice(&item.devInfo.extAddress);
+                    //* Remove device from the NV list when receiving disassocCnfCb */
 
+                    status = 0;
+                    break;
+                }
+                subId++;
+            }
+        }
+    }
+
+    return status;
+}
+
+/*!
+ * @brief       Get the device Ext. Address from short address
+ *
+ * @param        deviceShortAddr - device short address
+ */
+int Csf_getDeviceExtAdd(uint16_t deviceShortAddr, ApiMac_sAddrExt_t * extAddr)
+{
+    int status = -1;
+
+    if(pNV != NULL)
+    {
+        uint16_t numEntries;
+
+        numEntries = Csf_getNumDeviceListEntries();
+
+        if(numEntries > 0)
+        {
+            NVINTF_itemID_t id;
+            uint16_t subId = 0;
+
+            /* Setup NV ID for the device list records */
+            id.systemID = NVINTF_SYSID_APP;
+            id.itemID = CSF_NV_DEVICELIST_ID;
+
+            while(subId < CSF_MAX_DEVICELIST_IDS)
+            {
+                Llc_deviceListItem_t item;
+                uint8_t stat;
+
+                id.subID = (uint16_t)subId;
+
+                /* Read Network Information from NV */
+                stat = pNV->readItem(id, 0, sizeof(Llc_deviceListItem_t),
+                                     &item);
+
+                if( (stat == NVINTF_SUCCESS) && (deviceShortAddr == item.devInfo.shortAddress))
+                {
+                    memcpy(extAddr, &item.devInfo.extAddress, sizeof(ApiMac_sAddrExt_t));
                     status = 0;
                     break;
                 }
@@ -1717,6 +1796,12 @@ void Csf_SmPasskeyEntry(SM_passkeyEntry_t passkeyAction)
     // if passkey is selected
     if(passkeyAction == SM_passkeyEntryReq)
     {
+#ifdef USE_DMM
+        RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_PASSKEY_REQUEST);
+
+        if (RemoteDisplay_getBleAuthConnectionStatus() == false)
+        {
+#endif /* USE_DMM */
         // deregister main menu when you switch to SM menu
         CUI_deRegisterMenu(csfCuiHndl, &csfMainMenu);
 
@@ -1727,9 +1812,18 @@ void Csf_SmPasskeyEntry(SM_passkeyEntry_t passkeyAction)
         // Open the menu itself
         // there is only 1 item in smPassKeyMenu list.
         CUI_menuNav(csfCuiHndl, &smPassKeyMenu, 0);
+#ifdef USE_DMM
+        }
+#endif /* USE_DMM */
     }
     else if(passkeyAction == SM_passkeyEntered)
     {
+#ifdef USE_DMM
+        if(passkeyAction == SM_passkeyEntryTimeout)
+        {
+          RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_PASSKEY_TIMEOUT);
+        }
+#endif /* USE_DMM */
         // deregister the passkey menu
         CUI_deRegisterMenu(csfCuiHndl, &smPassKeyMenu);
 
@@ -1816,12 +1910,14 @@ static void processConfigTimeoutCallback(UArg a0)
  *
  * @param       a0 - ignored
  */
-static void processidentifyTimeoutCallback(UArg a0)
+static void processIdentifyTimeoutCallback(UArg a0)
 {
     (void)a0; /* Parameter is not used */
 
+#ifndef POWER_MEAS
     /* Stop LED blinking - we can write to GPIO in SWI */
-    CUI_ledOff(csfCuiHndl, CONFIG_LED_GREEN);
+    LED_stopBlinking(gGreenLedHandle);
+#endif
 }
 
 /*!
@@ -1859,11 +1955,11 @@ static void processPCTrickleTimeoutCallback(UArg a0)
  *
  * @param       keysPressed - Csf_keys that are pressed
  */
-static void processKeyChangeCallback(uint32_t _btn, Button_EventMask _events)
+static void processKeyChangeCallback(Button_Handle _buttonHandle, Button_EventMask _buttonEvents)
 {
-    if (_events & Button_EV_CLICKED)
+    if (_buttonEvents & Button_EV_CLICKED)
     {
-        Csf_keys = _btn;
+        Csf_keys = _buttonHandle;
         Csf_events |= CSF_KEY_EVENT;
         /* Wake up the application thread when it waits for keys event */
         Semaphore_post(collectorSem);
@@ -2095,9 +2191,6 @@ static void removeTheFirstDevice(void)
 
                 if(stat == NVINTF_SUCCESS)
                 {
-                    /* Found the first device in the list */
-                    ApiMac_sAddr_t addr;
-
                     /* Send a disassociate to the device */
                     Cllc_sendDisassociationRequest(item.devInfo.shortAddress,
                                                    item.capInfo.rxOnWhenIdle);
@@ -2116,6 +2209,7 @@ static void removeTheFirstDevice(void)
 }
 #else
 
+#ifndef POWER_MEAS
 /*!
  * @brief       Retrieve the first device's short address
  *
@@ -2158,6 +2252,7 @@ static uint16_t getTheFirstDevice(void)
     }
     return(found);
 }
+#endif /* endif for POWER_MEAS */
 #endif /* endif for TEST_REMOVE_DEVICE */
 /*!
  * @brief       Handles printing that the orphaned device joined back
@@ -2166,12 +2261,9 @@ static uint16_t getTheFirstDevice(void)
  */
 void Csf_IndicateOrphanReJoin(uint16_t shortAddr)
 {
-#ifndef POWER_MEAS
     CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "Orphaned Sensor Re-Joined - Addr=0x%04x",
                          shortAddr);
     CUI_statusLinePrintf(csfCuiHndl, numJoinDevStatusLine, "%x", getNumActiveDevices());
-
-#endif /* endif for POWER_MEAS */
 }
 
 #ifdef USE_DMM
@@ -2295,29 +2387,23 @@ static void updateCollectorStatusLine(bool restored, Llc_netInfo_t *pNetworkInfo
     {
         permitJoinStatus = "On";
     }
-#ifndef POWER_MEAS
     CUI_statusLinePrintf(csfCuiHndl, numJoinDevStatusLine, "%x", getNumActiveDevices());
 
     /* Print out collector status information */
     if(networkInfo.fh == false)
     {
-
         CUI_statusLinePrintf(csfCuiHndl, collectorStatusLine,
                              "%s--Mode=%s, Addr=0x%04x, PanId=0x%04x, Ch=%d, PermitJoin=%s ",
                              deviceStatus, macMode, networkInfo.devInfo.shortAddress, networkInfo.devInfo.panID,
                              networkInfo.channel, permitJoinStatus);
-
     }
     else
     {
-
         CUI_statusLinePrintf(csfCuiHndl, collectorStatusLine,
                              "%s--Mode=%s, Addr=0x%04x, PanId=0x%04x, Ch=FH, PermitJoin=%s ",
                              deviceStatus, macMode, networkInfo.devInfo.shortAddress, networkInfo.devInfo.panID,
                              permitJoinStatus);
-
     }
-#endif /* end for POWER_MEAS */
 }
 
 /*
@@ -2329,10 +2415,8 @@ static void formNwkAndUpdateUser(void)
 #ifndef AUTO_START
     if(started == false)
     {
-#ifndef POWER_MEAS
         CUI_statusLinePrintf(csfCuiHndl, collectorStatusLine, "Starting...");
         CUI_statusLinePrintf(csfCuiHndl, numJoinDevStatusLine, "%x", getNumActiveDevices());
-#endif
         /* Tell the collector to start */
         Util_setEvent(&Collector_events, COLLECTOR_START_EVT);
     }
@@ -2350,9 +2434,7 @@ static void openCloseNwkAndUpdateUser(bool openNwkRequest)
     /* Network permission changes not accepted during CM Process */
     if((fCommissionRequired == TRUE) || (SM_Current_State == SM_CM_InProgress))
     {
-#ifndef POWER_MEAS
         CUI_statusLinePrintf(csfCuiHndl, deviceStatusLine, "PermitJoin blocked during commissioning");
-#endif /* endif for POWER_MEAS */
     }
     else
 #endif /* FEATURE_SECURE_COMMISSIONING */
@@ -2374,7 +2456,6 @@ static void openCloseNwkAndUpdateUser(bool openNwkRequest)
 }
 
 #ifndef POWER_MEAS
-
 /*!
  * @brief       The application calls this function to toggle an LED request
  *              and update the user through the CUI.
@@ -2401,6 +2482,7 @@ static void sendToggleAndUpdateUser(uint16_t shortAddr)
         }
    }
 }
+#endif /* endif for POWER_MEAS */
 
 static uint8_t moveCursorLeft(uint8_t col, uint8_t left_boundary, uint8_t right_boundary, uint8_t skip_space)
 {
@@ -2562,6 +2644,30 @@ static void setPanIdAction(const char _input, char* _pLines[3], CUI_cursorInfo_t
   }
 }
 
+/*!
+ * @brief       Validate and handle errors in channel mask entered through CUI
+ *
+ * @param       _chanMask - channel mask updated with user input
+ * @param       byteIdx   - index of modified byte
+ */
+static void validateChMask(uint8_t *_chanMask, uint8_t byteIdx)
+{
+    // Verify user input by comparing against valid channel mask
+    uint8_t validChannelByte = _chanMask[byteIdx] & validChannelMask[byteIdx];
+    if (validChannelByte != _chanMask[byteIdx])
+    {
+        CUI_statusLinePrintf(csfCuiHndl, collectorStatusLine,
+                             "Invalid input. Only updated with supported channels");
+
+        // Only accept inputs that represent supported channels
+        _chanMask[byteIdx] = validChannelByte;
+    }
+    else
+    {
+        CUI_statusLinePrintf(csfCuiHndl, collectorStatusLine, "");
+    }
+}
+
 /**
  *  @brief Callback to be called when the UI sets Channel Mask.
  */
@@ -2619,7 +2725,6 @@ static void setChMaskAction(const char _input, char* _pLines[3], CUI_cursorInfo_
 
         case CUI_INPUT_DOWN:
             break;
-
 
         case CUI_INPUT_BACK:
         {
@@ -2679,6 +2784,10 @@ static void setChMaskAction(const char _input, char* _pLines[3], CUI_cursorInfo_
                     // Next, use the input to or it with the existing side.
                     channelMask[byteIdx] |= (uint32_t)(strtol(tmpInput, NULL, 16));
                 }
+
+                // Verify and correct user input
+                validateChMask(channelMask, byteIdx);
+
                 cursor.col = moveCursorRight(cursor.col, 1, 50, 1);
             }
         }
@@ -2806,17 +2915,20 @@ static void setAsyncChMaskAction(const char _input, char* _pLines[3], CUI_cursor
                     // Next, shift the input left, and or it with the existing side.
                     channelMask[byteIdx] |= (uint32_t)(strtol(tmpInput, NULL, 16) << 4);
                 }
-            // you're at the left side
-            else
-            {
-                // First, clear the right side, keep the left side
-                channelMask[byteIdx] &= (uint32_t)(0xF0);
-                // Next, use the input to or it with the existing side.
-                // strtol will convert from hex ascii to hex integers
-                channelMask[byteIdx] |= (uint32_t)(strtol(tmpInput, NULL, 16));
-            }
+                // you're at the left side
+                else
+                {
+                    // First, clear the right side, keep the left side
+                    channelMask[byteIdx] &= (uint32_t)(0xF0);
+                    // Next, use the input to or it with the existing side.
+                    // strtol will convert from hex ascii to hex integers
+                    channelMask[byteIdx] |= (uint32_t)(strtol(tmpInput, NULL, 16));
+                }
 
-            cursor.col = moveCursorRight(cursor.col, 1, 50, 1);
+                // Verify and correct user input
+                validateChMask(channelMask, byteIdx);
+
+                cursor.col = moveCursorRight(cursor.col, 1, 50, 1);
             }
 
     }
@@ -3013,7 +3125,7 @@ static void setSmPassKeyAction(const char _input, char* _pLines[3], CUI_cursorIn
             uint32_t passkeyValue = atoi(passkeyASCII);
             //Set passkey in SM
             SM_setPasskey(passkeyValue);
-
+            strcpy(passkeyASCII, "");
             break;
         }
         // Show the value of this screen w/o making changes
@@ -3282,10 +3394,16 @@ static void sensorDisassocAction(int32_t menuEntryInex)
     Csf_events |= COLLECTOR_SENSOR_ACTION_EVT;
     Csf_sensorAction = SENSOR_ACTION_DISASSOC;
 
+#ifdef FEATURE_SECURE_COMMISSIONING
+    CUI_deRegisterMenu(csfCuiHndl, &smPassKeyMenu);
+    CUI_registerMenu(csfCuiHndl, &csfMainMenu);
+    CUI_menuNav(csfCuiHndl, &csfMainMenu, csfMainMenu.numItems - 1);
+    SM_stopCMProcess();
+#endif /* FEATURE_SECURE_COMMISSIONING */
+
     // Wake up the application thread when it waits for clock event
     Semaphore_post(collectorSem);
 }
-
 
 #if defined(DEVICE_TYPE_MSG)
 /**
@@ -3372,5 +3490,3 @@ static void uintToString (uint32_t value, char * str, uint8_t base, uint8_t num_
     }
   }
 }
-#endif /* POWER_MEAS */
-

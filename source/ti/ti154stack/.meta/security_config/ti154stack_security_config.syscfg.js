@@ -402,8 +402,8 @@ function moduleInstances(inst)
         // Pull ECDH Module for SM Commissioning
         dependencyModule.push({
             name: "smECDH",
-            displayName: "ECDH Module",
-            description: "ECDH settings for secure commissioning",
+            displayName: "ECDH",
+            description: "Settings for secure commissioning",
             moduleName: "/ti/drivers/ECDH",
             hidden: true
         });
@@ -411,8 +411,8 @@ function moduleInstances(inst)
         // Pull AESECB Module for SM Commissioning
         dependencyModule.push({
             name: "smAESECB",
-            displayName: "AESECB Module",
-            description: "AESECB settings for secure commissioning",
+            displayName: "AESECB",
+            description: "Settings for secure commissioning",
             moduleName: "/ti/drivers/AESECB",
             hidden: true
         });
@@ -420,8 +420,8 @@ function moduleInstances(inst)
         // Pull TRNG Module for SM Commissioning
         dependencyModule.push({
             name: "smTRNG",
-            displayName: "TRNG Module",
-            description: "TRNG settings for secure commissioning",
+            displayName: "TRNG",
+            description: "Settings for secure commissioning",
             moduleName: "/ti/drivers/TRNG",
             hidden: true
         });
@@ -431,8 +431,8 @@ function moduleInstances(inst)
     {
         dependencyModule.push({
             name: "aesccmModule",
-            displayName: "AESCCM Module",
-            description: "AESCCM settings",
+            displayName: "AESCCM",
+            description: "Settings for MAC security",
             moduleName: "/ti/drivers/AESCCM",
             hidden: true
         });

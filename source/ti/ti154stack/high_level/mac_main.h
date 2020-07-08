@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2005-2019, Texas Instruments Incorporated
+ Copyright (c) 2005-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -128,7 +128,9 @@ enum
   MAC_TX_ENHANCED_BEACON_REQ_FAIL_EVT,
   /* not needed MAC_RX_WS_ASYNC_IND_EVT, */
   MAC_CSMA_TIM_EXP_EVT,
-  MAC_BC_TIM_EXP_EVT
+  MAC_BC_TIM_EXP_EVT,
+  TX_BACKOFF_TIM_EXP_EVT,
+  RX_BACKOFF_TIM_EXP_EVT
 };
 
 /* This must be set to the last API event in the enumeration */
@@ -168,6 +170,9 @@ enum
   MAC_API_WS_ASYNC_REQ,
   MAC_CSMA_TIM_EXPIRY,
   MAC_BC_TIM_EXPIRY,
+  TX_BACKOFF_TIM_EXPIRY,
+  RX_BACKOFF_TIM_EXPIRY,
+  NOP_BACKOFF_TIM_EXPIRY,
 
   /* Mgmt set 2 */
   MAC_API_PWR_ON_REQ = MAC_ACTION_INIT(MAC_MGMT_ACTION_2),
@@ -248,6 +253,9 @@ enum
 #define MAC_CSMA_TIM_TASK_EVT           0x100
 #define MAC_BC_TIM_TASK_EVT             0x200
 #define MAC_TX_DATA_REQ_TASK_EVT        0x400
+
+#define MAC_TX_BACKOFF_TIM_TASK_EVT     0x800
+#define MAC_RX_BACKOFF_TIM_TASK_EVT     0x1000
 
 /* State table format */
 #define MAC_ACTION_POS                  0       /* action position */

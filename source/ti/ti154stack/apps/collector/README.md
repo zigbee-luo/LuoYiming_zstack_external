@@ -107,6 +107,7 @@ Number of Joined Devices: --
 
 
 Note that these changes will only take effect if the collector is in a waiting state.
+Keys 0-F can be used to change the value when in edit mode, and left/right keys can be used for navigating the digits.
 Once the collector is started, the settings can only be changed if it is restarted.
 
 > If the **AUTO_START** symbol is defined in your application, then the application will automatically configure itself on startup.

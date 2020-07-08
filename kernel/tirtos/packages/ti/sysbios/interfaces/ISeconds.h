@@ -2,7 +2,7 @@
  *  Do not modify this file; it is automatically 
  *  generated and any modifications will be overwritten.
  *
- * @(#) xdc-H32
+ * @(#) xdc-I11
  */
 
 /*
@@ -62,6 +62,7 @@
 
 /* Time */
 struct ti_sysbios_interfaces_ISeconds_Time {
+    xdc_UInt32 secsHi;
     xdc_UInt32 secs;
     xdc_UInt32 nsecs;
 };

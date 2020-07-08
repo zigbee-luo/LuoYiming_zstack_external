@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Texas Instruments Incorporated
+ * Copyright (c) 2015-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,8 +71,8 @@ function queryMeta(qual)
             rc = true;
             break;
         default:
-           GateMutex.$logWarning("Invalid quality. Returning false", this, qual);
-           break;
+            this.$logWarning("Invalid quality. Returning false", this, qual);
+            break;
     }
 
     return (rc);

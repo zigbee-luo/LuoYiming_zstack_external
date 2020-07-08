@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Texas Instruments Incorporated
+ * Copyright (c) 2014-2019, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,8 +48,10 @@ package ti.sysbios.hal;
  *  @p(code)
  *
  *  var SecondsCallback = xdc.useModule('xdc.runtime.SecondsCallback');
- *  SecondsCallback.getFxn = "&userSetSeconds";
- *  SecondsCallback.setFxn = "&userGetSeconds";
+ *  SecondsCallback.getFxn = "&userGetSeconds";
+ *  SecondsCallback.setFxn = "&userSetSeconds";
+ *  SecondsCallback.getTimeFxn = "&userGetTime";
+ *  SecondsCallback.setTimeFxn = "&userSetTime";
  *
  *  @p
  */
@@ -68,14 +70,26 @@ module SecondsCallback inherits ti.sysbios.interfaces.ISeconds
     typedef Void (*SetFxn)(UInt32);
 
     /*!
+     *  ======== GetTimeFxn ========
+     *  'getTime' function signature
+     */
+    typedef UInt32 (*GetTimeFxn)(SecondsCallback.Time *);
+
+    /*!
+     *  ======== SetFxn ========
+     *  'set' function signature
+     */
+    typedef UInt32 (*SetTimeFxn)(SecondsCallback.Time *);
+
+    /*!
      *  ======== getFxn =========
      *  User supplied 'get' function
      *
      *  This function is called when the application calls
      *  `{@link Seconds#get()}` function.
      *
-     *  By default, this function is configured with a default abort function.
-     *  This default abort function spins forever and never returns.
+     *  By default, this function is configured with a default function
+     *  that returns 0.
      */
     config GetFxn getFxn = "&ti_sysbios_hal_SecondsCallback_defaultGet";
 
@@ -86,8 +100,32 @@ module SecondsCallback inherits ti.sysbios.interfaces.ISeconds
      *  This function is called when the application calls
      *  `{@link Seconds#set()}` function.
      *
-     *  By default, this function is configured with a default abort function.
-     *  This default abort function spins forever and never returns.
+     *  By default, this function is configured with a default function
+     *  that does nothing.
      */
     config SetFxn setFxn = "&ti_sysbios_hal_SecondsCallback_defaultSet";
+
+    /*!
+     *  ======== getTimeFxn =========
+     *  User supplied 'getTime' function
+     *
+     *  This function is called when the application calls
+     *  `{@link Seconds#getTime()}` function.
+     *
+     *  By default, this function is configured with a default function
+     *  that returns 0.
+     */
+    config GetTimeFxn getTimeFxn = "&ti_sysbios_hal_SecondsCallback_defaultGetTime";
+
+    /*!
+     *  ======== setTimeFxn =========
+     *  User supplied 'set' function
+     *
+     *  This function is called when the application calls
+     *  `{@link Seconds#setTime()}` function.
+     *
+     *  By default, this function is configured with a default function
+     *  that returns 0.
+     */
+    config SetTimeFxn setTimeFxn = "&ti_sysbios_hal_SecondsCallback_defaultSetTime";
 }

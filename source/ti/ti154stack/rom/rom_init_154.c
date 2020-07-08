@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2017-2019, Texas Instruments Incorporated
+ Copyright (c) 2017-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -72,7 +72,9 @@ uint32_t RAM_MAC_BASE_ADDR[ROM_RAM_TABLE_SIZE];
 #elif defined(__IAR_SYSTEMS_ICC__)
 #pragma location=".data_RAM_BASE_ADDR"
 uint32_t RAM_MAC_BASE_ADDR[ROM_RAM_TABLE_SIZE];
-
+#elif defined(__GNUC__)
+__attribute__((aligned(4)))
+uint32_t RAM_MAC_BASE_ADDR[ROM_RAM_TABLE_SIZE];
 #else
 #error "Unsupported platform or compiler"
 #endif

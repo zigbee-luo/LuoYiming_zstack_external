@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -109,15 +109,16 @@
 #include "ssf.h"
 
 #include "sensor.h"
-#if defined(ASSERT_LEDS)
-#include "board_led.h"
-#endif
 
 #ifndef USE_DEFAULT_USER_CFG
 
 #include "mac_user_config.h"
 
 #include "cui.h"
+
+#ifdef USE_ITM_DBG
+#include "itm.h"
+#endif
 
 /* MAC user defined configuration */
 macUserCfg_t macUser0Cfg[] = MAC_USER_CFG;
@@ -129,7 +130,6 @@ macUserCfg_t macUser0Cfg[] = MAC_USER_CFG;
  *****************************************************************************/
 
 /* Assert Reasons */
-#define MAIN_ASSERT_ICALL        2
 #define MAIN_ASSERT_MAC          3
 #define MAIN_ASSERT_HWI_TIRTOS   4
 
@@ -169,6 +169,12 @@ static uint8_t appTaskStack[APP_TASK_STACK_SIZE];
 static uint8_t _macTaskId;
 #endif
 
+/*
+ When assert happens, this field will be filled with the reason:
+       MAIN_ASSERT_HWI_TIRTOS or MAIN_ASSERT_MAC
+ */
+uint8 Main_assertReason = 0;
+
 #ifdef NV_RESTORE
 mac_Config_t Main_user1Cfg = { 0 };
 #endif
@@ -181,7 +187,7 @@ static const uint8_t dummyExtAddr[] =
     { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 extern void Board_init(void);
-    
+
 #ifdef NV_RESTORE
 #ifdef ONE_PAGE_NV
 /* NVOCOP load API pointers */
@@ -223,66 +229,26 @@ static inline void CCFGRead_IEEE_MAC(ApiMac_sAddrExt_t addr)
 /*!
  * @brief       Fill in your own assert function.
  *
- * @param       assertReason - reason: MAIN_ASSERT_HWI_TIRTOS,
- *                                     MAIN_ASSERT_ICALL, or
+ * @param       assertReason - reason: MAIN_ASSERT_HWI_TIRTOS or
  *                                     MAIN_ASSERT_MAC
  */
 void Main_assertHandler(uint8_t assertReason)
 {
-#if defined(ASSERT_LEDS)
-    int toggleCount = 0;
-    bool toggle = true;
+    Main_assertReason = assertReason;
 
-    Hwi_disable();
-
-    while(1)
-    {
-/*
-        if(toggleCount == 0)
-        {
-            if(toggle == false)
-            {
-                Board_Led_control(board_led_type_LED1, board_led_state_OFF);
-                Board_Led_control(board_led_type_LED2, board_led_state_OFF);
-#if !defined(DeviceFamily_CC13X2) && !defined(DeviceFamily_CC26X2)
-                Board_Led_control(board_led_type_LED3, board_led_state_OFF);
-                Board_Led_control(board_led_type_LED4, board_led_state_OFF);
-#endif
-            }
-            else if(toggle == true)
-            {
-                Board_Led_control(board_led_type_LED1, board_led_state_ON);
-                Board_Led_control(board_led_type_LED2, board_led_state_ON);
-#if !defined(DeviceFamily_CC13X2) && !defined(DeviceFamily_CC26X2)
-                Board_Led_control(board_led_type_LED3, board_led_state_ON);
-                Board_Led_control(board_led_type_LED4, board_led_state_ON);
-#endif
-            }
-        }
-
-        toggleCount++;
-        if(toggleCount >= MAX_ASSERT_TOGGLE_COUNT)
-        {
-            toggleCount = 0;
-            if(toggle == true)
-            {
-                toggle = false;
-            }
-            else
-            {
-                toggle = true;
-            }
-        }
-*/
-    }
-#else  /* ASSERT_LEDS */
+#if defined(RESET_ASSERT)
     Ssf_assertInd(assertReason);
 
     /* Pull the plug and start over */
     SysCtrlSystemReset();
-#endif /* !ASSERT_LEDS */
+#else
+    Hwi_disable();
+    while(1)
+    {
+        /* Put you code here to do something if in assert */
+    }
+#endif
 }
-
 
 /*!
  * @brief       Main task function
@@ -368,20 +334,12 @@ xdc_Void Main_excHandler(UInt *excStack, UInt lr)
 /*!
  * @brief       HAL assert handler required by OSAL memory module.
  */
-void halAssertHandler(void)
-{
-    /* User defined function */
-    Main_assertHandler(MAIN_ASSERT_ICALL);
-}
-
-/*!
- * @brief       MAC HAL assert handler.
- */
-void macHalAssertHandler(void)
+void assertHandler(void)
 {
     /* User defined function */
     Main_assertHandler(MAIN_ASSERT_MAC);
 }
+
 
 /*!
  * @brief       "main()" function - starting point
@@ -391,7 +349,7 @@ int main(void)
     Task_Params taskParams;
 
 #ifndef USE_DEFAULT_USER_CFG
-    macUser0Cfg[0].pAssertFP = macHalAssertHandler;
+    macUser0Cfg[0].pAssertFP = assertHandler;
 #endif
 
     /*
@@ -416,11 +374,13 @@ int main(void)
 #endif
 
 #ifndef POWER_MEAS
-    /* Initialize UI for key and LED */
+    /* Initialize CUI UART */
     CUI_params_t cuiParams;
     CUI_paramsInit(&cuiParams);
 
     // One-time initialization of the CUI
+
+    // All later CUI_* functions will be ignored if this isn't called
     CUI_init(&cuiParams);
 #endif
 
@@ -435,10 +395,15 @@ int main(void)
     taskParams.priority = APP_TASK_PRIORITY;
     Task_construct(&appTask, appTaskFxn, &taskParams, NULL);
 
-#ifdef DEBUG_SW_TRACE
-    IOCPortConfigureSet(IOID_8, IOC_PORT_RFC_TRC, IOC_STD_OUTPUT
-                    | IOC_CURRENT_4MA | IOC_SLEW_ENABLE);
-#endif /* DEBUG_SW_TRACE */
+#ifdef USE_ITM_DBG
+    ITM_config itm_config =
+    {
+      48000000,
+      ITM_6000000
+    };
+    ITM_initModule(itm_config);
+    ITM_enableModule();
+#endif /* USE_ITM_DBG */
 
     BIOS_start(); /* enable interrupts and start SYS/BIOS */
 

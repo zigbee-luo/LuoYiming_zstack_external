@@ -256,20 +256,24 @@ xdc_Void Main_excHandler(UInt *excStack, UInt lr)
 /*!
  * @brief       HAL assert handler required by OSAL memory module.
  */
-void halAssertHandler(void)
-{
-    /* User defined function */
-    Main_assertHandler(MAIN_ASSERT_STACK);
-}
-
-/*!
- * @brief       MAC HAL assert handler.
- */
-void macHalAssertHandler(void)
+void assertHandler(void)
 {
     /* User defined function */
     Main_assertHandler(MAIN_ASSERT_MAC);
 }
+
+/*!
+ * @brief       Callback function when voltage is lower than NVOCMP_MIN_VDD_FLASH_MV
+ *              during an NV write operation
+ *
+ * @param       voltage - Measured device voltage
+ */
+#ifdef NVOCMP_MIN_VDD_FLASH_MV
+void Main_lowVoltageCb(uint32_t voltage)
+{
+    /* Implement any safety precautions for application due to low voltage detected */
+}
+#endif
 
 /*!
  * @brief       "main()" function - starting point
@@ -277,7 +281,7 @@ void macHalAssertHandler(void)
 Void main()
 {
 #ifndef USE_DEFAULT_USER_CFG
-    zstack_user0Cfg.macConfig.pAssertFP = macHalAssertHandler;
+    zstack_user0Cfg.macConfig.pAssertFP = assertHandler;
 #endif
 
     /* enable iCache prefetching */
@@ -321,9 +325,12 @@ Void main()
 
     /* Setup the NV driver */
     NVOCMP_loadApiPtrs(&zstack_user0Cfg.nvFps);
+#ifdef NVOCMP_MIN_VDD_FLASH_MV
+    NVOCMP_setLowVoltageCb(&Main_lowVoltageCb);
+#endif
     if(zstack_user0Cfg.nvFps.initNV)
     {
-        zstack_user0Cfg.nvFps.initNV( NULL);
+        zstack_user0Cfg.nvFps.initNV(NULL);
     }
 
 #ifdef ZSTACK_GPD

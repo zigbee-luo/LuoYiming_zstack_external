@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2017-2019, Texas Instruments Incorporated
+ Copyright (c) 2017-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -294,6 +294,11 @@ extern uint32_t _sign_fnPtr;     //!< Variable for Pointer to BIM Function
  * Image built for EasyLink
  */
 #define OAD_WIRELESS_TECH_EASYLINK        0xFFBF
+
+/*!
+ * Image built for MIOTY
+ */
+#define OAD_WIRELESS_TECH_MIOTY           0xFF7F
 
 /** @} End OAD_WIRELESS_TECH */
 

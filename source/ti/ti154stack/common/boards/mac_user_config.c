@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -197,22 +197,22 @@ const uint32_t macCryptoDriverTable[] =
 #endif
 
 /* CC1352R1/CC1352P1/CC1352P_2 Configuration */
-#if defined(CONFIG_CC1352R1_LAUNCHXL) || defined(CONFIG_CC1352P1_LAUNCHXL) \
-    || defined(CONFIG_CC1352P_2_LAUNCHXL) || defined(CONFIG_CC1352R1F3RGZ)
+#if defined(LAUNCHXL_CC1352R1) || defined(LAUNCHXL_CC1352P1) \
+    || defined(LAUNCHXL_CC1352P_2)
 #if defined(COPROCESSOR)
 void rfSelect(uint16_t phyId)
 {
-    macRfCfg_ieee_t RfCfg0 = RF_CONFIG_STD_IEEE;
-    macRfCfg_prop_t RfCfg1 = RF_CONFIG_STD_US_915_PHY_1;
-    macRfCfg_prop_t RfCfg3 = RF_CONFIG_STD_ETSI_863_PHY_3;
-    macRfCfg_prop_t RfCfg129 = RF_CONFIG_GENERIC_US_LRM_915_PHY_129;
-    macRfCfg_prop_t RfCfg131 = RF_CONFIG_GENERIC_ETSI_LRM_863_PHY_131;
-    macRfCfg_prop_t RfCfg132 = RF_CONFIG_GENERIC_US_915_PHY_132;
-    macRfCfg_prop_t RfCfg133 = RF_CONFIG_GENERIC_ETSI_863_PHY_133;
+    macRfCfg_ieee_t RfCfg0 = RF_CONFIG_250KBPS_IEEE_PHY_0;
+    macRfCfg_prop_t RfCfg1 = RF_CONFIG_50KBPS_915MHZ_PHY_1;
+    macRfCfg_prop_t RfCfg3 = RF_CONFIG_50KBPS_868MHZ_PHY_3;
+    macRfCfg_prop_t RfCfg129 = RF_CONFIG_5KBPS_915MHZ_PHY_129;
+    macRfCfg_prop_t RfCfg131 = RF_CONFIG_5KBPS_868MHZ_PHY_131;
+    macRfCfg_prop_t RfCfg132 = RF_CONFIG_200KBPS_915MHZ_PHY_132;
+    macRfCfg_prop_t RfCfg133 = RF_CONFIG_200KBPS_868MHZ_PHY_133;
     macRfCfg_prop_t *pRfCfg;
-    if(phyId == APIMAC_PHY_ID_NONE)
+    if(phyId == APIMAC_250KBPS_IEEE_PHY_0)
     {
-#if defined(CONFIG_CC1352P_2_LAUNCHXL)
+#if defined(LAUNCHXL_CC1352P_2)
         RfCfg0.data = (void *)&maxPowerIeee;
 #endif
         rfSetConfigIeee(&RfCfg0);
@@ -221,22 +221,22 @@ void rfSelect(uint16_t phyId)
     {
         switch(phyId)
         {
-        case APIMAC_STD_US_915_PHY_1:
+        case APIMAC_50KBPS_915MHZ_PHY_1:
             pRfCfg = &RfCfg1;
             break;
-        case APIMAC_STD_ETSI_863_PHY_3:
+        case APIMAC_50KBPS_868MHZ_PHY_3:
             pRfCfg = &RfCfg3;
             break;
-        case APIMAC_GENERIC_US_LRM_915_PHY_129:
+        case APIMAC_5KBPS_915MHZ_PHY_129:
             pRfCfg = &RfCfg129;
             break;
-        case APIMAC_GENERIC_ETSI_LRM_863_PHY_131:
+        case APIMAC_5KBPS_868MHZ_PHY_131:
             pRfCfg = &RfCfg131;
             break;
-        case APIMAC_GENERIC_US_915_PHY_132:
+        case APIMAC_200KBPS_915MHZ_PHY_132:
             pRfCfg = &RfCfg132;
             break;
-        case APIMAC_GENERIC_ETSI_863_PHY_133:
+        case APIMAC_200KBPS_868MHZ_PHY_133:
             pRfCfg = &RfCfg133;
             break;
         default:
@@ -250,27 +250,27 @@ void rfSelect(uint16_t phyId)
 void rfSelect(uint16_t phyId)
 {
     (void)phyId;
-#if (CONFIG_PHY_ID == APIMAC_PHY_ID_NONE)
-    macRfCfg_ieee_t RfCfg = RF_CONFIG_STD_IEEE;
-#if defined(CONFIG_CC1352P_2_LAUNCHXL)
+#if (CONFIG_PHY_ID == APIMAC_250KBPS_IEEE_PHY_0)
+    macRfCfg_ieee_t RfCfg = RF_CONFIG_250KBPS_IEEE_PHY_0;
+#if defined(LAUNCHXL_CC1352P_2)
     RfCfg.data = (void *)&maxPowerIeee;
 #endif
     rfSetConfigIeee(&RfCfg);
 #else
-#if (CONFIG_PHY_ID == APIMAC_STD_US_915_PHY_1)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_STD_US_915_PHY_1;
-#elif (CONFIG_PHY_ID == APIMAC_STD_ETSI_863_PHY_3)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_STD_ETSI_863_PHY_3;
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_US_LRM_915_PHY_129)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_US_LRM_915_PHY_129;
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_ETSI_LRM_863_PHY_131)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_ETSI_LRM_863_PHY_131;
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_US_915_PHY_132)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_US_915_PHY_132;
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_ETSI_863_PHY_133)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_ETSI_863_PHY_133;
+#if (CONFIG_PHY_ID == APIMAC_50KBPS_915MHZ_PHY_1)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_50KBPS_915MHZ_PHY_1;
+#elif (CONFIG_PHY_ID == APIMAC_50KBPS_868MHZ_PHY_3)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_50KBPS_868MHZ_PHY_3;
+#elif (CONFIG_PHY_ID == APIMAC_5KBPS_915MHZ_PHY_129)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_5KBPS_915MHZ_PHY_129;
+#elif (CONFIG_PHY_ID == APIMAC_5KBPS_868MHZ_PHY_131)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_5KBPS_868MHZ_PHY_131;
+#elif (CONFIG_PHY_ID == APIMAC_200KBPS_915MHZ_PHY_132)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_200KBPS_915MHZ_PHY_132;
+#elif (CONFIG_PHY_ID == APIMAC_200KBPS_868MHZ_PHY_133)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_200KBPS_868MHZ_PHY_133;
 #else
-    macRfCfg_prop_t RfCfg = RF_CONFIG_STD_US_915_PHY_1;
+    macRfCfg_prop_t RfCfg = RF_CONFIG_50KBPS_915MHZ_PHY_1;
 #endif
     rfSetConfigSubG(&RfCfg);
 #endif
@@ -280,15 +280,15 @@ void rfSelect(uint16_t phyId)
 /* end of CC1352R1/CC1352P1/CC1352P_2 Configuration */
 
 /* CC1352P_4 Configuration */
-#if defined(CONFIG_CC1352P_4_LAUNCHXL)
+#if defined(LAUNCHXL_CC1352P_4)
 #if defined(COPROCESSOR)
 void rfSelect(uint16_t phyId)
 {
-    macRfCfg_ieee_t RfCfg0 = RF_CONFIG_STD_IEEE;
-    macRfCfg_prop_t RfCfg128 = RF_CONFIG_GENERIC_CHINA_433_PHY_128;
-    macRfCfg_prop_t RfCfg130 = RF_CONFIG_GENERIC_CHINA_LRM_433_PHY_130;
+    macRfCfg_ieee_t RfCfg0 = RF_CONFIG_250KBPS_IEEE_PHY_0;
+    macRfCfg_prop_t RfCfg128 = RF_CONFIG_50KBPS_433MHZ_PHY_128;
+    macRfCfg_prop_t RfCfg130 = RF_CONFIG_5KBPS_433MHZ_PHY_130;
     macRfCfg_prop_t *pRfCfg;
-    if(phyId == APIMAC_PHY_ID_NONE)
+    if(phyId == APIMAC_250KBPS_IEEE_PHY_0)
     {
         rfSetConfigIeee(&RfCfg0);
     }
@@ -296,10 +296,10 @@ void rfSelect(uint16_t phyId)
     {
         switch(phyId)
         {
-        case APIMAC_GENERIC_CHINA_433_PHY_128:
+        case APIMAC_50KBPS_433MHZ_PHY_128:
             pRfCfg = &RfCfg128;
             break;
-        case APIMAC_GENERIC_CHINA_LRM_433_PHY_130:
+        case APIMAC_5KBPS_433MHZ_PHY_130:
             pRfCfg = &RfCfg130;
             break;
         default:
@@ -313,16 +313,16 @@ void rfSelect(uint16_t phyId)
 void rfSelect(uint16_t phyId)
 {
     (void)phyId;
-#if (CONFIG_PHY_ID == APIMAC_PHY_ID_NONE)
-    macRfCfg_ieee_t RfCfg = RF_CONFIG_STD_IEEE;
+#if (CONFIG_PHY_ID == APIMAC_250KBPS_IEEE_PHY_0)
+    macRfCfg_ieee_t RfCfg = RF_CONFIG_250KBPS_IEEE_PHY_0;
     rfSetConfigIeee(&RfCfg);
 #else
-#if (CONFIG_PHY_ID == APIMAC_GENERIC_CHINA_433_PHY_128)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_CHINA_433_PHY_128;
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_CHINA_LRM_433_PHY_130)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_CHINA_LRM_433_PHY_130;
+#if (CONFIG_PHY_ID == APIMAC_50KBPS_433MHZ_PHY_128)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_50KBPS_433MHZ_PHY_128;
+#elif (CONFIG_PHY_ID == APIMAC_5KBPS_433MHZ_PHY_130)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_5KBPS_433MHZ_PHY_130;
 #else
-    macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_CHINA_433_PHY_128;
+    macRfCfg_prop_t RfCfg = RF_CONFIG_50KBPS_433MHZ_PHY_128;
 #endif
     rfSetConfigSubG(&RfCfg);
 #endif
@@ -332,35 +332,35 @@ void rfSelect(uint16_t phyId)
 /* end of CC1352P_4 Configuration */
 
 /* CC1312R1 Configuration */
-#if defined(CONFIG_CC1312R1_LAUNCHXL) || defined(CONFIG_CC1312R1F3RGZ)
+#if defined(LAUNCHXL_CC1312R1)
 #if defined(COPROCESSOR)
 void rfSelect(uint16_t phyId)
 {
-    macRfCfg_prop_t RfCfg1 = RF_CONFIG_STD_US_915_PHY_1;
-    macRfCfg_prop_t RfCfg3 = RF_CONFIG_STD_ETSI_863_PHY_3;
-    macRfCfg_prop_t RfCfg129 = RF_CONFIG_GENERIC_US_LRM_915_PHY_129;
-    macRfCfg_prop_t RfCfg131 = RF_CONFIG_GENERIC_ETSI_LRM_863_PHY_131;
-    macRfCfg_prop_t RfCfg132 = RF_CONFIG_GENERIC_US_915_PHY_132;
-    macRfCfg_prop_t RfCfg133 = RF_CONFIG_GENERIC_ETSI_863_PHY_133;
+    macRfCfg_prop_t RfCfg1 = RF_CONFIG_50KBPS_915MHZ_PHY_1;
+    macRfCfg_prop_t RfCfg3 = RF_CONFIG_50KBPS_868MHZ_PHY_3;
+    macRfCfg_prop_t RfCfg129 = RF_CONFIG_5KBPS_915MHZ_PHY_129;
+    macRfCfg_prop_t RfCfg131 = RF_CONFIG_5KBPS_868MHZ_PHY_131;
+    macRfCfg_prop_t RfCfg132 = RF_CONFIG_200KBPS_915MHZ_PHY_132;
+    macRfCfg_prop_t RfCfg133 = RF_CONFIG_200KBPS_868MHZ_PHY_133;
     macRfCfg_prop_t *pRfCfg;
     switch(phyId)
     {
-    case APIMAC_STD_US_915_PHY_1:
+    case APIMAC_50KBPS_915MHZ_PHY_1:
         pRfCfg = &RfCfg1;
         break;
-    case APIMAC_STD_ETSI_863_PHY_3:
+    case APIMAC_50KBPS_868MHZ_PHY_3:
         pRfCfg = &RfCfg3;
         break;
-    case APIMAC_GENERIC_US_LRM_915_PHY_129:
+    case APIMAC_5KBPS_915MHZ_PHY_129:
         pRfCfg = &RfCfg129;
         break;
-    case APIMAC_GENERIC_ETSI_LRM_863_PHY_131:
+    case APIMAC_5KBPS_868MHZ_PHY_131:
         pRfCfg = &RfCfg131;
         break;
-    case APIMAC_GENERIC_US_915_PHY_132:;
+    case APIMAC_200KBPS_915MHZ_PHY_132:;
         pRfCfg = &RfCfg132;
         break;
-    case APIMAC_GENERIC_ETSI_863_PHY_133:
+    case APIMAC_200KBPS_868MHZ_PHY_133:
         pRfCfg = &RfCfg133;
         break;
     default:
@@ -373,20 +373,20 @@ void rfSelect(uint16_t phyId)
 void rfSelect(uint16_t phyId)
 {
     (void)phyId;
-#if (CONFIG_PHY_ID == APIMAC_STD_US_915_PHY_1)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_STD_US_915_PHY_1;
-#elif (CONFIG_PHY_ID == APIMAC_STD_ETSI_863_PHY_3)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_STD_ETSI_863_PHY_3;
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_US_LRM_915_PHY_129)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_US_LRM_915_PHY_129;
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_ETSI_LRM_863_PHY_131)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_ETSI_LRM_863_PHY_131;
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_US_915_PHY_132)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_US_915_PHY_132;
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_ETSI_863_PHY_133)
-    macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_ETSI_863_PHY_133;
+#if (CONFIG_PHY_ID == APIMAC_50KBPS_915MHZ_PHY_1)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_50KBPS_915MHZ_PHY_1;
+#elif (CONFIG_PHY_ID == APIMAC_50KBPS_868MHZ_PHY_3)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_50KBPS_868MHZ_PHY_3;
+#elif (CONFIG_PHY_ID == APIMAC_5KBPS_915MHZ_PHY_129)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_5KBPS_915MHZ_PHY_129;
+#elif (CONFIG_PHY_ID == APIMAC_5KBPS_868MHZ_PHY_131)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_5KBPS_868MHZ_PHY_131;
+#elif (CONFIG_PHY_ID == APIMAC_200KBPS_915MHZ_PHY_132)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_200KBPS_915MHZ_PHY_132;
+#elif (CONFIG_PHY_ID == APIMAC_200KBPS_868MHZ_PHY_133)
+    macRfCfg_prop_t RfCfg = RF_CONFIG_200KBPS_868MHZ_PHY_133;
 #else
-    macRfCfg_prop_t RfCfg = RF_CONFIG_STD_US_915_PHY_1;
+    macRfCfg_prop_t RfCfg = RF_CONFIG_50KBPS_915MHZ_PHY_1;
 #endif
     rfSetConfigSubG(&RfCfg);
 }
@@ -395,12 +395,11 @@ void rfSelect(uint16_t phyId)
 /* end of CC1312R1 Configuration */
 
 /* CC26X2R1/CC2652RB Configuration */
-#if defined(CONFIG_CC26X2R1_LAUNCHXL) || defined(CONFIG_CC2652RB_LAUNCHXL) \
-        || defined(CONFIG_CC2652R1FRGZ) || defined(CONFIG_CC2652RB)
+#if defined(LAUNCHXL_CC26X2R1) || defined(LAUNCHXL_CC2652RB)
 void rfSelect(uint16_t phyId)
 {
     (void)phyId;
-    macRfCfg_ieee_t RfCfg = RF_CONFIG_STD_IEEE;
+    macRfCfg_ieee_t RfCfg = RF_CONFIG_250KBPS_IEEE_PHY_0;
     rfSetConfigIeee(&RfCfg);
 }
 #endif
@@ -408,115 +407,3 @@ void rfSelect(uint16_t phyId)
 /******************************************************************************
  */
 
-/* Default configuration for a custom P board
- * Need to make all options available
- * because there is no way to differentiate between P1 and P4 */
-#if defined(CONFIG_CC1352P1F3RGZ)
-
-#if defined(COPROCESSOR)
-    void rfSelect(uint16_t phyId)
-    {
-        if(phyId == APIMAC_PHY_ID_NONE)
-        {
-            macRfCfg_ieee_t RfCfg = RF_CONFIG_STD_IEEE;
-            rfSetConfigIeee(&RfCfg);
-            return;
-        }
-        macRfCfg_prop_t *pRfCfg;
-        switch(phyId)
-        {
-        case APIMAC_STD_US_915_PHY_1:
-        {
-            macRfCfg_prop_t RfCfg = RF_CONFIG_STD_US_915_PHY_1;
-            pRfCfg = &RfCfg;
-        }
-            break;
-        case APIMAC_STD_ETSI_863_PHY_3:
-        {
-            macRfCfg_prop_t RfCfg = RF_CONFIG_STD_ETSI_863_PHY_3;
-            pRfCfg = &RfCfg;
-        }
-            break;
-        case APIMAC_GENERIC_CHINA_433_PHY_128:
-        {
-            macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_CHINA_433_PHY_128;
-            pRfCfg = &RfCfg;
-        }
-            break;
-        case APIMAC_GENERIC_US_LRM_915_PHY_129:
-        {
-            macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_US_LRM_915_PHY_129;
-            pRfCfg = &RfCfg;
-        }
-            break;
-        case APIMAC_GENERIC_CHINA_LRM_433_PHY_130:
-        {
-            macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_CHINA_LRM_433_PHY_130;
-            pRfCfg = &RfCfg;
-        }
-            break;
-        case APIMAC_GENERIC_ETSI_LRM_863_PHY_131:
-        {
-            macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_ETSI_LRM_863_PHY_131;
-            pRfCfg = &RfCfg;
-        }
-            break;
-        case APIMAC_GENERIC_US_915_PHY_132:
-        {
-            macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_US_915_PHY_132;
-            pRfCfg = &RfCfg;
-        }
-            break;
-        case APIMAC_GENERIC_ETSI_863_PHY_133:
-        {
-            macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_ETSI_863_PHY_133;
-            pRfCfg = &RfCfg;
-        }
-            break;
-        default:
-        {
-            macRfCfg_prop_t RfCfg = RF_CONFIG_STD_US_915_PHY_1;
-            pRfCfg = &RfCfg;
-        }
-        break;
-        }
-        rfSetConfigSubG(pRfCfg);
-    }
-#else
-    void rfSelect(uint16_t phyId)
-    {
-        (void)phyId;
-
-    #if (CONFIG_PHY_ID == APIMAC_PHY_ID_NONE)
-        macRfCfg_ieee_t RfCfg_IEEE = RF_CONFIG_STD_IEEE;
-        rfSetConfigIeee(&RfCfg_IEEE);
-    #else
-
-    #if (CONFIG_PHY_ID == APIMAC_STD_US_915_PHY_1)
-        macRfCfg_prop_t RfCfg = RF_CONFIG_STD_US_915_PHY_1;
-    #elif (CONFIG_PHY_ID == APIMAC_STD_ETSI_863_PHY_3)
-        macRfCfg_prop_t RfCfg = RF_CONFIG_STD_ETSI_863_PHY_3;
-    #elif (CONFIG_PHY_ID == APIMAC_GENERIC_CHINA_433_PHY_128)
-        macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_CHINA_433_PHY_128;
-    #elif (CONFIG_PHY_ID == APIMAC_GENERIC_US_LRM_915_PHY_129)
-        macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_US_LRM_915_PHY_129;
-    #elif (CONFIG_PHY_ID == APIMAC_GENERIC_CHINA_LRM_433_PHY_130)
-        macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_CHINA_LRM_433_PHY_130;
-    #elif (CONFIG_PHY_ID == APIMAC_GENERIC_ETSI_LRM_863_PHY_131)
-        macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_ETSI_LRM_863_PHY_131;
-    #elif (CONFIG_PHY_ID == APIMAC_GENERIC_US_915_PHY_132)
-        macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_US_915_PHY_132;
-    #elif (CONFIG_PHY_ID == APIMAC_GENERIC_ETSI_863_PHY_133)
-        macRfCfg_prop_t RfCfg = RF_CONFIG_GENERIC_ETSI_863_PHY_133;
-    #else
-        macRfCfg_prop_t RfCfg = RF_CONFIG_STD_US_915_PHY_1;
-    #endif
-        rfSetConfigSubG(&RfCfg);
-    /* endif for IEEE phy selection */
-    #endif
-        }
-    /* End of coprocessor custom  board configuration */
-#endif
-
-    /* End of default configuration for a custom board */
-#endif

@@ -65,56 +65,8 @@ const deviceToBoard = {
     CC2652RB: "CC2652RB_LAUNCHXL"
 };
 
-// Name of board
-let BOARD = null;
-BOARD = getDeviceOrLaunchPadName(true);
-const ccfgSettings = ti154stackCCFGSettings[BOARD + "_CCFG_SETTINGS"];
-
-/*!
- *  ======== IS_SUB1GHZ_DEVICE ========
- *  Returns whether device supports Sub-1 GHz frequencies
- *
- *  @returns - Boolean
- */
-function IS_SUB1GHZ_DEVICE()
-{
-    return(getDeviceOrLaunchPadName(true).includes("CC13"));
-}
-
-/*!
- *  ======== IS_24GHZ_DEVICE ========
- *  Returns whether device supports 2.4 GHz frequency band
- *
- *  @returns - Boolean
- */
-function IS_24GHZ_DEVICE()
-{
-    const board = getDeviceOrLaunchPadName(true);
-    return(board.includes("CC26") || board.includes("CC1352R1")
-        || board.includes("CC1352P_2"));
-}
-
-/*!
- *  ======== IS_433MHZ_DEVICE ========
- *  Returns whether device supports 433 MHz frequency band
- *
- *  @returns - Boolean
- */
-function IS_433MHZ_DEVICE()
-{
-    return(getDeviceOrLaunchPadName(true).includes("P_4"));
-}
-
-/*!
- *  ======== IS_HIGHPA_DEVICE ========
- *  Returns whether device supports high PA
- *
- *  @returns - Boolean
- */
-function IS_HIGHPA_DEVICE()
-{
-    return(getDeviceOrLaunchPadName(true).includes("CC1352P"));
-}
+const boardName = getDeviceOrLaunchPadName(true);
+const ccfgSettings = ti154stackCCFGSettings[boardName + "_CCFG_SETTINGS"];
 
 /*!
  *  ======== getDeviceOrLaunchPadName ========
@@ -123,9 +75,9 @@ function IS_HIGHPA_DEVICE()
  *  @param convertToBoard - Boolean. When true, return the associated LaunchPad
  *                          name if a device is being used without a LaunchPad
  *
- *  @returns String - Name of the board with prefix /ti/boards
- *                    stripped off. If no board was specified,
- *                    the device name is returned.
+ *  @returns String - Name of the board with prefix /ti/boards and
+ *                    suffix .syscfg.json stripped off.  If no board
+ *                    was specified, the device name is returned.
  */
 function getDeviceOrLaunchPadName(convertToBoard)
 {
@@ -133,7 +85,6 @@ function getDeviceOrLaunchPadName(convertToBoard)
 
     if(system.deviceData.board != null)
     {
-        // Get <platform>_LAUNCHXL name
         name = system.deviceData.board.source;
 
         /* Strip off everything up to and including the last '/' */
@@ -146,29 +97,96 @@ function getDeviceOrLaunchPadName(convertToBoard)
     // Check if this is a standalone device without a LaunchPad
     if(convertToBoard && !name.includes("LAUNCHXL"))
     {
-        // if you are using a custom board, use the previously defined
-        // launchpad as default
-        if(BOARD !== null)
-        {
-            if(BOARD.includes("LAUNCHXL") && (BOARD) !== null)
-            {
-                // Set the previous launchpad name if custom board is selected
-                name = BOARD;
-                return(name);
-            }
-        }
+        name = getLaunchPadFromDevice();
+    }
 
-        // Find the LaunchPad name in deviceToBoard dictionary
-        let key = null;
-        for(key in deviceToBoard)
+    return(name);
+}
+
+/*!
+ * ======== isSub1GHzDevice ========
+ * Returns whether device supports Sub-1 GHz frequencies
+ *
+ * @returns - Boolean
+ */
+function isSub1GHzDevice()
+{
+    const board = getLaunchPadFromDevice();
+    return(board.includes("CC13"));
+}
+
+/*!
+ * ======== is24GHzDevice ========
+ * Returns whether device supports 2.4 GHz frequency band
+ *
+ * @param inst - 15.4 instance (null during initialization - uses device)
+ * @returns - Boolean
+ */
+function is24GHzDevice(inst)
+{
+    let board = getLaunchPadFromDevice();
+    if(inst !== null)
+    {
+        board = inst.rfDesign;
+    }
+
+    return(board.includes("CC26") || board.includes("CC1352R1")
+        || board.includes("CC1352P-2") || board.includes("CC1352P_2")
+        || board.includes("CC1352P-4") || board.includes("CC1352P_4"));
+}
+
+/*!
+ * ======== is433MHzDevice ========
+ * Returns whether device supports 433 MHz frequency band
+ *
+ * @param inst - 15.4 instance (null during initialization - uses device)
+ * @returns - Boolean
+ */
+function is433MHzDevice(inst)
+{
+    let board = getLaunchPadFromDevice();
+    if(inst !== null)
+    {
+        board = inst.rfDesign;
+    }
+
+    return(board.includes("P-4") || board.includes("P_4"));
+}
+
+/*!
+ *  ======== isHighPADevice ========
+ *  Returns whether device supports high PA
+ *
+ *  @returns - Boolean
+ */
+function isHighPADevice()
+{
+    return(getLaunchPadFromDevice().includes("CC1352P"));
+}
+
+/*!
+ * ======== getLaunchPadFromDevice ========
+ * Get the launchpad mapped to the device. With the exception of P-boards, all
+ * devices have a 1 to 1 mapping with a launchpad. Note that P-devices default
+ * to a P1 launchpad
+ *
+ *  @returns String - board that corresponds to device
+ */
+function getLaunchPadFromDevice()
+{
+    let name = system.deviceData.deviceId;
+
+    // Find the LaunchPad name in deviceToBoard dictionary
+    let key = null;
+    for(key in deviceToBoard)
+    {
+        if(name.includes(key))
         {
-            if(name.includes(key))
-            {
-                name = deviceToBoard[key];
-                break;
-            }
+            name = deviceToBoard[key];
+            break;
         }
     }
+
     return(name);
 }
 
@@ -262,6 +280,90 @@ function validateRangeHex(inst, validation, cfgName, min, max)
 function validateRangeInt(inst, validation, cfgName, min, max)
 {
     validateRange(inst, validation, cfgName, min, max, Number);
+}
+
+/*!
+ * ======== validateDynamicEnum ========
+ * Verifies that the selected option in the dynamic drop down config is valid
+ * If non-null validation and instance are passed will generate error
+ *
+ * @param inst       - module instance containing the config to be validated
+ * @param validation - object to hold detected validation issues
+ * @param validOpts - current options displayed in the config
+ * @param cfgName - name of config to be validated
+ */
+function validateDynamicEnum(inst, validation, cfgName, validOpts)
+{
+    const selectedOpt = inst[cfgName];
+    const found = _.find(validOpts, (o) => o.name === selectedOpt);
+
+    if(inst !== null && validation !== null && !found)
+    {
+        validation.logError("Selected option is invalid", inst, cfgName);
+    }
+
+    return(found);
+}
+
+/*!
+ * ======== validateDynamicMultiEnum ========
+ * Verifies that the selected option in the multi-selection dynamic drop down
+ * config are valid. If non-null validation and instance are passed will
+ * generate error
+ *
+ * @param inst       - module instance containing the config to be validated
+ * @param validation - object to hold detected validation issues
+ * @param cfgName - name of config to be validated
+ * @param selectedOpt - value of config to be validated
+ * @param validOpts - current options displayed in the config
+ */
+function validateDynamicMultiEnum(inst, validation, cfgName, selectedOpt,
+    validOpts)
+{
+    const arraySupported = _.map(validOpts, "name");
+    const validArrayOptsSelected = _.intersection(arraySupported,
+        selectedOpt);
+
+    const valid = (_.isEqual(_.sortBy(selectedOpt),
+        _.sortBy(validArrayOptsSelected)));
+
+    if(inst !== null && validation !== null && !valid)
+    {
+        validation.logError("Selected option is invalid", inst, cfgName);
+    }
+
+    return{
+        validOptsSelected: validArrayOptsSelected,
+        valid: valid
+    };
+}
+
+/*!
+ * ======== getSafeDynamicConfig ========
+ * Safely retrieve the value of the config by returning the instance value it's
+ * valid, otherwise returns the default value.
+ *
+ * Due to their nature, dynamic enum configurables may be incorrectly modified
+ * through the .syscfg file. While all dynamic configs have validation functions
+ * to detect such errors, the dependency of the radio config module requires
+ * safe access to certain dynamic configs to avoid SysConfig breaks.
+ *
+ * @param inst - 15.4 module instance (null during initialization)
+ * @returns - config value in instance (if valid), otherwise config default
+ */
+function getSafeDynamicConfig(inst, cfgName, defaultValue, validOptions)
+{
+    // Access instance value
+    let safeConfig = inst[cfgName];
+
+    // Verify config value without raising GUI error (handled in validate())
+    const valid = validateDynamicEnum(inst, null, cfgName, validOptions);
+    if(!valid)
+    {
+        safeConfig = defaultValue;
+    }
+
+    return(safeConfig);
 }
 
 /*!
@@ -370,18 +472,20 @@ function restoreDefaultValue(inst, _cfg, cfgName)
 }
 
 exports = {
+    isSub1GHzDevice: isSub1GHzDevice,
+    is24GHzDevice: is24GHzDevice,
+    is433MHzDevice: is433MHzDevice,
     ccfgSettings: ccfgSettings,
-    BOARD: BOARD,
-    IS_433MHZ_DEVICE: IS_433MHZ_DEVICE,
-    IS_SUB1GHZ_DEVICE: IS_SUB1GHZ_DEVICE,
-    IS_24GHZ_DEVICE: IS_24GHZ_DEVICE,
-    IS_HIGHPA_DEVICE: IS_HIGHPA_DEVICE,
-    getDeviceOrLaunchPadName: getDeviceOrLaunchPadName,
+    isHighPADevice: isHighPADevice,
+    getLaunchPadFromDevice: getLaunchPadFromDevice,
     cTypeMax: cTypeMax,
     toHexString: toHexString,
     validateRangeHex: validateRangeHex,
     validateRangeInt: validateRangeInt,
+    validateDynamicEnum: validateDynamicEnum,
+    validateDynamicMultiEnum: validateDynamicMultiEnum,
     channelMaskCHexStrArr: channelMaskCHexStrArr,
     findConfig: findConfig,
-    restoreDefaultValue: restoreDefaultValue
+    restoreDefaultValue: restoreDefaultValue,
+    getSafeDynamicConfig: getSafeDynamicConfig
 };

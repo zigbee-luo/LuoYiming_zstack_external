@@ -48,10 +48,10 @@ const secondaryChanlist = Common.chanArrToBitmask(zstack.rf.secondaryChannels);
 /* EPID */
 let epid = "{";
 let i;
-for(i = Common.EPID_LEN - 1; i >= 0; i--)
+for(i = 0; i < Common.EPID_LEN; i++)
 {
     epid += "0x";
-    epid += zstack.network.epid.substring((2*i)+2, (2*i)+4);
+    epid += zstack.network.epid.substring((2*i), (2*i)+2);
     epid += ",";
 }
 epid = epid.slice(0,-1);
@@ -59,7 +59,7 @@ epid += "}";
 
 /* Default network key */
 let defaultNwkKey = "{";
-for(i = Common.NWK_KEY_LEN - 1; i >= 0; i--)
+for(i = 0; i < Common.NWK_KEY_LEN; i++)
 {
     defaultNwkKey += "0x";
     defaultNwkKey += zstack.network.defaultNwkKey.substring((2*i), (2*i)+2);
@@ -173,7 +173,7 @@ tcLinkKey += "}";
 
 /* Max number of times attempts looking for the next hop address of a message */
 #ifndef NWK_MAX_DATA_RETRIES
-#define NWK_MAX_DATA_RETRIES          `zstack.advanced.packetSending.apsFrameAttempts`
+#define NWK_MAX_DATA_RETRIES          `zstack.advanced.packetSending.nwkDataRetries`
 #endif
 
 /* The maximum number of groups in the groups table */
@@ -208,6 +208,10 @@ tcLinkKey += "}";
 #define DEFAULT_TC_LINK_KEY           `tcLinkKey`
 #endif
 
+/* The number of milliseconds to wait between data request polls to the coordinator. */
+#ifndef TXPOWER
+#define TXPOWER                     `zstack.rf.txPower`
+#endif
 
 /****************************************
  * The following are for End Devices only
@@ -216,6 +220,11 @@ tcLinkKey += "}";
 /* Determine whether the radio on an End Device is always on */
 #ifndef RFD_RCVC_ALWAYS_ON
 #define RFD_RCVC_ALWAYS_ON            `(zstack.pm.powerModeOperation === "alwaysOn") ? "TRUE" : "FALSE"`
+#endif
+
+/* The minimum poll rate. */
+#ifndef MINIMUM_APP_POLL_RATE
+#define MINIMUM_APP_POLL_RATE                     `zstack.pm.minPollPeriod`
 #endif
 
 /* The number of milliseconds to wait between data request polls to the coordinator. */

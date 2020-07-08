@@ -434,6 +434,20 @@ uint32_t ZMacEventLoop(uint8_t taskId, uint32_t events)
     MAP_macExecute((macEvent_t *) &hdr);
   }
 
+  if (events & MAC_TX_BACKOFF_TIM_TASK_EVT)
+  {
+    hdr.status = MAC_SUCCESS;
+    hdr.event = TX_BACKOFF_TIM_EXP_EVT;
+    macExecute((macEvent_t *) &hdr);
+  }
+
+  if (events & MAC_RX_BACKOFF_TIM_TASK_EVT)
+  {
+    hdr.status = MAC_SUCCESS;
+    hdr.event =  RX_BACKOFF_TIM_EXP_EVT;
+    macExecute((macEvent_t *) &hdr);
+  }
+
   /* handle pending message, if any */
   if (macMain.pPending != NULL)
   {

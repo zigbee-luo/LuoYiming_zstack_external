@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2015-2019, Texas Instruments Incorporated
+ Copyright (c) 2015-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -185,8 +185,8 @@ void NPITLUART_initializeTransport(Char *tRxBuf, Char *tTxBuf, npiCB_t npiCBack)
 // -----------------------------------------------------------------------------
 void NPITLUART_stopTransfer(void)
 {
-    ICall_CSState key;
-    key = ICall_enterCriticalSection();
+    MAP_ICall_CSState key;
+    key = MAP_ICall_enterCriticalSection();
 
     mrdy_flag = 1;
 
@@ -194,17 +194,14 @@ void NPITLUART_stopTransfer(void)
     // or that the FIFO has already been read for this UART_read()
     // In either case UART_readCancel will call the read CB function and it will
     // invoke npiTransmitCB with the appropriate number of bytes read
-#ifndef USE_CORE_SDK
-    if (!UARTCharsAvail(((UARTCC26XX_HWAttrsV1 const *)(uartHandle->hwAttrs))->baseAddr))
-#else // USE_CORE_SDK
+
     if (!UARTCharsAvail(((UARTCC26XX_HWAttrsV2 const *)(uartHandle->hwAttrs))->baseAddr))
-#endif // !USE_CORE_SDK
     {
         RxActive = FALSE;
         UART_readCancel(uartHandle);
     }
 
-    ICall_leaveCriticalSection(key);
+    MAP_ICall_leaveCriticalSection(key);
     return;
 }
 #endif // NPI_FLOW_CTRL = 1
@@ -218,8 +215,8 @@ void NPITLUART_stopTransfer(void)
 // -----------------------------------------------------------------------------
 void NPITLUART_handleMrdyEvent(void)
 {
-    ICall_CSState key;
-    key = ICall_enterCriticalSection();
+    MAP_ICall_CSState key;
+    key = MAP_ICall_enterCriticalSection();
 
     mrdy_flag = 0;
 
@@ -248,7 +245,7 @@ void NPITLUART_handleMrdyEvent(void)
         }
     }
 
-    ICall_leaveCriticalSection(key);
+    MAP_ICall_leaveCriticalSection(key);
 
     return;
 }
@@ -323,13 +320,9 @@ static void NPITLUART_readCallBack(UART_Handle handle, void *ptr, size_t size)
 #if (NPI_FLOW_CTRL == 1)
     // Read has been cancelled by transport layer, or bus timeout and no bytes in FIFO
     //    - do not invoke another read
-#ifndef USE_CORE_SDK
-    if ( !UARTCharsAvail(((UARTCC26XX_HWAttrsV1 const *)(uartHandle->hwAttrs))->baseAddr) &&
-            mrdy_flag )
-#else // USE_CORE_SDK
+
     if ( !UARTCharsAvail(((UARTCC26XX_HWAttrsV2 const *)(uartHandle->hwAttrs))->baseAddr) &&
             mrdy_flag )
-#endif // !USE_CORE_SDK
     {
         RxActive = FALSE;
 

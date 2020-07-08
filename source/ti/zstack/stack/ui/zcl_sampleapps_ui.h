@@ -48,6 +48,7 @@
 #include "cui.h"
 #include <string.h>
 #include "zcl_sample_app_def.h"
+#include <ti/drivers/apps/Button.h>
 
 
 #ifdef __cplusplus
@@ -60,9 +61,8 @@ extern "C"
  */
 
 // UI Events
-#define SAMPLEAPP_UI_NWK_LINE_UPDATE_EVT  0x0020
+#define SAMPLEAPP_UI_BDB_NWK_LINE_UPDATE_EVT  0x0020
 #define SAMPLEAPP_UI_INPUT_EVT            0x0040
-#define SAMPLEAPP_UI_BDB_LINE_UPDATE_EVT  0x0080
 #define SAMPLEAPP_UI_GP_LINE_UPDATE_EVT   0x0100
 #define SAMPLEAPP_KEY_EVT                 0x0200
 
@@ -71,7 +71,7 @@ extern "C"
  */
 
 typedef void (* uiAppFNResetCB_t)(void);
-
+typedef void (* uiAppProcessKeyCB_t)(uint8_t key, Button_EventMask _buttonEvents);
 
 /*********************************************************************
 * FUNCTIONS
@@ -82,7 +82,7 @@ typedef void (* uiAppFNResetCB_t)(void);
  */
 CUI_clientHandle_t UI_Init(uint8_t  zclSampleApp_Entity, uint32_t *zclSampleAppEvents, Semaphore_Handle zclSampleAppSem,
               uint16_t *ui_IdentifyTimeAttribute_value, uint16_t *defaultBdbCommisioningModes,
-              CONST char *pAppStr, CUI_btnPressCB_t zclSampleApp_changeKeyCallback, uiAppFNResetCB_t _uiAppFNResetCB);
+              CONST char *pAppStr, uiAppProcessKeyCB_t zclSampleApp_processKey, uiAppFNResetCB_t _uiAppFNResetCB);
 
 /*
  * Process a change in the device's network-state

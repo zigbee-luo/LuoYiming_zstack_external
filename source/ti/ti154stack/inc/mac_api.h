@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2005-2019, Texas Instruments Incorporated
+ Copyright (c) 2005-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -240,32 +240,32 @@ extern "C" {
 #define MAC_GENERIC_PHY_DESCRIPTOR_ENTRIES   10
 
 /* PHY IDs */
-/* 915MHz US Frequency band operating mode #1 */
-#define MAC_STD_US_915_PHY_1              1
-/* 915MHz US Frequency band operating mode #2 */
-#define MAC_STD_US_915_PHY_2              2
-/* 863MHz ETSI Frequency band operating mode #1 */
-#define MAC_STD_ETSI_863_PHY_3            3
-/* 433MHz China Frequency band operating mode #1 */
-#define MAC_GENERIC_CHINA_433_PHY_128     128
-/* 915MHz US LRM Frequency band operating mode #1 */
-#define MAC_GENERIC_US_LRM_915_PHY_129    129
-/* 433MHz China LRM Frequency band operating mode #1 */
-#define MAC_GENERIC_CHINA_LRM_433_PHY_130 130
-/* 863MHz ETSI LRM Frequency band operating mode #1 */
-#define MAC_GENERIC_ETSI_LRM_863_PHY_131  131
-/* 915MHz US Frequency band operating mode #1 */
-#define MAC_GENERIC_US_915_PHY_132        132
-/* 863MHz ETSI Frequency band operating mode #1 */
-#define MAC_GENERIC_ETSI_863_PHY_133      133
+/* 915MHz Frequency band operating mode #1 */
+#define MAC_50KBPS_915MHZ_PHY_1         1
+/* 915MHz Frequency band operating mode #2 */
+#define MAC_150KBPS_915MHZ_PHY_2        2
+/* 868MHz Frequency band operating mode #1 */
+#define MAC_50KBPS_868MHZ_PHY_3         3
+/* 433MHz Frequency band operating mode #1 */
+#define MAC_50KBPS_433MHZ_PHY_128       128
+/* 915MHz LRM Frequency band operating mode #1 */
+#define MAC_5KBPS_915MHZ_PHY_129        129
+/* 433MHz LRM Frequency band operating mode #1 */
+#define MAC_5KBPS_433MHZ_PHY_130        130
+/* 868MHz LRM Frequency band operating mode #1 */
+#define MAC_5KBPS_868MHZ_PHY_131        131
+/* 915MHz Frequency band operating mode #3 */
+#define MAC_200KBPS_915MHZ_PHY_132      132
+/* 868MHz Frequency band operating mode #3 */
+#define MAC_200KBPS_868MHZ_PHY_133      133
 
 /* MRFSK Standard Phy ID start */
-#define MAC_MRFSK_STD_PHY_ID_BEGIN           MAC_STD_US_915_PHY_1
+#define MAC_MRFSK_STD_PHY_ID_BEGIN           MAC_50KBPS_915MHZ_PHY_1
 /* MRFSK Standard Phy ID end */
 #define MAC_MRFSK_STD_PHY_ID_END             (MAC_MRFSK_STD_PHY_ID_BEGIN + MAC_STANDARD_PHY_DESCRIPTOR_ENTRIES - 1)
 
 /* MRFSK Generic Phy ID start */
-#define MAC_MRFSK_GENERIC_PHY_ID_BEGIN       MAC_GENERIC_CHINA_433_PHY_128
+#define MAC_MRFSK_GENERIC_PHY_ID_BEGIN       MAC_50KBPS_433MHZ_PHY_128
 /* MRFSK Generic Phy ID end */
 #define MAC_MRFSK_GENERIC_PHY_ID_END         (MAC_MRFSK_GENERIC_PHY_ID_BEGIN + MAC_GENERIC_PHY_DESCRIPTOR_ENTRIES - 1)
 

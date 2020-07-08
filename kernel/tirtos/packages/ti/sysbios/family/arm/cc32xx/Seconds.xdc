@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2018, Texas Instruments Incorporated
+ * Copyright (c) 2014-2019, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,7 @@ internal:
     UInt64 getCount();
 
     struct Module_State {
+        UInt32        setSecondsHi;
         UInt32        setSeconds;
         UInt32        refSeconds;
         UInt32        deltaNSecs;

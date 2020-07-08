@@ -55,21 +55,19 @@ const macFrameAttemptsLongDescription = macFrameAttemptsDescription + `\n\n\
 
 **Range:** 0 - 127`;
 
-const apsFrameAttemptsDescription = `Maximum number of attempts for looking for \
-the next hop of a message. This will happen only if APS ACK is enabled on the \
-packet`;
+const nwkDataRetriesDescription = `Maximum number of network data retries.`;
 
-const apsFrameAttemptsLongDescription = apsFrameAttemptsDescription + `\n\n\
+const nwkDataRetriesLongDescription = nwkDataRetriesDescription + `\n\n\
 **Default:** 2
 
-**Range:** 0 - 127`;
+**Range:** 0 - 7`;
 
 /* Packet Sending submodule for the zstack module */
 const packetSendingModule = {
     config: [
         {
             name: "apsAckWaitDurationPolled",
-            displayName: "APS ACK Wait Duration for Polled Devices (ms)",
+            displayName: "APS ACK Wait Duration (ms)",
             description: apsAckWaitDescription,
             longDescription: apsAckWaitLongDescription,
             default: 6000
@@ -82,10 +80,10 @@ const packetSendingModule = {
             default: 3
         },
         {
-            name: "apsFrameAttempts",
-            displayName: "APS Frame Attempts",
-            description: apsFrameAttemptsDescription,
-            longDescription: apsFrameAttemptsLongDescription,
+            name: "nwkDataRetries",
+            displayName: "NWK Data Retries",
+            description: nwkDataRetriesDescription,
+            longDescription: nwkDataRetriesLongDescription,
             default: 2
         }
     ],
@@ -112,9 +110,9 @@ function validate(inst, validation)
     Common.validateRange(inst, validation, inst.macFrameAttempts,
         "macFrameAttempts", "MAC Frame Attempts", 0, 127);
 
-    /* Validate APS Frame Attempts */
-    Common.validateRange(inst, validation, inst.apsFrameAttempts,
-        "apsFrameAttempts", "APS Frame Attempts", 0, 127);
+    /* Validate NWK Data Retries */
+    Common.validateRange(inst, validation, inst.nwkDataRetries,
+        "nwkDataRetries", "NWK Data Retries", 0, 7);
 }
 
 exports = packetSendingModule;

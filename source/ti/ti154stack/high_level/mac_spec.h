@@ -10,7 +10,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2005-2019, Texas Instruments Incorporated
+ Copyright (c) 2005-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -238,7 +238,7 @@
 #define MAC_A_MAX_PHY_PACKET_SIZE       500
 
 /* Phy RX <--> TX turnaround time in symbols */
-#define MAC_A_TURNAROUND_TIME           50
+#define MAC_A_TURNAROUND_TIME           (1000/macSpecUsecsPerSymbol)
 
 /* Number of symbols forming a superframe slot when the superframe order is equal to 0 */
 #define MAC_A_BASE_SLOT_DURATION        60

@@ -2876,8 +2876,6 @@ ZStatus_t ZDO_JoinIndicationCB(uint16_t ShortAddress, uint8_t *ExtendedAddress,
       ZDApp_NVUpdate();  // Notify to save info into NV.
     }
 
-    // Move the processing of unsecured rejoin to zd_sec_mgr.c
-
     if ( type == NWK_ASSOC_JOIN ||
          type == NWK_ASSOC_REJOIN_UNSECURE ||
          type == NWK_ASSOC_REJOIN_SECURE )

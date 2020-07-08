@@ -1080,7 +1080,7 @@ static void MT_SysNvCompact(uint8_t *pBuf)
  *****************************************************************************/
 static void MT_SysNvCreate(uint8_t *pBuf)
 {
-  uint8_t retVal;
+  uint8_t retVal = NVINTF_FAILURE;
 
   if(( pZStackCfg == NULL ) || ( pZStackCfg->nvFps.createItem == NULL ))
   {
@@ -1098,8 +1098,24 @@ static void MT_SysNvCreate(uint8_t *pBuf)
     /* Get the length */
     nvLen = OsalPort_buildUint32( pBuf, sizeof(nvLen) );
 
-    /* Attempt to create the specified item with no initial data */
-    retVal = pZStackCfg->nvFps.createItem( nvId, nvLen, NULL );
+    if ( nvLen > 0 )
+    {
+      uint8_t *defaultBuf = OsalPort_malloc(nvLen);
+
+      if ( defaultBuf )
+      {
+        memset(defaultBuf, 0x00, nvLen);
+
+        /* Attempt to create the specified item with no initial data */
+        retVal = pZStackCfg->nvFps.createItem( nvId, nvLen, defaultBuf );
+
+        OsalPort_free(defaultBuf);
+      }
+    }
+    else
+    {
+      retVal = NVINTF_BADLENGTH;
+    }
   }
 
   /* Build and send back the response */
@@ -1211,11 +1227,7 @@ static void MT_SysNvRead(uint8_t *pBuf)
     if( MT_StackNvExtId(&nvId) == TRUE )
     {
       /* Check whether read-access to this ZigBee Stack item is allowed */
-      if( MT_CheckNvId( nvId.subID ) != ZSuccess )
-      {
-        /* Convert to NVINTF error code */
-        error = NVINTF_BADSUBID;
-      }
+      error = MT_CheckNvId( nvId.subID );
     }
     else
     {
@@ -1239,14 +1251,17 @@ static void MT_SysNvRead(uint8_t *pBuf)
     pRetBuf = OsalPort_malloc(respLen);
     if( pRetBuf != NULL )
     {
-      /* Attempt to read data from the specified item */
-      error = pZStackCfg->nvFps.readItem( nvId, dataOfs, dataLen, pRetBuf+2 );
-      if( error == NVINTF_SUCCESS )
+      if( error == ZSuccess )
       {
-        pRetBuf[0] = ZSuccess;
-        pRetBuf[1] = dataLen;
-        MT_BuildAndSendZToolResponse( MT_SRSP_SYS, MT_SYS_NV_READ,
-                                      respLen, pRetBuf );
+        /* Attempt to read data from the specified item */
+        error = pZStackCfg->nvFps.readItem( nvId, dataOfs, dataLen, pRetBuf+2 );
+        if( error == NVINTF_SUCCESS )
+        {
+          pRetBuf[0] = ZSuccess;
+          pRetBuf[1] = dataLen;
+          MT_BuildAndSendZToolResponse( MT_SRSP_SYS, MT_SYS_NV_READ,
+                                        respLen, pRetBuf );
+        }
       }
       OsalPort_free(pRetBuf);
     }
@@ -1277,7 +1292,7 @@ static void MT_SysNvRead(uint8_t *pBuf)
 static void MT_SysNvWrite(uint8_t *pBuf)
 {
   uint8_t cmdId;
-  uint8_t error;
+  uint8_t error = NVINTF_FAILURE;
 
   /* MT command ID */
   cmdId = pBuf[MT_RPC_POS_CMD1];
@@ -1307,27 +1322,28 @@ static void MT_SysNvWrite(uint8_t *pBuf)
     dataLen = pBuf[0];
     pBuf += 1;
 
-    if( (dataOfs == 0) && (MT_StackNvExtId(&nvId) == TRUE) )
+    // F065 process change: writing to an offset is no longer allowed, i.e. dataOfs must be 0
+    // however, the host application may still send this field, so keep it for backwards
+    // compatibility.
+    if( dataOfs == 0 )
     {
-      /* Set the Z-Globals value of this NV item */
-      zgSetItem( nvId.subID, dataLen, pBuf );
-
-      if( nvId.subID == ZCD_NV_EXTADDR )
+      if ( MT_StackNvExtId(&nvId) == TRUE )
       {
-        /* Give MAC the new 64-bit address */
-        ZMacSetReq( ZMacExtAddr, pBuf );
-      }
-    }
+        /* Set the Z-Globals value of this NV item */
+        zgSetItem( nvId.subID, dataLen, pBuf );
 
-    if( cmdId == MT_SYS_NV_UPDATE )
-    {
+        if( nvId.subID == ZCD_NV_EXTADDR )
+        {
+          /* Give MAC the new 64-bit address */
+          ZMacSetReq( ZMacExtAddr, pBuf );
+        }
+      }
       /* Attempt to update (create) data to the specified item */
       error = pZStackCfg->nvFps.writeItem( nvId, dataLen, pBuf );
     }
     else
     {
-      /* Attempt to write data (existing) to the specified item */
-      error = pZStackCfg->nvFps.writeItemEx( nvId, dataOfs, dataLen, pBuf );
+      error = NVINTF_BADPARAM;
     }
   }
 

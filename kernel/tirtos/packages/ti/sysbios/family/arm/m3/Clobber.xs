@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Texas Instruments Incorporated
+ * Copyright (c) 2015-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,16 +34,17 @@
  *  ======== Clobber.xs ========
  */
 
+var Hwi = null;
 var Timer = null;
 var Clobber = null;
 
 /*
  * ======== getAsmFiles ========
  * return the array of assembly language files associated
- * with targetName (ie Program.build.target.$name) 
+ * with targetName (ie Program.build.target.$name)
  */
 function getAsmFiles(targetName)
-{   
+{
     switch(targetName) {
         case "ti.targets.arm.elf.M3":
         case "ti.targets.arm.elf.M4":
@@ -59,18 +60,18 @@ function getAsmFiles(targetName)
         case "ti.targets.arm.clang.M4F":
             return (["Clobber_asm_gnu.sv7M"]);
             break;
-    
+
         case "iar.targets.arm.M3":
         case "iar.targets.arm.M4":
         case "iar.targets.arm.M4F":
             return (["Clobber_asm_iar.sv7M"]);
-            break; 
+            break;
 
-	default:
-	    return (null);
-	    break;
+        default:
+            return (null);
+            break;
     }
-}   
+}
 
 /*
  * ======== getCFiles ========
@@ -108,4 +109,3 @@ function module$use()
 {
     Hwi = xdc.useModule("ti.sysbios.hal.Hwi");
 }
-

@@ -10,7 +10,7 @@ This file contains functions to generate derived keying material
 
  ******************************************************************************
  
- Copyright (c) 2018-2019, Texas Instruments Incorporated
+ Copyright (c) 2018-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -183,14 +183,13 @@ uint8_t CMAC[SM_AES_BLOCK_LEN];
 
 
 // SM Encryption related definitions
-CONST uint8_t const_Rb[SM_KEY_LENGTH] =
+CONST uint8_t const_Rb_ti154[SM_KEY_LENGTH] =
 {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x87
 };
 
-
-AESECB_Handle       AESECB_handle;
+extern AESECB_Handle       AESECB_handle;
 
 /******************************************************************************
  Local Function Prototypes
@@ -866,7 +865,7 @@ uint8_t SM_generate_subkey( uint8_t *pKey, uint8_t *pSubK1, uint8_t *pSubK2 )
             else /* Else pK1 = ( pL << 1 ) (+) Rb */
             {
                 SM_leftshift_onebit( pL, pTmp );
-                SM_xor_128( pTmp, const_Rb, pSubK1 );
+                SM_xor_128( pTmp, const_Rb_ti154, pSubK1 );
             }
 
             if ( (pSubK1[0] & 0x80) == 0 )
@@ -876,7 +875,7 @@ uint8_t SM_generate_subkey( uint8_t *pKey, uint8_t *pSubK1, uint8_t *pSubK2 )
             else
             {
                 SM_leftshift_onebit( pSubK1, pTmp );
-                SM_xor_128( pTmp, const_Rb, pSubK2 );
+                SM_xor_128( pTmp, const_Rb_ti154, pSubK2 );
             }
         }
     }

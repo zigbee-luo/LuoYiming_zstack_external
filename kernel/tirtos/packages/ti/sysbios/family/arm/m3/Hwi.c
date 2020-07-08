@@ -455,7 +455,7 @@ Void Hwi_initNVIC()
     /* set CCR per user's preference */
     Hwi_nvic.CCR = Hwi_ccr;
 
-#if (defined(__TI_VFP_SUPPORT__) || \
+#if ((defined(__ti__) && defined(__ARM_FP)) || \
     (defined(__VFP_FP__) && !defined(__SOFTFP__)) || \
     defined(__ARMVFP__))
     /* disable lazy stacking mode fp indications in control register */

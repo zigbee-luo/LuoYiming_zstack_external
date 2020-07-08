@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019 by Texas Instruments Incorporated.
+ *  Copyright 2020 by Texas Instruments Incorporated.
  *
  */
 
@@ -37,7 +37,7 @@ function getISAChain (isa)
     }
 }
 /*
- *  @(#) gnu.targets.arm; 1, 0, 0,0; 8-9-2019 17:14:52; /db/ztree/library/trees/xdctargets/xdctargets-v00/src/ xlibrary
+ *  @(#) gnu.targets.arm; 1, 0, 0,; 5-11-2020 15:30:14; /db/ztree/library/trees/xdctargets/xdctargets-w14/src/ xlibrary
 
  */
 

@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2015-2019, Texas Instruments Incorporated
+ Copyright (c) 2015-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -265,8 +265,8 @@ static void NPITL_relPM(void)
 // -----------------------------------------------------------------------------
 void NPITL_handleMrdyEvent(void)
 {
-    ICall_CSState key;
-    key = ICall_enterCriticalSection();
+    MAP_ICall_CSState key;
+    key = MAP_ICall_enterCriticalSection();
 
     // Check to make sure this event is not occurring during the next packet
     // transmission
@@ -277,7 +277,7 @@ void NPITL_handleMrdyEvent(void)
         SRDY_ENABLE();
     }
 
-    ICall_leaveCriticalSection(key);
+    MAP_ICall_leaveCriticalSection(key);
 }
 #endif // NPI_FLOW_CTRL = 1
 

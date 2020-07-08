@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -84,45 +84,45 @@
  Constants and definitions
  *****************************************************************************/
 
-#if (CONFIG_MAC_SUPERFRAME_ORDER == 15)
-#define OAD_MAX_TIMEOUTS            3
-#define OAD_MAX_RETRIES             3
-#define OAD_BLOCK_AUTO_RESUME_DELAY 5000
-#else
-#define OAD_MAX_TIMEOUTS            3
-#define OAD_MAX_RETRIES             3
-#define OAD_BLOCK_AUTO_RESUME_DELAY (CONFIG_MAC_SUPERFRAME_ORDER * 5)
-#endif
-
-/* Re-define the OAD block request rate to match the beacon interval  
- * if implicit polling is used
- */ 
-#if !defined(OAD_EXPLICIT_POLLING)
-#undef OAD_BLOCK_REQ_RATE
-#undef OAD_BLOCK_REQ_POLL_DELAY
-
-#if (CONFIG_PHY_ID == APIMAC_STD_US_915_PHY_1) || \
-    (CONFIG_PHY_ID == APIMAC_STD_ETSI_863_PHY_3) || \
-    (CONFIG_PHY_ID == APIMAC_GENERIC_CHINA_433_PHY_128)
+#if (CONFIG_PHY_ID == APIMAC_50KBPS_915MHZ_PHY_1) || \
+    (CONFIG_PHY_ID == APIMAC_50KBPS_868MHZ_PHY_3) || \
+    (CONFIG_PHY_ID == APIMAC_50KBPS_433MHZ_PHY_128)
     #define SYMBOL_DURATION         (SYMBOL_DURATION_50_kbps)  //us
 
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_US_915_PHY_132) || \
-      (CONFIG_PHY_ID == APIMAC_GENERIC_ETSI_863_PHY_133)
+#elif (CONFIG_PHY_ID == APIMAC_200KBPS_915MHZ_PHY_132) || \
+      (CONFIG_PHY_ID == APIMAC_200KBPS_868MHZ_PHY_133)
     #define SYMBOL_DURATION         (SYMBOL_DURATION_200_kbps) //us
 
-#elif (CONFIG_PHY_ID == APIMAC_GENERIC_US_LRM_915_PHY_129) || \
-      (CONFIG_PHY_ID == APIMAC_GENERIC_CHINA_LRM_433_PHY_130) || \
-      (CONFIG_PHY_ID == APIMAC_GENERIC_ETSI_LRM_863_PHY_131)
+#elif (CONFIG_PHY_ID == APIMAC_5KBPS_915MHZ_PHY_129) || \
+      (CONFIG_PHY_ID == APIMAC_5KBPS_433MHZ_PHY_130) || \
+      (CONFIG_PHY_ID == APIMAC_5KBPS_868MHZ_PHY_131)
     #define SYMBOL_DURATION         (SYMBOL_DURATION_LRM)      //us
 
-#elif (CONFIG_PHY_ID == APIMAC_PHY_ID_NONE)  // 2.4g
+#elif (CONFIG_PHY_ID == APIMAC_250KBPS_IEEE_PHY_0)  // 2.4g
     #define SYMBOL_DURATION         (SYMBOL_DURATION_250_kbps)  //us
 #else
     #define SYMBOL_DURATION         (SYMBOL_DURATION_50_kbps)  //us
 #endif
 
-#define BEACON_INTERVAL             ((((0x01) << (CONFIG_BEACON_ORDER)) * \
+#define BEACON_INTERVAL             ((((0x01) << (CONFIG_MAC_BEACON_ORDER)) * \
                                       (SYMBOL_DURATION) * (BASE_SUPER_FRAME_DURATION)) / (1000)) // ms
+
+#if (CONFIG_MAC_SUPERFRAME_ORDER == 15)
+#define OAD_MAX_TIMEOUTS            3
+#define OAD_MAX_RETRIES             3
+#define OAD_BLOCK_AUTO_RESUME_DELAY 5000
+#else
+#define OAD_MAX_TIMEOUTS            ((uint8_t) ((BEACON_INTERVAL/OAD_BLOCK_REQ_RATE) + 1))
+#define OAD_MAX_RETRIES             3
+#define OAD_BLOCK_AUTO_RESUME_DELAY BEACON_INTERVAL
+#endif
+
+/* Re-define the OAD block request rate to match the beacon interval
+ * if implicit polling is used
+ */
+#if !defined(OAD_EXPLICIT_POLLING)
+#undef OAD_BLOCK_REQ_RATE
+#undef OAD_BLOCK_REQ_POLL_DELAY
 
 #define OAD_BLOCK_REQ_RATE          ((BEACON_INTERVAL) - 100)
 #define OAD_BLOCK_REQ_POLL_DELAY    ((BEACON_INTERVAL) - 400)
@@ -248,9 +248,9 @@ void OADClient_open(OADClient_Params_t *params)
 
     OADProtocol_open(&OADProtocol_params);
 
-    CUI_statusLineResourceRequest(*(oadClientParams.pOadCuiHndl), "OAD Status", &oadStatusLine);
+    CUI_statusLineResourceRequest(*(oadClientParams.pOadCuiHndl), "OAD Status", false, &oadStatusLine);
     oadClockInitialize();
-    
+
     // check if external flash memory available
     if(hasExternalFlash() == true)
     {
@@ -259,7 +259,7 @@ void OADClient_open(OADClient_Params_t *params)
         {
             OADStorage_createFactoryImageBackup();
         }
-    }    
+    }
 }
 
 /*!

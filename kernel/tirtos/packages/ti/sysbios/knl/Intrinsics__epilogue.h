@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, Texas Instruments Incorporated
+ * Copyright (c) 2015-2019, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,7 @@ extern "C" {
 
 #else
 #if defined(xdc_target__isaCompatible_470) \
-    && defined(__32bis__) \
+    && !defined(__thumb__) \
     && !defined(xdc_target__isaCompatible_v7M)
 
 extern int _norm(int);

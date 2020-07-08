@@ -99,6 +99,7 @@ Status: Waiting...
 ```
 
 Note that these changes will only take effect if the sensor is in a waiting state.
+Keys 0-F can be used to change the value when in edit mode, and left/right keys can be used for navigating the digits.
 Once the sensor is started, the settings can only be changed if it is restarted.
 
 

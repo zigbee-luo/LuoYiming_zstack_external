@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+#include <stdio.h>
+#endif
+
 #include <xdc/runtime/Error.h>
 #include <xdc/runtime/System.h>
 #include <ti/sysbios/BIOS.h>
@@ -59,6 +63,8 @@
 #include <ti/sysbios/hal/Hwi.h>
 #include <ti/sysbios/knl/Semaphore.h>
 #include <ti/drivers/Power.h>
+#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/apps/LED.h>
 #include <inc/hw_ints.h>
 #include <aon_event.h>
 #include <ioc.h>
@@ -93,6 +99,14 @@
 #include "icall.h"
 #endif
 
+#include "mac_user_config.h"
+
+#ifdef USE_DMM
+#ifdef FEATURE_SECURE_COMMISSIONING
+#include "remote_display.h"
+#include <sm_commissioning_gatt_profile.h>
+#endif /* FEATURE_SECURE_COMMISSIONING */
+#endif /* USE_DMM */
 /******************************************************************************
  Constants and definitions
  *****************************************************************************/
@@ -145,10 +159,10 @@
  */
 #define FRAME_COUNTER_SAVE_WINDOW     25
 
-#if defined(USE_DMM)
+#if (USE_DMM) && !(DMM_CENTRAL)
 #define PROVISIONING_ASSOC_TIMER    1000
 #define PROVISIONING_DISASSOC_TIMER 10
-#endif
+#endif /* USE_DMM && !DMM_CENTRAL */
 
 /* Structure to store the device information in NV */
 typedef struct
@@ -157,7 +171,8 @@ typedef struct
     Llc_netInfo_t parent;
 } nvDeviceInfo_t;
 
-
+/* Mask of all supported channels for input validation */
+static const uint8_t validChannelMask[APIMAC_154G_CHANNEL_BITMAP_SIZ] = CUI_VALID_CHANNEL_MASK;
 
 /******************************************************************************
  External variables
@@ -193,7 +208,9 @@ static ICall_Semaphore sensorSem;
 
 /* Clock/timer resources */
 static Clock_Struct readingClkStruct;
+#ifndef DMM_CENTRAL
 static Clock_Handle readingClkHandle;
+#endif /* !DMM_CENTRAL */
 
 /* Clock/timer resources for JDLLC */
 /* trickle timer */
@@ -211,13 +228,18 @@ STATIC Clock_Handle scanBackoffClkHandle;
 STATIC Clock_Struct fhAssocClkStruct;
 STATIC Clock_Handle fhAssocClkHandle;
 
-#ifdef USE_DMM
+#if (USE_DMM) && !(DMM_CENTRAL)
 STATIC Clock_Struct provisioningClkStruct;
 STATIC Clock_Handle provisioningClkHandle;
-#endif /* USE_DMM */
+#endif /* USE_DMM && !DMM_CENTRAL */
+
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+static Clock_Struct clkBlockModeTestStruct;
+static Clock_Handle clkBlockModeTestHandle;
+#endif
 
 /* Key press parameters */
-static uint8_t keys = 0xFF;
+static Button_Handle keys = NULL;
 
 /* pending events */
 static uint16_t events = 0;
@@ -236,28 +258,47 @@ static bool started = false;
 static bool led1State = false;
 
 CUI_clientHandle_t ssfCuiHndl;
+#if !defined(POWER_MEAS)
+static LED_Handle gGreenLedHandle;
+static LED_Handle gRedLedHandle;
+#endif /* !POWER_MEAS */
+static Button_Handle gRightButtonHandle;
+static Button_Handle gLeftButtonHandle;
 uint32_t sensorStatusLine;
 uint32_t perStatusLine;
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+uint32_t ssfStatusLineBlockModeTestState;
+
+#if(CONFIG_MAC_BEACON_ORDER != NON_BEACON_ORDER)
+static uint16_t SSF_BLOCK_MODE_ON_PERIOD  = (CONFIG_REPORTING_INTERVAL / 2);
+static uint16_t SSF_BLOCK_MODE_OFF_PERIOD =  (CONFIG_REPORTING_INTERVAL / 1.2);
+#else
+static uint16_t SSF_BLOCK_MODE_ON_PERIOD  = (CONFIG_REPORTING_INTERVAL / 2);
+static uint16_t SSF_BLOCK_MODE_OFF_PERIOD =  (CONFIG_REPORTING_INTERVAL / 2);
+#endif
+#endif
 
 /******************************************************************************
  Local function prototypes
  *****************************************************************************/
 
+#ifndef DMM_CENTRAL
 static void processReadingTimeoutCallback(UArg a0);
-static void processKeyChangeCallback(uint32_t _btn, Button_EventMask _events);
+#endif
+static void processKeyChangeCallback(Button_Handle _buttonHandle, Button_EventMask _buttonEvents);
 static void processPCSTrickleTimeoutCallback(UArg a0);
 static void processPASTrickleTimeoutCallback(UArg a0);
 static void processPollTimeoutCallback(UArg a0);
 static void processScanBackoffTimeoutCallback(UArg a0);
 static void processFHAssocTimeoutCallback(UArg a0);
-#if defined(USE_DMM)
+#if (USE_DMM) && !(DMM_CENTRAL)
 static void processProvisioningCallback(UArg a0);
-#endif
+#endif /* USE_DMM && !DMM_CENTRAL */
 
-#if !defined(POWER_MEAS)
 static uint8_t moveCursorLeft(uint8_t col, uint8_t left_boundary, uint8_t right_boundary, uint8_t skip_space);
 static uint8_t moveCursorRight(uint8_t col, uint8_t left_boundary, uint8_t right_boundary, uint8_t skip_space);
 static void setPanIdAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
+static void validateChMask(uint8_t *_chanMask, uint8_t byteIdx);
 static void setChMaskAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
 #if CONFIG_FH_ENABLE
 static void setAsyncChMaskAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
@@ -268,7 +309,7 @@ static void setNwkKeyAction(const char _input, char* _pLines[3], CUI_cursorInfo_
 #ifdef FEATURE_SECURE_COMMISSIONING
 static void setSmSetAuthModeAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
 static void setSmPassKeyAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 static void assocAction(int32_t menuEntryInex);
 static void disassocAction(int32_t menuEntryInex);
 static void collectorLedIndentifyAction(int32_t menuEntryInex);
@@ -276,10 +317,16 @@ static void processMenuUpdate(void);
 
 static void uintToString (uint32_t value, char * str, uint8_t base, uint8_t num_of_digists, bool pad0, bool reverse);
 
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+static void Ssf_blockModeTestClockHandler(UArg arg);
+static void Ssf_blockModeTestOn(int32_t menuEntryIndex);
+static void Ssf_blockModeTestOff(int32_t menuEntryIndex);
+static void Ssf_setBlockModeOnPeriodAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
+static void Ssf_setBlockModeOffPeriodAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
+static void Ssf_setBlockModePeriodUiAction(uint16_t* blockModePeriod, const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
 #endif
 
 /* Menu */
-#if !defined(POWER_MEAS)
 #ifdef OAD_ONCHIP
 #ifdef OAD_IMG_A
     #define SFF_MENU_TITLE " TI Sensor (Persistent App) "
@@ -300,7 +347,7 @@ static void uintToString (uint32_t value, char * str, uint8_t base, uint8_t num_
 #define SM_MENU_ENABLED 1
 #else
 #define SM_MENU_ENABLED 0
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 #ifdef FEATURE_MAC_SECURITY
 #define SECURITY_MENU_ENABLED 1
@@ -319,7 +366,7 @@ CUI_SUB_MENU(configureSubMenu, "<      CONFIGURE      >", 2 + FH_MENU_ENABLED + 
 #endif
 #ifdef FEATURE_SECURE_COMMISSIONING
     CUI_MENU_ITEM_INT_ACTION(  "<     AUTH METHOD     >", setSmSetAuthModeAction)
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 CUI_SUB_MENU_END
 
 
@@ -333,6 +380,14 @@ CUI_SUB_MENU(appSubMenu,       "<         APP         >", 1, ssfMainMenu)
     CUI_MENU_ITEM_ACTION(      "<   SEND LED IDENT    >", collectorLedIndentifyAction)
 CUI_SUB_MENU_END
 
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+CUI_SUB_MENU(sensorBlockModeTestSubMenu,"<   BLOCK MODE TEST   >", 4, ssfMainMenu)
+    CUI_MENU_ITEM_ACTION(               "<     BM TEST ON      >", Ssf_blockModeTestOn)
+    CUI_MENU_ITEM_ACTION(               "<     BM TEST OFF     >", Ssf_blockModeTestOff)
+    CUI_MENU_ITEM_INT_ACTION(           "<     ON  VAL (ms)    >", Ssf_setBlockModeOnPeriodAction)
+    CUI_MENU_ITEM_INT_ACTION(           "<     OFF VAL (ms)    >", Ssf_setBlockModeOffPeriodAction)
+CUI_SUB_MENU_END
+#endif
 
 /* This menu will be registered/de-registered at run time to create
 a sort of "popup" menu for passkey entry. Since it is de-registered,
@@ -343,16 +398,22 @@ menus in this file. */
 CUI_MAIN_MENU(smPassKeyMenu, "<       SM MENU        >", 1, processMenuUpdate)
     CUI_MENU_ITEM_INT_ACTION(  "<    ENTER PASSKEY     >", setSmPassKeyAction)
 CUI_MAIN_MENU_END
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+CUI_MAIN_MENU(ssfMainMenu, SFF_MENU_TITLE, 4, processMenuUpdate)
+#else
 CUI_MAIN_MENU(ssfMainMenu, SFF_MENU_TITLE, 3, processMenuUpdate)
+#endif
     CUI_MENU_ITEM_SUBMENU(configureSubMenu)
     CUI_MENU_ITEM_SUBMENU(commissionSubMenu)
     CUI_MENU_ITEM_SUBMENU(appSubMenu)
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+    CUI_MENU_ITEM_SUBMENU(sensorBlockModeTestSubMenu)
+#endif
 CUI_MAIN_MENU_END
 
 
-#endif /* !POWER_MEAS */
 /******************************************************************************
  Public Functions
  *****************************************************************************/
@@ -384,20 +445,22 @@ void Ssf_init(void *sem)
 
 #ifdef DISPLAY_PER_STATS
     clientParams.maxStatusLines++;
-#endif
+#endif /* DISPLAY_PER_STATS */
 #ifdef FEATURE_SECURE_COMMISSIONING
     clientParams.maxStatusLines++;
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 #ifdef SECURE_MANAGER_DEBUG
     clientParams.maxStatusLines++;
-#endif
+#endif /* SECURE_MANAGER_DEBUG */
 #ifdef SECURE_MANAGER_DEBUG2
     clientParams.maxStatusLines++;
-#endif
+#endif /* SECURE_MANAGER_DEBUG2 */
 #ifdef FEATURE_NATIVE_OAD
     clientParams.maxStatusLines++;
+#endif /* FEATURE_NATIVE_OAD */
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+    clientParams.maxStatusLines++;
 #endif
-
 
     /* Open UI for key and LED */
     ssfCuiHndl = CUI_clientOpen(&clientParams);
@@ -405,48 +468,46 @@ void Ssf_init(void *sem)
 #ifdef FEATURE_SECURE_COMMISSIONING
     /* Intialize the security manager and register callbacks */
     SM_init(sensorSem, ssfCuiHndl);
-#endif //FEATURE_SECURE_COMMISSIONING
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
     /* Initialize Keys */
-    CUI_btnRequest_t leftBtnReq;
-    leftBtnReq.index = CONFIG_BTN_LEFT;
-    leftBtnReq.appCB = processKeyChangeCallback;
-    CUI_btnResourceRequest(ssfCuiHndl, &leftBtnReq);
+    Button_Params bparams;
+    Button_Params_init(&bparams);
+    gLeftButtonHandle = Button_open(CONFIG_BTN_LEFT, processKeyChangeCallback, &bparams);
+    // Open Right button without appCallBack
+    gRightButtonHandle = Button_open(CONFIG_BTN_RIGHT, NULL, &bparams);
 
-    CUI_btnRequest_t rightBtnReq;
-    rightBtnReq.index = CONFIG_BTN_RIGHT;
-    rightBtnReq.appCB = NULL;
-    CUI_btnResourceRequest(ssfCuiHndl, &rightBtnReq);
-
-    bool btnState = false;
-    CUI_btnGetValue(ssfCuiHndl, CONFIG_BTN_RIGHT, &btnState);
-    if (!btnState) {
+    // Read button state
+    if (!GPIO_read(((Button_HWAttrs*)gRightButtonHandle->hwAttrs)->gpioIndex))
+    {
         /* Right key is pressed on power up, clear all NV */
         Ssf_clearAllNVItems();
     }
+    // Set button callback
+    Button_setCallback(gRightButtonHandle, processKeyChangeCallback);
 
-    CUI_btnSetCb(ssfCuiHndl, CONFIG_BTN_RIGHT, processKeyChangeCallback);
-
-#if !defined(POWER_MEAS)
+#ifndef POWER_MEAS
     /* Initialize the LEDs */
-    CUI_ledRequest_t greenLedReq;
-    greenLedReq.index = CONFIG_LED_GREEN;
-    CUI_ledResourceRequest(ssfCuiHndl, &greenLedReq);
-
-    CUI_ledRequest_t redLedReq;
-    redLedReq.index = CONFIG_LED_RED;
-    CUI_ledResourceRequest(ssfCuiHndl, &redLedReq);
+    LED_Params ledParams;
+    LED_Params_init(&ledParams);
+    gGreenLedHandle = LED_open(CONFIG_LED_GREEN, &ledParams);
+    // Removes unused var warning
+    (void) gGreenLedHandle;
+    gRedLedHandle = LED_open(CONFIG_LED_RED, &ledParams);
 
     // Blink to indicate the application started up correctly
-    CUI_ledBlink(ssfCuiHndl, CONFIG_LED_RED, 3);
+    LED_startBlinking(gRedLedHandle, 500, 3);
+#endif /* POWER_MEAS */
 
     CUI_registerMenu(ssfCuiHndl, &ssfMainMenu);
 
-    CUI_statusLineResourceRequest(ssfCuiHndl, "Status", &sensorStatusLine);
+    CUI_statusLineResourceRequest(ssfCuiHndl, "Status", false, &sensorStatusLine);
 #ifdef DISPLAY_PER_STATS
-    CUI_statusLineResourceRequest(ssfCuiHndl, "Sensor PER", &perStatusLine);
+    CUI_statusLineResourceRequest(ssfCuiHndl, "Sensor PER", false, &perStatusLine);
 #endif
-#endif /* POWER_MEAS */
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+  CUI_statusLineResourceRequest(ssfCuiHndl, "BLOCK MODE TEST STATUS", false, &ssfStatusLineBlockModeTestState);
+#endif
 
     if((pNV != NULL) && (pNV->readItem != NULL))
     {
@@ -490,12 +551,17 @@ void Ssf_init(void *sem)
     OADClient_open(&OADClientParams);
 #endif //FEATURE_NATIVE_OAD
 
-#ifndef POWER_MEAS
 #if !defined(AUTO_START)
     CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine, "Waiting...");
 #else
     CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine, "Starting");
-#endif /* !POWER_MEAS */
+#endif
+
+#if defined(USE_DMM) &&  defined(BLOCK_MODE_TEST)
+    clkBlockModeTestHandle = Timer_construct(&clkBlockModeTestStruct,
+                                             Ssf_blockModeTestClockHandler,
+                                             SSF_BLOCK_MODE_ON_PERIOD, SSF_BLOCK_MODE_ON_PERIOD, false,
+                                             0);
 #endif
 }
 
@@ -511,27 +577,23 @@ void Ssf_processEvents(void)
     if(events & KEY_EVENT)
     {
         /* Right key press is a PAN disassociation request, if the device has started. */
-        if((keys == CONFIG_BTN_RIGHT) && (started == true))
+        if((keys == gRightButtonHandle) && (started == true))
         {
-            if ((Jdllc_getProvState() == Jdllc_states_joined) ||
-                (Jdllc_getProvState() == Jdllc_states_rejoined))
-                {
+            uint8_t provState = Jdllc_getProvState();
+            if ((provState == Jdllc_states_joined) || (provState== Jdllc_states_rejoined))
+            {
                 /* Send disassociation request only if you are in a network */
-#ifndef POWER_MEAS
                 CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine, "Leaving");
-#endif
                 Jdllc_sendDisassociationRequest();
-                }
+            }
         }
         /* Left key press is for starting the sensor network */
-        else if(keys == CONFIG_BTN_LEFT)
+        else if(keys == gLeftButtonHandle)
         {
 
             if(started == false)
             {
-#if !defined(POWER_MEAS)
                 CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine, "Starting");
-#endif
 
                 /* Tell the sensor to start */
                 Util_setEvent(&Sensor_events, SENSOR_START_EVT);
@@ -545,7 +607,7 @@ void Ssf_processEvents(void)
         }
 
         /* Clear the key press indication */
-        keys = 0xFF;
+        keys = NULL;
 
         /* Clear the event */
         Util_clearEvent(&events, KEY_EVENT);
@@ -563,14 +625,12 @@ void Ssf_processEvents(void)
     }
 #endif //FEATURE_NATIVE_OAD
 
-#ifndef POWER_MEAS
     if(events & SENSOR_UI_INPUT_EVT)
     {
         CUI_processMenuUpdate();
 
         Util_clearEvent(&events, SENSOR_UI_INPUT_EVT);
     }
-#endif
 
     if(events & SENSOR_SEND_COLLECTOR_IDENT_EVT)
     {
@@ -589,7 +649,6 @@ void Ssf_processEvents(void)
  */
 void Ssf_stateChangeUpdate(Jdllc_states_t state)
 {
-#if !defined(POWER_MEAS)
     if(state == Jdllc_states_initWaiting)
     {
         CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine, "Waiting");
@@ -614,7 +673,6 @@ void Ssf_stateChangeUpdate(Jdllc_states_t state)
             CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine, "Rejoined");
         }
     }
-#endif
 }
 
 /*!
@@ -628,14 +686,12 @@ void Ssf_networkUpdate(bool rejoined,
                        Llc_netInfo_t  *pParentInfo)
 {
 
-#if !defined(POWER_MEAS)
 #if (CONFIG_MAC_BEACON_ORDER != NON_BEACON_ORDER)
     char macMode[4] = "BCN\0";
 #elif (CONFIG_FH_ENABLE)
     char macMode[3] = "FH\0";
 #else
     char macMode[5] = "NBCN\0";
-#endif
 #endif
 
     /* check for valid structure pointers, ignore if not */
@@ -661,7 +717,6 @@ void Ssf_networkUpdate(bool rejoined,
 
         if(pParentInfo->fh == false)
         {
-#if !defined(POWER_MEAS)
             if(rejoined == false)
             {
                 CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine, "Joined--Mode=%s, Addr=0x%04x, PanId=0x%04x, Ch=%d",
@@ -673,12 +728,10 @@ void Ssf_networkUpdate(bool rejoined,
                                      macMode, pDevInfo->shortAddress, pDevInfo->panID, pParentInfo->channel);
             }
 
-#endif /* !POWER_MEAS */
             started = true;
         }
         else
         {
-#if !defined(POWER_MEAS)
             if(rejoined == false)
             {
                 CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine, "Joined--Mode=%s, Addr=0x%04x, PanId=0x%04x, Ch=FH",
@@ -689,14 +742,14 @@ void Ssf_networkUpdate(bool rejoined,
                 CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine, "Rejoined--Mode=%s, Addr=0x%04x, PanId=0x%04x, Ch=FH",
                                      macMode, pDevInfo->shortAddress, pDevInfo->panID, pParentInfo->channel);
             }
-#endif /* !POWER_MEAS */
 
             started = true;
         }
 
-#if !defined(POWER_MEAS)
-        CUI_ledOn(ssfCuiHndl, CONFIG_LED_RED, NULL);
-#endif
+#ifndef POWER_MEAS
+        LED_stopBlinking(gRedLedHandle);
+        LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
+#endif /* !POWER_MEAS */
         led1State = true;
     }
 }
@@ -780,10 +833,7 @@ void Ssf_clearDeviceKeyInfo( void )
         started = false;
     }
 }
-
-#endif
-
-
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 /*!
  The application calls this function to get the device
@@ -1026,6 +1076,7 @@ void Ssf_sensorReadingUpdate(Smsgs_sensorMsg_t *pMsg)
 {
 }
 
+#ifndef DMM_CENTRAL
 /*!
  Initialize the reading clock.
 
@@ -1041,6 +1092,7 @@ void Ssf_initializeReadingClock(void)
                                         false,
                                         0);
 }
+#endif /* !DMM_CENTRAL */
 
 /*!
  Set the reading clock.
@@ -1060,13 +1112,18 @@ void Ssf_setReadingClock(uint32_t readingTime)
         /* Do not sent data in other power test profiles */
         return;
     }
-#endif
+#endif /* !POWER_MEAS */
+#ifdef DMM_CENTRAL
+    // Only send data when a BLE notification is received
+    return;
+#else
     /* Setup timer */
     if ( readingTime )
     {
         Timer_setTimeout(readingClkHandle, readingTime);
         Timer_start(&readingClkStruct);
     }
+#endif
 }
 
 /*!
@@ -1205,7 +1262,7 @@ void Ssf_setPollClock(uint32_t pollTime)
     {
         return;
     }
-#endif
+#endif /* POWER_MEAS */
 #ifdef FEATURE_SECURE_COMMISSIONING
     /* Setup timer */
     if(pollTime > 0)
@@ -1225,7 +1282,7 @@ void Ssf_setPollClock(uint32_t pollTime)
         Timer_setTimeout(pollClkHandle, pollTime);
         Timer_start(&pollClkStruct);
     }
-#endif /*FEATURE_SECURE_COMMISSIONING*/
+#endif /* FEATURE_SECURE_COMMISSIONING */
 }
 
 /*!
@@ -1332,7 +1389,7 @@ void Ssf_setFHAssocClock(uint32_t fhAssocTime)
     }
 }
 
-#ifdef USE_DMM
+#if (USE_DMM) && !(DMM_CENTRAL)
 
 /*!
  Initialize the provisioning timeout clock.
@@ -1411,7 +1468,7 @@ static void processProvisioningCallback(UArg provision)
     /* Wake up the application thread when it waits for clock event */
     Semaphore_post(sensorSem);
 }
-#endif
+#endif /* USE_DMM && !DMM_CENTRAL */
 
 /*!
  Update the Frame Counter
@@ -1505,9 +1562,7 @@ bool Ssf_getFrameCounter(ApiMac_sAddr_t *pDevAddr, uint32_t *pFrameCntr)
  */
 void Ssf_displayError(uint8_t *pTxt, uint8_t code)
 {
-#ifndef POWER_MEAS
     CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine, "%s0x%02x", pTxt, code);
-#endif
 }
 
 /*!
@@ -1603,7 +1658,7 @@ void Ssf_clearAllNVItems(void)
         id.itemID = SSF_NV_DEVICE_KEY_ID;
         id.subID = 0;
         pNV->deleteItem(id);
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
     }
 #endif
@@ -1633,16 +1688,18 @@ bool Ssf_toggleLED(void)
     if(led1State == true)
     {
         led1State = false;
-#if !defined(POWER_MEAS)
-        CUI_ledOff(ssfCuiHndl, CONFIG_LED_RED);
-#endif
+#ifndef POWER_MEAS
+        LED_stopBlinking(gRedLedHandle);
+        LED_setOff(gRedLedHandle);
+#endif /* !POWER_MEAS */
     }
     else
     {
         led1State = true;
-#if !defined(POWER_MEAS)
-        CUI_ledOn(ssfCuiHndl, CONFIG_LED_RED, NULL);
-#endif
+#ifndef POWER_MEAS
+        LED_stopBlinking(gRedLedHandle);
+        LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
+#endif /* !POWER_MEAS */
     }
 
     return(led1State);
@@ -1659,8 +1716,9 @@ void Ssf_OnLED(void)
     {
         led1State = true;
 #ifndef POWER_MEAS
-        CUI_ledOn(ssfCuiHndl, CONFIG_LED_RED, NULL);
-#endif
+        LED_stopBlinking(gRedLedHandle);
+        LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
+#endif /* !POWER_MEAS */
     }
 }
 
@@ -1675,8 +1733,9 @@ void Ssf_OffLED(void)
     {
         led1State = false;
 #ifndef POWER_MEAS
-        CUI_ledOff(ssfCuiHndl, CONFIG_LED_RED);
-#endif
+        LED_stopBlinking(gRedLedHandle);
+        LED_setOff(gRedLedHandle);
+#endif /* !POWER_MEAS */
     }
 }
 
@@ -1691,6 +1750,19 @@ void Ssf_PostAppSem(void)
     Semaphore_post(sensorSem);
 }
 
+#ifdef LPSTK
+/*!
+  A callback calls this function to pend the application task semaphore.
+
+ Public function defined in ssf.h
+ */
+void Ssf_PendAppSem(void)
+{
+    /* Halt the application thread when it waits for clock event */
+    Semaphore_pend(sensorSem, BIOS_WAIT_FOREVER);
+}
+#endif
+
 #ifdef FEATURE_SECURE_COMMISSIONING
 /*!
  The application calls this function to get a passkey.
@@ -1703,6 +1775,12 @@ void Ssf_SmPasskeyEntry(SM_passkeyEntry_t passkeyAction)
     // if passkey is selected
     if(passkeyAction == SM_passkeyEntryReq)
     {
+#ifdef USE_DMM
+        RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_PASSKEY_REQUEST);
+
+        if (RemoteDisplay_getBleAuthConnectionStatus() == false)
+        {
+#endif /* USE_DMM */
         // deregister main menu when you switch to SM menu
         CUI_deRegisterMenu(ssfCuiHndl, &ssfMainMenu);
         smMenuUsed = 1;
@@ -1713,9 +1791,19 @@ void Ssf_SmPasskeyEntry(SM_passkeyEntry_t passkeyAction)
         // Open the menu itself
         // there is only 1 item in smPassKeyMenu list.
         CUI_menuNav(ssfCuiHndl, &smPassKeyMenu, 0);
+#ifdef USE_DMM
+        }
+#endif /* USE_DMM */
     }
     else
     {
+#ifdef USE_DMM
+        if(passkeyAction == SM_passkeyEntryTimeout)
+        {
+          RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_PASSKEY_TIMEOUT);
+        }
+#endif /* USE_DMM */
+
         CUI_deRegisterMenu(ssfCuiHndl, &smPassKeyMenu);
 
         // Only re-enable the main menu if it was previously disabled
@@ -1730,12 +1818,13 @@ void Ssf_SmPasskeyEntry(SM_passkeyEntry_t passkeyAction)
         CUI_menuNav(ssfCuiHndl, &ssfMainMenu, ssfMainMenu.numItems - 1);
     }
 }
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 /******************************************************************************
  Local Functions
  *****************************************************************************/
 
+#ifndef DMM_CENTRAL
 /*!
  * @brief   Reading timeout handler function.
  *
@@ -1750,17 +1839,18 @@ static void processReadingTimeoutCallback(UArg a0)
     /* Wake up the application thread when it waits for clock event */
     Semaphore_post(sensorSem);
 }
+#endif /* !DMM_CENTRAL */
 
 /*!
  * @brief       Key event handler function
  *
  * @param       keysPressed - keys that are pressed
  */
-static void processKeyChangeCallback(uint32_t _btn, Button_EventMask _events)
+static void processKeyChangeCallback(Button_Handle _buttonHandle, Button_EventMask _buttonEvents)
 {
-    if (_events & Button_EV_CLICKED)
+    if (_buttonEvents & Button_EV_CLICKED)
     {
-        keys = _btn;
+        keys = _buttonHandle;
         events |= KEY_EVENT;
 
         /* Wake up the application thread when it waits for keys event */
@@ -1852,13 +1942,10 @@ void Ssf_displayPerStats(Smsgs_msgStatsField_t* pstats)
     int per;
     int failures = pstats->macAckFailures + pstats->otherDataRequestFailures;
     per = (100000 * failures) / (pstats->msgsSent + failures);
-#ifndef POWER_MEAS
     CUI_statusLinePrintf(ssfCuiHndl, perStatusLine, "%d.%03d%%", (per / 1000), (per % 1000));
-#endif
 }
 #endif /* DISPLAY_PER_STATS */
 
-#ifndef POWER_MEAS
 /**
  *  @brief Callback to be called when the UI sets PAN ID.
  */
@@ -2024,6 +2111,30 @@ static void setPanIdAction(const char _input, char* _pLines[3], CUI_cursorInfo_t
   }
 }
 
+/*!
+ * @brief       Validate and handle errors in channel mask entered through CUI
+ *
+ * @param       _chanMask - channel mask updated with user input
+ * @param       byteIdx   - index of modified byte
+ */
+static void validateChMask(uint8_t *_chanMask, uint8_t byteIdx)
+{
+    // Verify user input by comparing against valid channel mask
+    uint8_t validChannelByte = _chanMask[byteIdx] & validChannelMask[byteIdx];
+    if (validChannelByte != _chanMask[byteIdx])
+    {
+        CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine,
+                             "Invalid input. Only updated with supported channels");
+
+        // Only accept inputs that represent supported channels
+        _chanMask[byteIdx] = validChannelByte;
+    }
+    else
+    {
+        CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine, "");
+    }
+}
+
 /**
  *  @brief Callback to be called when the UI sets Channel Mask.
  */
@@ -2134,6 +2245,10 @@ static void setChMaskAction(const char _input, char* _pLines[3], CUI_cursorInfo_
                     // Next, use the input to or it with the existing side.
                     channelMask[byteIdx] |= (uint32_t)(strtol(tmpInput, NULL, 16));
                 }
+
+                // Verify and correct user input
+                validateChMask(channelMask, byteIdx);
+
                 cursor.col = moveCursorRight(cursor.col, 1, 50, 1);
             }
         }
@@ -2272,6 +2387,10 @@ static void setAsyncChMaskAction(const char _input, char* _pLines[3], CUI_cursor
                 // strtol will convert from hex ascii to hex integers
                 channelMask[byteIdx] |= (uint32_t)(strtol(tmpInput, NULL, 16));
             }
+
+            // Verify and correct user input
+            validateChMask(channelMask, byteIdx);
+
             cursor.col = moveCursorRight(cursor.col, 1, 50, 1);
         }
 
@@ -2561,7 +2680,7 @@ static void setSmPassKeyAction(const char _input, char* _pLines[3], CUI_cursorIn
             uint32_t passkeyValue = atoi(passkeyASCII);
             //Set passkey in SM
             SM_setPasskey(passkeyValue);
-
+            strcpy(passkeyASCII, "");
             break;
         }
         // Show the value of this screen w/o making changes
@@ -2613,7 +2732,7 @@ static void setSmPassKeyAction(const char _input, char* _pLines[3], CUI_cursorIn
         _pCurInfo->col = cursor.col+1;
     }
 }
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 /**
  *  @brief Callback to be called when the UI associates.
@@ -2639,7 +2758,19 @@ static void disassocAction(int32_t menuEntryInex)
     {
         // Only send the disassociation if you're in the network.
         CUI_statusLinePrintf(ssfCuiHndl, sensorStatusLine, "Leaving");
+
+#ifdef FEATURE_SECURE_COMMISSIONING
+        if (SM_Current_State == SM_CM_InProgress)
+        {
+          SM_stopCMProcess();
+        }
+        else
+        {
+          Jdllc_sendDisassociationRequest();
+        }
+#else
         Jdllc_sendDisassociationRequest();
+#endif /* FEATURE_SECURE_COMMISSIONING */
     }
 }
 
@@ -2688,4 +2819,178 @@ static void uintToString (uint32_t value, char * str, uint8_t base, uint8_t num_
     }
   }
 }
+
+
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+/*********************************************************************
+ * @fn      Ssf_blockModeTestClockHandler
+ *
+ * @brief   Handler function for clock timeouts.
+ *
+ * @param   arg - event type
+ *
+ * @return  None.
+ */
+static void Ssf_blockModeTestClockHandler(UArg arg)
+{
+  // stop the timer
+  Timer_stop(&clkBlockModeTestStruct);
+
+  if (DMMPolicy_getBlockModeStatus(DMMPolicy_StackRole_154Sensor))
+  {
+    // update the DMM Block Mode status
+    DMMPolicy_setBlockModeOff(DMMPolicy_StackRole_154Sensor);
+
+    // restart the timer with new timeout value
+    Timer_setTimeout(clkBlockModeTestHandle, SSF_BLOCK_MODE_OFF_PERIOD);
+    Timer_start(&clkBlockModeTestStruct);
+  }
+  else
+  {
+    // update the DMM Block Mode status
+    DMMPolicy_setBlockModeOn(DMMPolicy_StackRole_154Sensor);
+
+    // restart the timer with new timeout value
+    Timer_setTimeout(clkBlockModeTestHandle, SSF_BLOCK_MODE_ON_PERIOD);
+    Timer_start(&clkBlockModeTestStruct);
+  }
+}
+
+/*********************************************************************
+ * @fn      Ssf_blockModeTestOn
+ *
+ * @brief   Turn the periodic block mode on for BLE.
+ *
+ * @param   menuEntryIndex - index of CUI menu option
+ */
+static void Ssf_blockModeTestOn(int32_t menuEntryIndex)
+{
+  if (!Timer_isActive(&clkBlockModeTestStruct))
+  {
+    Timer_setTimeout(clkBlockModeTestHandle, SSF_BLOCK_MODE_ON_PERIOD);
+    Timer_start(&clkBlockModeTestStruct);
+    DMMPolicy_setBlockModeOn(DMMPolicy_StackRole_154Sensor);
+    CUI_statusLinePrintf(ssfCuiHndl, ssfStatusLineBlockModeTestState, "Enabled");
+  }
+}
+
+/*********************************************************************
+ * @fn      Ssf_blockModeTestOff
+ *
+ * @brief   Turn the periodic block mode off for BLE.
+ *
+ * @param   menuEntryIndex - index of CUI menu option
+ */
+static void Ssf_blockModeTestOff(int32_t menuEntryIndex)
+{
+  if (Timer_isActive(&clkBlockModeTestStruct))
+  {
+      Timer_stop(&clkBlockModeTestStruct);
+  }
+  DMMPolicy_setBlockModeOff(DMMPolicy_StackRole_154Sensor);
+  CUI_statusLinePrintf(ssfCuiHndl, ssfStatusLineBlockModeTestState, "Disabled");
+}
+
+
+/*********************************************************************
+ * @fn      Ssf_setBlockModeOnPeriodAction
+ *
+ * @brief   Handle a user input to update the Block Mode On Period value
+ *
+ * @param   _input - input character
+ * @param   _pLines - action menu title
+ * @param   _pCurInfo - current cursor info
+ */
+static void Ssf_setBlockModeOnPeriodAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo)
+{
+  Ssf_setBlockModePeriodUiAction(&SSF_BLOCK_MODE_ON_PERIOD, _input, _pLines, _pCurInfo);
+}
+
+/*********************************************************************
+ * @fn      Ssf_setBlockModeOffPeriodAction
+ *
+ * @brief   Handle a user input to update the Block Mode Off Period value
+ *
+ * @param   _input - input character
+ * @param   _pLines - action menu title
+ * @param   _pCurInfo - current cursor info
+ */
+static void Ssf_setBlockModeOffPeriodAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo)
+{
+  Ssf_setBlockModePeriodUiAction(&SSF_BLOCK_MODE_OFF_PERIOD, _input, _pLines, _pCurInfo);
+}
+
+/*********************************************************************
+ * @fn      Ssf_setBlockModePeriodUiAction
+ *
+ * @brief   Handle a user input to update the Block Mode Off Period value
+ *
+ * @param   blockModePeriod - Block Mode Period
+ * @param   _input - input character
+ * @param   _pLines - action menu title
+ * @param   _pCurInfo - current cursor info
+ */
+static void Ssf_setBlockModePeriodUiAction(uint16_t* blockModePeriod, const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo)
+{
+  static char periodValArr[4] = {};
+  static CUI_cursorInfo_t cursor = {0, 4};
+
+  switch (_input) {
+    case CUI_ITEM_INTERCEPT_START:
+    {
+      sprintf(periodValArr, "%04d", *blockModePeriod);
+      break;
+    }
+    // Submit the final modified value
+    case CUI_ITEM_INTERCEPT_STOP:
+    {
+      *blockModePeriod = atoi(periodValArr);
+      // Reset the local cursor info
+      cursor.col = 4;
+      break;
+    }
+    // Move the cursor to the left
+    case CUI_INPUT_LEFT:
+    {
+      cursor.col = moveCursorLeft(cursor.col, 4, 7, 0);
+      break;
+    }
+    // Move the cursor to the right
+    case CUI_INPUT_RIGHT:
+    {
+      cursor.col = moveCursorRight(cursor.col, 4, 7, 0);
+      break;
+    }
+    default:
+    {
+      // is the input a number
+      if(CUI_IS_INPUT_NUM(_input))
+      {
+        periodValArr[cursor.col - 4] = _input;
+        cursor.col = moveCursorRight(cursor.col, 4, 7, 0);
+      }
+      else
+      {
+        sprintf(periodValArr, "%04d", *blockModePeriod);
+      }
+    }
+  }
+
+  snprintf(_pLines[0], 16, "    %04s      ", periodValArr);
+
+  if (_input != CUI_ITEM_PREVIEW)
+  {
+    if (blockModePeriod == &SSF_BLOCK_MODE_ON_PERIOD)
+    {
+      strcpy(_pLines[2], "BM ON Period (ms)");
+    }
+    else if (blockModePeriod == &SSF_BLOCK_MODE_OFF_PERIOD)
+    {
+      strcpy(_pLines[2], "BM OFF Period (ms)");
+    }
+    _pCurInfo->row = 1;
+    _pCurInfo->col = cursor.col+1;
+  }
+}
+
 #endif

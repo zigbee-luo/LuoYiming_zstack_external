@@ -70,7 +70,8 @@
 #include "gpd_sw.h"
 
 #include "ti_drivers_config.h"
-#include "cui.h"
+#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/apps/LED.h>
 #include <ti/sysbios/knl/Semaphore.h>
 #include "api_mac.h"
 #include "mac_util.h"
@@ -110,21 +111,24 @@ extern uint8_t _macTaskId;
 static Semaphore_Handle appSemHandle;
 
 // Key press parameters
-static uint8_t keys = 0xFF;
+static Button_Handle keys = NULL;
 
 // Task pending events
 static uint16_t events = 0;
-static CUI_clientHandle_t gCuiHandle;
+static Button_Handle gRightButtonHandle;
+static Button_Handle gLeftButtonHandle;
+static LED_Handle gGreenLedHandle;
+static LED_Handle gRedLedHandle;
 /*********************************************************************
  * LOCAL FUNCTIONS
  */
 static void     gpdSampleSw_initialization(void);
-static void     gpdSampleSw_changeKeyCallback(uint32_t _btn, Button_EventMask _buttonEvents);
-static void     gpdSampleSw_processKey(uint32_t keysPressed);
+static void     gpdSampleSw_changeKeyCallback(Button_Handle _buttonHandle, Button_EventMask _buttonEvents);
+static void     gpdSampleSw_processKey(Button_Handle keysPressed);
 static uint16_t gpdSampleSw_process_loop( void );
 static void     gpdSampleSw_Init(void);
 static void     dataCnfCB(ApiMac_mcpsDataCnf_t *pDataCnf);
-static uint8_t  Initialize_CUI(void);
+static Button_Handle  Initialize_UI(void);
 /*********************************************************************
  * CONSTANTS
  */
@@ -222,7 +226,7 @@ void sampleApp_task(NVINTF_nvFuncts_t *pfnNV)
 static void gpdSampleSw_initialization(void)
 {
     /* Initialize keys */
-    keys = Initialize_CUI();
+    keys = Initialize_UI();
 
     //Initialize stack
     gpdSampleSw_Init();
@@ -288,7 +292,7 @@ static uint16_t gpdSampleSw_process_loop( void )
         {
             // Process Key Presses
             gpdSampleSw_processKey(keys);
-            keys = 0xFF;
+            keys = NULL;
             events &= ~SAMPLEAPP_KEY_EVT;
         }
 
@@ -305,11 +309,11 @@ static uint16_t gpdSampleSw_process_loop( void )
  *
  * @return  none
  */
-static void gpdSampleSw_changeKeyCallback(uint32_t _btn, Button_EventMask _buttonEvents)
+static void gpdSampleSw_changeKeyCallback(Button_Handle _buttonHandle, Button_EventMask _buttonEvents)
 {
     if (_buttonEvents & Button_EV_CLICKED)
     {
-        keys = _btn;
+        keys = _buttonHandle;
         /* Start the device */
         Util_setEvent(&events, SAMPLEAPP_KEY_EVT);
 
@@ -317,16 +321,16 @@ static void gpdSampleSw_changeKeyCallback(uint32_t _btn, Button_EventMask _butto
     }
 }
 
-static void gpdSampleSw_processKey(uint32_t keysPressed)
+static void gpdSampleSw_processKey(Button_Handle keysPressed)
 {
 #ifdef BATTERYLESS_DEVICE
     //Button 1
-    if(keysPressed == CONFIG_BTN_LEFT)
+    if(keysPressed == gLeftButtonHandle)
     {
         gpdfReq.gpdCmdID = GP_COMMAND_ON;
     }
     //Button 2
-    else if (keysPressed == CONFIG_BTN_RIGHT)
+    else if (keysPressed == gRightButtonHandle)
     {
         gpdfReq.gpdCmdID = GP_COMMAND_OFF;
     }
@@ -337,18 +341,20 @@ static void gpdSampleSw_processKey(uint32_t keysPressed)
     }
 #else
     //Button 1
-    if(keysPressed == CONFIG_BTN_LEFT)
+    if(keysPressed == gLeftButtonHandle)
     {
         gpdfReq.gpdCmdID = GP_COMMAND_ON;
     }
     //Button 2
-    if(keysPressed == CONFIG_BTN_RIGHT)
+    if(keysPressed == gRightButtonHandle)
     {
         gpdfReq.gpdCmdID = GP_COMMAND_OFF;
     }
     //clear the states
-    CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
-    CUI_ledOff(gCuiHandle, CONFIG_LED_GREEN);
+    LED_stopBlinking(gGreenLedHandle);
+    LED_stopBlinking(gRedLedHandle);
+    LED_setOff(gGreenLedHandle);
+    LED_setOff(gRedLedHandle);
 #endif
 
     //Send the frame
@@ -370,12 +376,13 @@ static void dataCnfCB(ApiMac_mcpsDataCnf_t *pDataCnf)
         if(duplicates < frameDuplicates)
         {
             //Keep blinking to indicate fail to send all the duplicates
-            CUI_ledBlink(gCuiHandle, CONFIG_LED_RED, CUI_BLINK_CONTINUOUS);
+            LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
         }
         else
         {
             //Fail and not a single frame got send
-            CUI_ledOn(gCuiHandle, CONFIG_LED_RED, NULL);
+            LED_stopBlinking(gRedLedHandle);
+            LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
         }
         while(1)
         {
@@ -408,7 +415,8 @@ static void dataCnfCB(ApiMac_mcpsDataCnf_t *pDataCnf)
       else
       {
         //Turn on Green to indicate end of operation with Success!
-          CUI_ledOn(gCuiHandle, CONFIG_LED_GREEN, NULL);
+        LED_stopBlinking(gGreenLedHandle);
+        LED_setOn(gGreenLedHandle, LED_BRIGHTNESS_MAX);
 
         while(1)
         {
@@ -436,12 +444,13 @@ static void dataCnfCB(ApiMac_mcpsDataCnf_t *pDataCnf)
         if(duplicates < frameDuplicates)
         {
             //Keep blinking to indicate fail to send all the duplicates
-            CUI_ledBlink(gCuiHandle, CONFIG_LED_RED, CUI_BLINK_CONTINUOUS);
+            LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
         }
         else
         {
             //Fail and not a single frame got send
-            CUI_ledOn(gCuiHandle, CONFIG_LED_RED, NULL);
+            LED_stopBlinking(gRedLedHandle);
+            LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
         }
         OsalPort_free(gpdfDuplicate.msdu.p);
         duplicates = frameDuplicates;
@@ -463,7 +472,8 @@ static void dataCnfCB(ApiMac_mcpsDataCnf_t *pDataCnf)
             ApiMac_mlmeSetReqBool(ApiMac_attribute_RxOnWhenIdle, FALSE);
 
             //Solid Green due to successful transmission
-            CUI_ledOn(gCuiHandle, CONFIG_LED_GREEN, NULL);
+            LED_stopBlinking(gGreenLedHandle);
+            LED_setOn(gGreenLedHandle, LED_BRIGHTNESS_MAX);
 
             OsalPort_free(gpdfDuplicate.msdu.p);
             duplicates = frameDuplicates;
@@ -474,84 +484,47 @@ static void dataCnfCB(ApiMac_mcpsDataCnf_t *pDataCnf)
 
 
 /*******************************************************************************
- * @fn          Initialize_CUI
+ * @fn          Initialize_UI
  *
- * @brief       Initialize the Common User Interface
+ * @brief       Initialize the User Interface
  *
  * @param       none
  *
  * @return      none
  */
-static uint8_t Initialize_CUI(void)
+static Button_Handle Initialize_UI(void)
 {
-    CUI_params_t params;
-    CUI_paramsInit(&params);
-    uint8_t key = 0;
-
-    //Do not initialize the UART, GPD do not use APP menues
-    params.manageUart = FALSE;
-
-    CUI_retVal_t retVal = CUI_init(&params);
-    if (CUI_SUCCESS != retVal)
-        while(1){};
-
-    CUI_clientParams_t clientParams;
-    CUI_clientParamsInit(&clientParams);
-
-    strncpy(clientParams.clientName, "GPD Switch", MAX_CLIENT_NAME_LEN);
-
-    gCuiHandle = CUI_clientOpen(&clientParams);
-    if (gCuiHandle == NULL)
-        while(1){};
-
-
     /* Initialize btns */
-    CUI_btnRequest_t btnRequest;
-    btnRequest.index = CONFIG_BTN_RIGHT;
-    btnRequest.appCB = NULL;
-
-    //Initialize left button to poll it
-    retVal = CUI_btnResourceRequest(gCuiHandle, &btnRequest);
-    if (CUI_SUCCESS != retVal)
-        while(1){};
-
-    //Initialize right buttonto poll it
-    btnRequest.index = CONFIG_BTN_LEFT;
-    retVal = CUI_btnResourceRequest(gCuiHandle, &btnRequest);
-    if (CUI_SUCCESS != retVal)
-        while(1){};
+    Button_Handle key = NULL;
+    Button_Params bparams;
+    Button_Params_init(&bparams);
+    gLeftButtonHandle = Button_open(CONFIG_BTN_LEFT, NULL, &bparams);
+    // Open Right button without appCallBack
+    gRightButtonHandle = Button_open(CONFIG_BTN_RIGHT, NULL, &bparams);
 
 #ifdef BATTERYLESS_DEVICE
-    bool btnState = false;
-    retVal = CUI_btnGetValue(gCuiHandle, CONFIG_BTN_RIGHT, &btnState);
-    if(!btnState)
+    if (!GPIO_read(((Button_HWAttrs*)gRightButtonHandle->hwAttrs)->gpioIndex))
     {
         key = CONFIG_BTN_RIGHT;
     }
     else
     {
-        retVal = CUI_btnGetValue(gCuiHandle, CONFIG_BTN_LEFT, &btnState);
-        if(!btnState)
+        if (!GPIO_read(((Button_HWAttrs*)gLeftButtonHandle->hwAttrs)->gpioIndex))
         {
             key = CONFIG_BTN_RIGHT;
         }
     }
 #endif
 
-    CUI_btnSetCb(gCuiHandle, CONFIG_BTN_RIGHT, gpdSampleSw_changeKeyCallback);
-    CUI_btnSetCb(gCuiHandle, CONFIG_BTN_LEFT, gpdSampleSw_changeKeyCallback);
+    // Set button callback
+    Button_setCallback(gRightButtonHandle, gpdSampleSw_changeKeyCallback);
+    Button_setCallback(gLeftButtonHandle, gpdSampleSw_changeKeyCallback);
 
-    //Request the LEDs for App
     /* Initialize the LEDS */
-    CUI_ledRequest_t ledRequest;
-    ledRequest.index = CONFIG_LED_RED;
-
-    retVal = CUI_ledResourceRequest(gCuiHandle, &ledRequest);
-
-    ledRequest.index = CONFIG_LED_GREEN;
-
-    retVal = CUI_ledResourceRequest(gCuiHandle, &ledRequest);
-    (void) retVal;
+    LED_Params ledParams;
+    LED_Params_init(&ledParams);
+    gGreenLedHandle = LED_open(CONFIG_LED_GREEN, &ledParams);
+    gRedLedHandle = LED_open(CONFIG_LED_RED, &ledParams);
 
     return key;
 }

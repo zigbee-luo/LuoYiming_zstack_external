@@ -274,11 +274,14 @@
 
 #include <xdc/runtime/System.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/apps/LED.h>
 #include "util_timer.h"
 #include "ti_drivers_config.h"
 #include "cui.h"
 #include <stdio.h>
 #include <string.h>
+#include "mac_user_config.h"
 
 #ifdef BDB_TL_TARGET
   #include "bdb_touchlink_target.h"
@@ -366,13 +369,23 @@ static bool uiActionProcessConfigureBdbModes(const char _input, uint8_t _mode);
 
 static void zclSampleApps_initializeClocks(void);
 static void ui_ProcessUARTEvent(void);
-static CUI_clientHandle_t UI_InitCUI(CONST char* pAppStr, CUI_btnPressCB_t appChangeKeyCB, uiAppFNResetCB_t AppFNResetCB);
+static CUI_clientHandle_t UI_InitCUI(CONST char* pAppStr);
 
-static void uiRaiseBdbLineUpdateEvt(UArg a0);
-static void uiRaiseNwkLineUpdateEvt(UArg a0);
+static void uiRaiseBdbNwkLineUpdateEvt(UArg a0);
 
 #if !defined (DISABLE_GREENPOWER_BASIC_PROXY) && (ZG_BUILD_RTR_TYPE)
 static void zclSampleAppsUI_ProcessGPPUpdateTimeoutCallback(UArg a0);
+#endif
+
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+static void zclSampleApps_blockModeTestClockHandler(UArg arg);
+static void zclSampleApps_blockModeTestOn(int32_t menuEntryIndex);
+static void zclSampleApps_blockModeTestOff(int32_t menuEntryIndex);
+static void zclSampleApps_setBlockModeOnPeriodAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
+static void zclSampleApps_setBlockModeOffPeriodAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
+static void zclSampleApps_setBlockModePeriodUiAction(uint16_t* blockModePeriod, const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
+static uint8_t moveCursorLeft(uint8_t col, uint8_t left_boundary, uint8_t right_boundary, uint8_t skip_space);
+static uint8_t moveCursorRight(uint8_t col, uint8_t left_boundary, uint8_t right_boundary, uint8_t skip_space);
 #endif
 
 /*********************************************************************
@@ -450,13 +463,32 @@ CUI_SUB_MENU(zclMenuApp, "<    APP MENU    >", SAMPLE_APP_MENUS, zclMenuMain)
     CUI_APP_MENU
 CUI_SUB_MENU_END
 
+// Menu: zclMenuBlockModeTest
+// Num Items: 4
+// Upper: zclMenuMain
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+CUI_SUB_MENU(zclMenuBlockModeTest,"< BLOCK MODE TEST>", 4, zclMenuMain)
+    CUI_MENU_ITEM_ACTION(         "<   BM TEST ON   >", zclSampleApps_blockModeTestOn)
+    CUI_MENU_ITEM_ACTION(         "<   BM TEST OFF  >", zclSampleApps_blockModeTestOff)
+    CUI_MENU_ITEM_INT_ACTION(     "<   ON  VAL (ms) >", zclSampleApps_setBlockModeOnPeriodAction)
+    CUI_MENU_ITEM_INT_ACTION(     "<   OFF VAL (ms) >", zclSampleApps_setBlockModeOffPeriodAction)
+CUI_SUB_MENU_END
+#endif
+
 // Menu: zclMenuMain
 // Num Items: 4
 // Process Fn: ui_ProcessUARTEvent
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+CUI_MAIN_MENU(zclMenuMain, APP_TITLE_STR, 5, (CUI_pFnClientMenuUpdate_t) ui_ProcessUARTEvent)
+#else
 CUI_MAIN_MENU(zclMenuMain, APP_TITLE_STR, 4, (CUI_pFnClientMenuUpdate_t) ui_ProcessUARTEvent)
+#endif
     CUI_MENU_ITEM_SUBMENU(zclMenuConfig)
     CUI_MENU_ITEM_ACTION("<   COMMISSION   >", (CUI_pFnAction_t) uiActionStartComissioning)
     CUI_MENU_ITEM_SUBMENU(zclMenuApp)
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+    CUI_MENU_ITEM_SUBMENU(zclMenuBlockModeTest)
+#endif
     CUI_MENU_ITEM_INT_ACTION("<  RESET TO FN   >", (CUI_pFnIntercept_t) uiActionResetToFactoryNew)
 CUI_MAIN_MENU_END
 
@@ -471,6 +503,11 @@ static uint32_t gBindInfoLine;
 #if !defined (DISABLE_GREENPOWER_BASIC_PROXY) && (ZG_BUILD_RTR_TYPE)
 static uint32_t gGpInfoLine;
 #endif
+
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+static uint32_t gBlockModeTestInfoLine;
+#endif
+
 /*********************************************************************
  * GLOBAL VARIABLES
  */
@@ -493,6 +530,9 @@ static uint16_t gppCommissioningTimeout = 0;
 static uiAppFNResetCB_t uiAppFNResetCB = NULL;
 
 static CUI_clientHandle_t gCuiHandle;
+static LED_Handle gGreenLedHandle;
+static Button_Handle gRightButtonHandle;
+static Button_Handle gLeftButtonHandle;
 
 static uint8_t FBMatchesFound = 0;
 static bdbBindNotificationData_t  lastBindNotification;
@@ -500,6 +540,7 @@ static bdbBindNotificationData_t  lastBindNotification;
 static bool uiCommissioningIsInitializing = FALSE;
 
 static uint16_t *gpBdbCommisioningModes;
+static uiAppProcessKeyCB_t gpAppKeyCB;
 
 static char * uiCommissioningStateStr = "--";
 static char * uiCommissioningNetworkConnectionStr = NULL;
@@ -511,8 +552,7 @@ CONST  uint8_t defaultuiInstallCodeAddr[] = UI_INSTALL_CODE_ADDR_DEFAULT;
 static uint8_t uiInstallCodeAddr[Z_EXTADDR_LEN] = UI_INSTALL_CODE_ADDR_DEFAULT;
 #endif
 
-static Clock_Struct uiNwkLineUpdateClk;
-static Clock_Struct uiBdbLineUpdateClk;
+static Clock_Struct uiBdbNwkLineUpdateClk;
 static Semaphore_Handle uiAppSem;
 static uint8_t  uiAppEntity;
 
@@ -523,10 +563,20 @@ static Clock_Struct uiGppClkStruct;
 static Clock_Handle uiGppClkHandle;
 #endif
 
-static uint16_t events = 0;
-static uint8_t  keys;
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+static Clock_Struct clkBlockModeTestStruct;
+static Clock_Handle clkBlockModeTestHandle;
+#endif
 
-CUI_btnPressCB_t appKeyCB = NULL;
+static uint16_t events = 0;
+static Button_Handle  keys;
+
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+static uint16_t ZCL_BLOCK_MODE_ON_PERIOD  = 0x01F4;    // Default 500  ms
+static uint16_t ZCL_BLOCK_MODE_OFF_PERIOD = 0x03E8;    // Default 1000 ms
+#endif
+
+
 /*********************************************************************
  * LOCAL UTILITY FUNCTIONS
  */
@@ -800,6 +850,7 @@ static void uiActionProcessConfigurePanId(const char _input, char* _pLines[3], C
 {
   static CUI_cursorInfo_t cursor = {0, 6};
   static uint16_t panId = ZDAPP_CONFIG_PAN_ID;
+  const char tmpInput[2] = {_input, '\0'};
 
   switch (_input) {
       case CUI_ITEM_INTERCEPT_START:
@@ -867,6 +918,22 @@ static void uiActionProcessConfigurePanId(const char _input, char* _pLines[3], C
       }
       case CUI_INPUT_EXECUTE:
           break;
+      default:
+      {
+        // is input valid?
+        if(CUI_IS_INPUT_HEX(_input))
+        {
+          uint8_t shift = 4 * (9 - cursor.col);
+          uint8_t digit = strtol(tmpInput, NULL, 16);
+
+          panId &= ~((uint32_t)0xF << shift);
+          panId |= (uint32_t)digit << shift;
+
+          if (9 != cursor.col)
+            cursor.col++;
+        }
+        break;
+      }
   }
 
 
@@ -913,6 +980,7 @@ static void uiActionProcessSetInstallCodeAddress(const char _input, char* _pLine
     static bool CurrentModifiedFieldIsBigEndian;
     static CUI_cursorInfo_t cursor;
     static uint8_t index;
+    const char tmpInput[2] = {_input, '\0'};
 
     uint8_t shift;
     uint8_t digit;
@@ -995,6 +1063,29 @@ static void uiActionProcessSetInstallCodeAddress(const char _input, char* _pLine
               index = (CurrentModifiedFieldLen * 2 - 1);
             }
         break;
+        default:
+        {
+          // is input valid?
+          if(CUI_IS_INPUT_HEX(_input))
+          {
+            shift = 4 * ((CurrentModifiedFieldIsBigEndian ? index : (index + 1)) % 2);
+            bufIndex = (CurrentModifiedFieldIsBigEndian ? (index / 2) : (CurrentModifiedFieldLen - 1 - (index / 2)));
+            digit = strtol(tmpInput, NULL, 16);
+
+            pCurrentModifiedField[bufIndex] &= ~((uint32_t)0xF << shift);
+            pCurrentModifiedField[bufIndex] |= (uint32_t)digit << shift;
+
+            if (index < CurrentModifiedFieldLen * 2 - 1)
+            {
+              index++;
+            }
+            else
+            {
+              index = 0;
+            }
+          }
+          break;
+        }
     }
 
 
@@ -1038,6 +1129,7 @@ static void uiActionProcessSetInstallCode(const char _input, char* _pLines[3], C
   static bool CurrentModifiedFieldIsBigEndian;
   static CUI_cursorInfo_t cursor;
   static uint8_t index;
+  const char tmpInput[2] = {_input, '\0'};
 
   uint8_t shift;
   uint8_t digit;
@@ -1120,6 +1212,29 @@ static void uiActionProcessSetInstallCode(const char _input, char* _pLines[3], C
             index = (CurrentModifiedFieldLen * 2 - 1);
           }
       break;
+      default:
+      {
+        // is input valid?
+        if(CUI_IS_INPUT_HEX(_input))
+        {
+          shift = 4 * ((CurrentModifiedFieldIsBigEndian ? (index + 1) : index ) % 2);
+          bufIndex = (CurrentModifiedFieldIsBigEndian ? (index / 2) : (CurrentModifiedFieldLen - 1 - (index / 2)));
+          digit = strtol(tmpInput, NULL, 16);
+
+          pCurrentModifiedField[bufIndex] &= ~((uint32_t)0xF << shift);
+          pCurrentModifiedField[bufIndex] |= (uint32_t)digit << shift;
+
+          if (index < CurrentModifiedFieldLen * 2 - 1)
+          {
+            index++;
+          }
+          else
+          {
+            index = 0;
+          }
+        }
+        break;
+      }
   }
 
 
@@ -1907,7 +2022,6 @@ void UI_UpdateBdbStatusLine(bdbCommissioningModeMsg_t *bdbCommissioningModeMsg)
 
 #ifdef BDB_TL_TARGET
       uint32_t temp_u32;
-      uint8_t  tl_target_running = FALSE;
       zstack_bdbTouchLinkTargetGetTimerRsp_t zstack_bdbTouchLinkTargetGetTimerRsp;
 
       Zstackapi_bdbTouchLinkTargetGetTimerReq(uiAppEntity, &zstack_bdbTouchLinkTargetGetTimerRsp);
@@ -1926,7 +2040,6 @@ void UI_UpdateBdbStatusLine(bdbCommissioningModeMsg_t *bdbCommissioningModeMsg)
       else
       {
         strcat(&lineFormat[strlen(lineFormat)], "Enabled for %05ds");
-        tl_target_running = TRUE;
 
         temp_u32 = temp_u32 / 1000 + ((temp_u32 % 1000) > 0 ? 1 : 0);
       }
@@ -1936,31 +2049,26 @@ void UI_UpdateBdbStatusLine(bdbCommissioningModeMsg_t *bdbCommissioningModeMsg)
                                                  zstack_bdbGetFBInitiatorStatusRsp.RemainingTime,
                                                  FBMatchesFound,
                                                  temp_u32);
-
-      if (identifyTime || zstack_bdbGetFBInitiatorStatusRsp.RemainingTime
-                || permitJoinDuration || tl_target_running)
-      {
-        if(Timer_isActive(&uiBdbLineUpdateClk) != true)
-        {
-           Timer_start(&uiBdbLineUpdateClk);
-        }
-      }
-
 #else
 
     CUI_retVal_t retVal = CUI_statusLinePrintf(gCuiHandle, gBdbInfoLine,
                                                lineFormat, identifyTime,
                                                zstack_bdbGetFBInitiatorStatusRsp.RemainingTime,
                                                FBMatchesFound);
-
-    if (identifyTime || zstack_bdbGetFBInitiatorStatusRsp.RemainingTime
-          || permitJoinDuration) {
-      if(Timer_isActive(&uiBdbLineUpdateClk) != true)
-      {
-          Timer_start(&uiBdbLineUpdateClk);
-      }
-    }
 #endif
+}
+
+static void UI_processKey(Button_Handle _buttonHandle,
+                                   Button_EventMask _buttonEvents)
+{
+    if((_buttonHandle == gLeftButtonHandle) && gpAppKeyCB)
+    {
+        gpAppKeyCB(CONFIG_BTN_LEFT, _buttonEvents);
+    }
+    if((_buttonHandle == gRightButtonHandle) && gpAppKeyCB)
+    {
+        gpAppKeyCB(CONFIG_BTN_RIGHT, _buttonEvents);
+    }
 }
 
 
@@ -1976,18 +2084,10 @@ void UI_UpdateBdbStatusLine(bdbCommissioningModeMsg_t *bdbCommissioningModeMsg)
  */
 static void zclSampleApps_initializeClocks(void)
 {
-    // Construct the timer to update the Nwk Info Line
-    Clock_Handle uiNwkLineUpdate = Timer_construct(
-    &uiNwkLineUpdateClk,
-    uiRaiseNwkLineUpdateEvt,
-    UI_AUTO_REFRESH_INTERVAL_INFO_LINE,
-    0,
-    true,
-    0);
-    // Construct the timer to update the Bdb Info Line
-    Clock_Handle uiBdbLineUpdate = Timer_construct(
-    &uiBdbLineUpdateClk,
-    uiRaiseBdbLineUpdateEvt,
+    // Construct the timer to update the Bdb and Nwk Info Line
+    Clock_Handle uiBdbNwkLineUpdate = Timer_construct(
+    &uiBdbNwkLineUpdateClk,
+    uiRaiseBdbNwkLineUpdateEvt,
     UI_AUTO_REFRESH_INTERVAL_INFO_LINE,
     0,
     true,
@@ -2004,6 +2104,12 @@ static void zclSampleApps_initializeClocks(void)
     0);
 #endif
 
+#if defined(USE_DMM) &&  defined(BLOCK_MODE_TEST)
+    clkBlockModeTestHandle = Timer_construct(&clkBlockModeTestStruct,
+                                             zclSampleApps_blockModeTestClockHandler,
+                                             ZCL_BLOCK_MODE_ON_PERIOD, ZCL_BLOCK_MODE_ON_PERIOD, false,
+                                             0);
+#endif
 }
 
 
@@ -2016,18 +2122,18 @@ static void zclSampleApps_initializeClocks(void)
  *
  * @return  none
  */
-static void uiRaiseNwkLineUpdateEvt(UArg a0)
+static void uiRaiseBdbNwkLineUpdateEvt(UArg a0)
 {
     (void)a0; // Parameter is not used
 
     //Assign the UI event
-    events |= SAMPLEAPP_UI_NWK_LINE_UPDATE_EVT;
+    events |= SAMPLEAPP_UI_BDB_NWK_LINE_UPDATE_EVT;
 
     // Wake up the application thread when it waits for clock event
     Semaphore_post(uiAppSem);
 
-    if(Timer_isActive(&uiNwkLineUpdateClk) != true) {
-        Timer_start(&uiNwkLineUpdateClk);
+    if(Timer_isActive(&uiBdbNwkLineUpdateClk) != true) {
+        Timer_start(&uiBdbNwkLineUpdateClk);
     }
 }
 
@@ -2054,26 +2160,6 @@ static void zclSampleAppsUI_ProcessGPPUpdateTimeoutCallback(UArg a0)
 }
 #endif
 
-/*******************************************************************************
- * @fn      uiRaiseBdbLineUpdateEvt
- *
- * @brief   Timeout handler function
- *
- * @param   a0 - ignored
- *
- * @return  none
- */
-static void uiRaiseBdbLineUpdateEvt(UArg a0)
-{
-    (void)a0; // Parameter is not used
-
-    //Assign the UI event
-    events |= SAMPLEAPP_UI_BDB_LINE_UPDATE_EVT;
-
-    // Wake up the application thread when it waits for clock event
-    Semaphore_post(uiAppSem);
-}
-
 /* new app callback created to set the new event */
 static void ui_ProcessUARTEvent(void)
 {
@@ -2092,11 +2178,11 @@ static void ui_ProcessUARTEvent(void)
  *
  * @return  none
  */
-static void zclSampleAppsUI_changeKeyCallback(uint32_t _btn, Button_EventMask _buttonEvents)
+static void zclSampleAppsUI_changeKeyCallback(Button_Handle _buttonHandle, Button_EventMask _buttonEvents)
 {
     if (_buttonEvents & Button_EV_CLICKED)
     {
-        keys = _btn;
+        keys = _buttonHandle;
 
         events |= SAMPLEAPP_KEY_EVT;
 
@@ -2124,62 +2210,92 @@ static void zclSampleAppsUI_changeKeyCallback(uint32_t _btn, Button_EventMask _b
  */
 CUI_clientHandle_t UI_Init(uint8_t  zclSampleApp_Entity, uint32_t *zclSampleAppEvents, Semaphore_Handle zclSampleAppSem,
               uint16_t *ui_IdentifyTimeAttribute_value, uint16_t *defaultBdbCommisioningModes,
-              CONST char *pAppStr, CUI_btnPressCB_t zclSampleApp_changeKeyCallback, uiAppFNResetCB_t _uiAppFNResetCB)
+              CONST char *pAppStr, uiAppProcessKeyCB_t zclSampleApp_processKey, uiAppFNResetCB_t _uiAppFNResetCB)
 {
   uiAppEntity = zclSampleApp_Entity;
   uiAppSem = zclSampleAppSem;
   pUiIdentifyTimeAttribute = ui_IdentifyTimeAttribute_value;
+  gpAppKeyCB = zclSampleApp_processKey;
   uiAppFNResetCB = _uiAppFNResetCB;
   gpBdbCommisioningModes = defaultBdbCommisioningModes;
 
-  appKeyCB = zclSampleApp_changeKeyCallback;
+  /* Initialize btns */
+  Button_Params bparams;
+  Button_Params_init(&bparams);
+  gLeftButtonHandle = Button_open(CONFIG_BTN_LEFT, NULL, &bparams);
+  // Open Right button without appCallBack
+  gRightButtonHandle = Button_open(CONFIG_BTN_RIGHT, NULL, &bparams);
 
-  gCuiHandle = UI_InitCUI(pAppStr, zclSampleAppsUI_changeKeyCallback, uiAppFNResetCB);
+  // Read button state
+  if (!GPIO_read(((Button_HWAttrs*)gRightButtonHandle->hwAttrs)->gpioIndex))
+  {
+      uiAppFNResetCB();
+      Zstackapi_bdbResetLocalActionReq(uiAppEntity);
+  }
+
+  // Set button callback
+  Button_setCallback(gRightButtonHandle, zclSampleAppsUI_changeKeyCallback);
+
+#if defined (OTA_CLIENT_CC26XX)
+  // Read button state
+  if (!GPIO_read(((Button_HWAttrs*)gLeftButtonHandle->hwAttrs)->gpioIndex))
+  {
+      //Return to FN image
+      OTA_loadExtImage(ST_FULL_FACTORY_IMAGE);
+  }
+#endif
+
+  // Set button callback
+  Button_setCallback(gLeftButtonHandle, zclSampleAppsUI_changeKeyCallback);
+
+  gCuiHandle = UI_InitCUI(pAppStr);
 
   zclSampleApps_initializeClocks();
 
-  CUI_retVal_t retVal;
   /* Register the zigbee main menu with the CUI */
-  retVal = CUI_registerMenu(gCuiHandle, &zclMenuMain);
+  CUI_registerMenu(gCuiHandle, &zclMenuMain);
 
   /* Request Async Line for Device Info */
-  retVal = CUI_statusLineResourceRequest(gCuiHandle, "Device Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gDeviceInfoLine);
+  CUI_statusLineResourceRequest(gCuiHandle, "Device Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gDeviceInfoLine);
 
   UI_UpdateDeviceInfoLine();
 
   /* Request Async Line for NWK Info */
-  retVal = CUI_statusLineResourceRequest(gCuiHandle, "   NWK Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gNwkInfoLine);
+  CUI_statusLineResourceRequest(gCuiHandle, "   NWK Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gNwkInfoLine);
 
 #if ZG_BUILD_ENDDEVICE_TYPE
-  retVal = CUI_statusLineResourceRequest(gCuiHandle, "   NWK Info"CUI_DEBUG_MSG_START"2"CUI_DEBUG_MSG_END, &gNwkInfoLine2);
+  CUI_statusLineResourceRequest(gCuiHandle, "   NWK Info"CUI_DEBUG_MSG_START"2"CUI_DEBUG_MSG_END, false, &gNwkInfoLine2);
 #endif
 
   UI_UpdateNwkStatusLine();
 
   /* Request Async Line for ZDO Info */
-  retVal = CUI_statusLineResourceRequest(gCuiHandle, "   ZDO Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gZdoInfoLine);
+  CUI_statusLineResourceRequest(gCuiHandle, "   ZDO Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gZdoInfoLine);
 
   /* Request Async Line for BDB Info */
-  retVal = CUI_statusLineResourceRequest(gCuiHandle, "   BDB Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gBdbInfoLine);
+  CUI_statusLineResourceRequest(gCuiHandle, "   BDB Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gBdbInfoLine);
 
   /* Request Async Line for Bind Info */
-  retVal = CUI_statusLineResourceRequest(gCuiHandle, "  Bind Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gBindInfoLine);
+  CUI_statusLineResourceRequest(gCuiHandle, "  Bind Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gBindInfoLine);
 
 #if !defined (DISABLE_GREENPOWER_BASIC_PROXY) && (ZG_BUILD_RTR_TYPE)
   /* Request Async Line for GP Info */
-  retVal = CUI_statusLineResourceRequest(gCuiHandle, "    GP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gGpInfoLine);
+  CUI_statusLineResourceRequest(gCuiHandle, "    GP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gGpInfoLine);
 
   UI_UpdateGpStatusLine();
 #endif
 
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+  /* Request Async Line for Block Mode Test Info */
+  CUI_statusLineResourceRequest(gCuiHandle, "BMTest Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gBlockModeTestInfoLine);
+#endif
 
   //Request the Green LED for UI
   /* Initialize the LEDS */
-  CUI_ledRequest_t ledRequest;
-  ledRequest.index = CONFIG_LED_GREEN;
 
-  retVal = CUI_ledResourceRequest(gCuiHandle, &ledRequest);
-  (void) retVal;
+  LED_Params ledParams;
+  LED_Params_init(&ledParams);
+  gGreenLedHandle = LED_open(CONFIG_LED_GREEN, &ledParams);
 
   //Update ZDO status line
   UI_DeviceStateUpdated(NULL);
@@ -2204,7 +2320,7 @@ void uiProcessIdentifyTimeChange( uint8_t *endpoint )
 {
   if ((pUiIdentifyTimeAttribute != NULL) && *pUiIdentifyTimeAttribute > 0 )
   {
-      CUI_ledBlink(gCuiHandle, CONFIG_LED_GREEN, CUI_BLINK_CONTINUOUS);
+      LED_startBlinking(gGreenLedHandle, 500, LED_BLINK_FOREVER);
   }
   else
   {
@@ -2219,10 +2335,12 @@ void uiProcessIdentifyTimeChange( uint8_t *endpoint )
       case zstack_DevState_DEV_END_DEVICE:
       case zstack_DevState_DEV_ROUTER:
       case zstack_DevState_DEV_ZB_COORD:
-          CUI_ledOn(gCuiHandle, CONFIG_LED_GREEN, NULL);
+          LED_stopBlinking(gGreenLedHandle);
+          LED_setOn(gGreenLedHandle, LED_BRIGHTNESS_MAX);
       break;
       default:
-          CUI_ledOff(gCuiHandle, CONFIG_LED_GREEN);
+          LED_stopBlinking(gGreenLedHandle);
+          LED_setOff(gGreenLedHandle);
       break;
     }
   }
@@ -2277,16 +2395,19 @@ void UI_DeviceStateUpdated(zstack_devStateChangeInd_t *pReq)
     case zstack_DevState_DEV_ZB_COORD:
     case zstack_DevState_DEV_ROUTER:
     case zstack_DevState_DEV_END_DEVICE:
-        CUI_ledOn(gCuiHandle, CONFIG_LED_GREEN, NULL);
+        LED_stopBlinking(gGreenLedHandle);
+        LED_setOn(gGreenLedHandle, LED_BRIGHTNESS_MAX);
       break;
     default:
-        CUI_ledOff(gCuiHandle, CONFIG_LED_GREEN);
+        LED_stopBlinking(gGreenLedHandle);
+        LED_setOff(gGreenLedHandle);
       break;
     }
   }
   else
   {
-    CUI_ledOff(gCuiHandle, CONFIG_LED_GREEN);
+      LED_stopBlinking(gGreenLedHandle);
+      LED_setOff(gGreenLedHandle);
   }
 
   strcat(lineFormat, "["CUI_COLOR_CYAN"Logical Device"CUI_COLOR_RESET"] ");
@@ -2454,7 +2575,7 @@ void UI_SetGPPCommissioningMode( zstack_gpCommissioningMode_t *Req )
  *
  * @return  CUI_clientHandle_t - CUI Handle
  */
-static CUI_clientHandle_t UI_InitCUI(CONST char* pAppStr, CUI_btnPressCB_t appChangeKeyCB, uiAppFNResetCB_t AppFNResetCB)
+static CUI_clientHandle_t UI_InitCUI(CONST char* pAppStr)
 {
   CUI_params_t params;
   CUI_paramsInit(&params);
@@ -2472,47 +2593,13 @@ static CUI_clientHandle_t UI_InitCUI(CONST char* pAppStr, CUI_btnPressCB_t appCh
   strncpy(clientParams.clientName, pAppStr, MAX_CLIENT_NAME_LEN);
   clientParams.maxStatusLines = SAMPLEAPP_UI_MAX_STATUS_LINES;
 
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+  clientParams.maxStatusLines++;
+#endif
+
   gCuiHandle = CUI_clientOpen(&clientParams);
   if (gCuiHandle == NULL)
       while(1){};
-
-  /* Initialize btns */
-  CUI_btnRequest_t btnRequest;
-  btnRequest.index = CONFIG_BTN_RIGHT;
-  btnRequest.appCB = NULL;
-
-  retVal = CUI_btnResourceRequest(gCuiHandle, &btnRequest);
-  if (CUI_SUCCESS != retVal)
-      while(1){};
-
-  bool btnState = false;
-  retVal = CUI_btnGetValue(gCuiHandle, CONFIG_BTN_RIGHT, &btnState);
-  if(!btnState)
-  {
-      AppFNResetCB();
-      Zstackapi_bdbResetLocalActionReq(uiAppEntity);
-  }
-
-  CUI_btnSetCb(gCuiHandle, CONFIG_BTN_RIGHT, appChangeKeyCB);
-
-  btnRequest.index = CONFIG_BTN_LEFT;
-  btnRequest.appCB = NULL;
-
-  retVal = CUI_btnResourceRequest(gCuiHandle, &btnRequest);
-  if (CUI_SUCCESS != retVal)
-    while(1){};
-
-#if defined (OTA_CLIENT_CC26XX)
-  btnState = false;
-  retVal = CUI_btnGetValue(gCuiHandle, CONFIG_BTN_LEFT, &btnState);
-  if(!btnState)
-  {
-    //Return to FN image
-    OTA_loadExtImage(ST_FULL_FACTORY_IMAGE);
-  }
-#endif
-
-  CUI_btnSetCb(gCuiHandle, CONFIG_BTN_LEFT, appChangeKeyCB);
 
   return gCuiHandle;
 }
@@ -2525,11 +2612,15 @@ void zclsampleApp_ui_event_loop(void)
     return;
   }
 
-  if (events & SAMPLEAPP_UI_NWK_LINE_UPDATE_EVT)
+  if (events & SAMPLEAPP_UI_BDB_NWK_LINE_UPDATE_EVT)
   {
     UI_UpdateDeviceInfoLine();
     UI_UpdateNwkStatusLine();
-    events &= ~SAMPLEAPP_UI_NWK_LINE_UPDATE_EVT;
+    UI_UpdateBdbStatusLine(NULL);
+#if defined (OTA_CLIENT_CC26XX)
+    OTA_UpdateStatusLine();
+#endif
+    events &= ~SAMPLEAPP_UI_BDB_NWK_LINE_UPDATE_EVT;
   }
 
   if (events & SAMPLEAPP_UI_INPUT_EVT)
@@ -2545,13 +2636,6 @@ void zclsampleApp_ui_event_loop(void)
     events &= ~SAMPLEAPP_UI_INPUT_EVT;
   }
 
-  if (events & SAMPLEAPP_UI_BDB_LINE_UPDATE_EVT)
-  {
-    UI_UpdateBdbStatusLine(NULL);
-
-    events &= ~SAMPLEAPP_UI_BDB_LINE_UPDATE_EVT;
-  }
-
 #if !defined (DISABLE_GREENPOWER_BASIC_PROXY) && (ZG_BUILD_RTR_TYPE)
   if (events & SAMPLEAPP_UI_GP_LINE_UPDATE_EVT)
   {
@@ -2562,10 +2646,7 @@ void zclsampleApp_ui_event_loop(void)
 
   if (events & SAMPLEAPP_KEY_EVT)
   {
-    if(appKeyCB)
-    {
-     appKeyCB(keys, Button_EV_CLICKED);
-    }
+    UI_processKey(keys, Button_EV_CLICKED);
     events &= ~SAMPLEAPP_KEY_EVT;
   }
 
@@ -2573,6 +2654,228 @@ void zclsampleApp_ui_event_loop(void)
   events = 0;  //This should not happen...
 }
 
+#if defined(USE_DMM) && defined(BLOCK_MODE_TEST)
+/*********************************************************************
+ * @fn      zclSampleApps_blockModeTestClockHandler
+ *
+ * @brief   Handler function for clock timeouts.
+ *
+ * @param   arg - event type
+ *
+ * @return  None.
+ */
+static void zclSampleApps_blockModeTestClockHandler(UArg arg)
+{
+  // stop the timer
+  Timer_stop(&clkBlockModeTestStruct);
+
+  if (DMMPolicy_getBlockModeStatus(DMMPolicy_StackRole_154Sensor))
+  {
+    // update the DMM Block Mode status
+    DMMPolicy_setBlockModeOff(DMMPolicy_StackRole_154Sensor);
+
+    // restart the timer with new timeout value
+    Timer_setTimeout(clkBlockModeTestHandle, ZCL_BLOCK_MODE_OFF_PERIOD);
+    Timer_start(&clkBlockModeTestStruct);
+  }
+  else
+  {
+    // update the DMM Block Mode status
+    DMMPolicy_setBlockModeOn(DMMPolicy_StackRole_154Sensor);
+
+    // restart the timer with new timeout value
+    Timer_setTimeout(clkBlockModeTestHandle, ZCL_BLOCK_MODE_ON_PERIOD);
+    Timer_start(&clkBlockModeTestStruct);
+  }
+}
+
+/*********************************************************************
+ * @fn      zclSampleApps_blockModeTestOn
+ *
+ * @brief   Turn the periodic block mode on for BLE.
+ *
+ * @param   menuEntryIndex - index of CUI menu option
+ */
+static void zclSampleApps_blockModeTestOn(int32_t menuEntryIndex)
+{
+  if (!Timer_isActive(&clkBlockModeTestStruct))
+  {
+    Timer_setTimeout(clkBlockModeTestHandle, ZCL_BLOCK_MODE_ON_PERIOD);
+    Timer_start(&clkBlockModeTestStruct);
+    DMMPolicy_setBlockModeOn(DMMPolicy_StackRole_154Sensor);
+    CUI_statusLinePrintf(gCuiHandle, gBlockModeTestInfoLine, "Enabled");
+  }
+}
+
+/*********************************************************************
+ * @fn      zclSampleApps_blockModeTestOff
+ *
+ * @brief   Turn the periodic block mode off for BLE.
+ *
+ * @param   menuEntryIndex - index of CUI menu option
+ */
+static void zclSampleApps_blockModeTestOff(int32_t menuEntryIndex)
+{
+  if (Timer_isActive(&clkBlockModeTestStruct))
+  {
+      Timer_stop(&clkBlockModeTestStruct);
+  }
+  DMMPolicy_setBlockModeOff(DMMPolicy_StackRole_154Sensor);
+  CUI_statusLinePrintf(gCuiHandle, gBlockModeTestInfoLine, "Disabled");
+}
+
+
+/*********************************************************************
+ * @fn      zclSampleApps_setBlockModeOnPeriodAction
+ *
+ * @brief   Handle a user input to update the Block Mode On Period value
+ *
+ * @param   _input - input character
+ * @param   _pLines - action menu title
+ * @param   _pCurInfo - current cursor info
+ */
+static void zclSampleApps_setBlockModeOnPeriodAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo)
+{
+  zclSampleApps_setBlockModePeriodUiAction(&ZCL_BLOCK_MODE_ON_PERIOD, _input, _pLines, _pCurInfo);
+}
+
+/*********************************************************************
+ * @fn      zclSampleApps_setBlockModeOffPeriodAction
+ *
+ * @brief   Handle a user input to update the Block Mode Off Period value
+ *
+ * @param   _input - input character
+ * @param   _pLines - action menu title
+ * @param   _pCurInfo - current cursor info
+ */
+static void zclSampleApps_setBlockModeOffPeriodAction(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo)
+{
+  zclSampleApps_setBlockModePeriodUiAction(&ZCL_BLOCK_MODE_OFF_PERIOD, _input, _pLines, _pCurInfo);
+}
+
+/*********************************************************************
+ * @fn      zclSampleApps_setBlockModePeriodUiAction
+ *
+ * @brief   Handle a user input to update the Block Mode Off Period value
+ *
+ * @param   blockModePeriod - Block Mode Period
+ * @param   _input - input character
+ * @param   _pLines - action menu title
+ * @param   _pCurInfo - current cursor info
+ */
+static void zclSampleApps_setBlockModePeriodUiAction(uint16_t* blockModePeriod, const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo)
+{
+  static char periodValArr[4] = {};
+  static CUI_cursorInfo_t cursor = {0, 4};
+
+  switch (_input) {
+    case CUI_ITEM_INTERCEPT_START:
+    {
+      sprintf(periodValArr, "%04d", *blockModePeriod);
+      break;
+    }
+    // Submit the final modified value
+    case CUI_ITEM_INTERCEPT_STOP:
+    {
+      *blockModePeriod = atoi(periodValArr);
+      // Reset the local cursor info
+      cursor.col = 4;
+      break;
+    }
+    // Move the cursor to the left
+    case CUI_INPUT_LEFT:
+    {
+      cursor.col = moveCursorLeft(cursor.col, 4, 7, 0);
+      break;
+    }
+    // Move the cursor to the right
+    case CUI_INPUT_RIGHT:
+    {
+      cursor.col = moveCursorRight(cursor.col, 4, 7, 0);
+      break;
+    }
+    default:
+    {
+      // is the input a number
+      if(CUI_IS_INPUT_NUM(_input))
+      {
+        periodValArr[cursor.col - 4] = _input;
+        cursor.col = moveCursorRight(cursor.col, 4, 7, 0);
+      }
+      else
+      {
+        sprintf(periodValArr, "%04d", *blockModePeriod);
+      }
+    }
+  }
+
+  snprintf(_pLines[0], 16, "    %04s      ", periodValArr);
+
+  if (_input != CUI_ITEM_PREVIEW)
+  {
+    if (blockModePeriod == &ZCL_BLOCK_MODE_ON_PERIOD)
+    {
+      strcpy(_pLines[2], "BM ON Period (ms)");
+    }
+    else if (blockModePeriod == &ZCL_BLOCK_MODE_OFF_PERIOD)
+    {
+      strcpy(_pLines[2], "BM OFF Period (ms)");
+    }
+    _pCurInfo->row = 1;
+    _pCurInfo->col = cursor.col+1;
+  }
+}
+
+/**
+ *  @brief Callback to be called when the UI move a cursor Left.
+ */
+static uint8_t moveCursorLeft(uint8_t col, uint8_t left_boundary, uint8_t right_boundary, uint8_t skip_space)
+{
+  // If you haven't hit the end of left boundary, keep moving cursor left.
+  if (left_boundary != col)
+  {
+    col--;
+  }
+  else
+  {
+    col = right_boundary;
+  }
+
+  if (0 != skip_space)
+  {
+    //skip the white space, by continuing to move left over it
+    if ((col % 3) == 0)
+      col--;
+  }
+  return col;
+}
+
+/**
+ *  @brief Callback to be called when the UI moves a cursor right.
+ */
+static uint8_t moveCursorRight(uint8_t col, uint8_t left_boundary, uint8_t right_boundary, uint8_t skip_space)
+{
+  // If you haven't hit the end of modifiable lines, keep moving cursor right.
+  if (right_boundary != col)
+  {
+    col++;
+  }
+  else
+  {
+    col = left_boundary;
+  }
+
+  // if skip_space is true
+  if(0 != skip_space)
+  {
+    //skip the white space, by continuing to move right over it
+    if((col % 3) == 0)
+      col++;
+  }
+  return col;
+}
+
+#endif
 
 #endif //USE_ZCL_SAMPLEAPP_UI
 

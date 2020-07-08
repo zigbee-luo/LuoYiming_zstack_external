@@ -86,7 +86,7 @@ const tableSizeModule = {
             description: bindingTableDescription,
             longDescription: bindingTableLongDescription,
             default: 4
-        },
+        }
     ],
     validate: validate
 };

@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -221,8 +221,6 @@ void Lpstk_initSensorControllerAccelerometer(SCIF_VFPTR scTaskAlertCallback)
 
 uint8_t Lpstk_openHumidityTempSensor(void)
 {
-    /* Turn on TMP116 Sensor */
-    GPIO_write(CONFIG_GPIO_HDC_PWR, 1);
     uint8_t openStatus = LPSTK_SUCCESS;
     if (i2cHandle == NULL)
     {
@@ -258,8 +256,6 @@ uint8_t Lpstk_openHumidityTempSensor(void)
 
 uint8_t Lpstk_openLightSensor(void)
 {
-    GPIO_write(CONFIG_GPIO_OPT_PWR, 1);
-
     uint8_t openStatus = LPSTK_SUCCESS;
     if (i2cHandle == NULL)
     {
@@ -291,7 +287,6 @@ uint8_t Lpstk_openLightSensor(void)
 
 uint8_t Lpstk_openHallEffectSensor(void)
 {
-    GPIO_write(CONFIG_GPIO_DRV_PWR, 1);
 
     uint8_t openStatus = LPSTK_NULL_HANDLE;
     if(adcHandle == NULL)
@@ -381,8 +376,6 @@ void Lpstk_shutdownHumidityTempSensor(void)
         /* Set Handle to NULL */
         hdc2010Handle = NULL;
     }
-    /* Turn off HDC2010 Sensor */
-    GPIO_write(CONFIG_GPIO_HDC_PWR, 0);
     /* try to close i2c peripheral to enter low power mode */
     closeI2C();
 }
@@ -396,8 +389,6 @@ void Lpstk_shutdownLightSensor(void)
         /* Set Handle to NULL */
         opt3001Handle = NULL;
     }
-    /* Turn off OPT3001 Sensor */
-    GPIO_write(CONFIG_GPIO_OPT_PWR, 0);
     /* try to close i2c peripheral to enter low power mode */
     closeI2C();
 }
@@ -409,8 +400,6 @@ void Lpstk_shutdownHallEffectSensor(void)
         /* close ADC peripheral to enter low power mode */
         ADC_close(adcHandle);
     }
-    /* Turn off OPT3001 Sensor */
-    GPIO_write(CONFIG_GPIO_DRV_PWR, 0);
 
 }
 
@@ -419,7 +408,7 @@ void Lpstk_shutdownAccelerometerSensor(void)
     /* Only disable if currently enabled */
     if (scifGetActiveTaskIds() & (1 << SCIF_SPI_ACCELEROMETER_TASK_ID))
     {
-      // Start the "SPI Accelerometer" Sensor Controller task
+      // Stop the "SPI Accelerometer" Sensor Controller task
       scifStopTasksNbl(1 << SCIF_SPI_ACCELEROMETER_TASK_ID);
       // Wait for sensor controller ready callback
       sc_ready = false;

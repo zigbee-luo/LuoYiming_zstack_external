@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--  This file conforms to the DTD xdc/bld/release.dtd -->
-<release name="ti_sysbios_rom_cortexm_cc26xx_cc26x2v2" label="default" date="1567010689956" buildCount="1" producerId="undefined">
+<release name="ti_sysbios_rom_cortexm_cc26xx_cc26x2v2" label="default" date="1589570092034" buildCount="1" producerId="undefined">
 <package name="ti.sysbios.rom.cortexm.cc26xx.cc26x2v2"
     version="1, 0, 0, 0"/>
 <imports>
@@ -9,8 +9,8 @@
 </imports>
 <references>
     <package name="xdc"
-        version="1, 1, 1, 1566418926747"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 1, 1, 1581216517657"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="IPackage.xdc"/>
         <file name="IPackage.xs"/>
         <file name="Warnings.xs"/>
@@ -24,15 +24,15 @@
         <file name="xmlgen2.xs"/>
     </package>
     <package name="xdc.services.global"
-        version="1, 0, 0, 1566418982903"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 0, 0, 1581216563115"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="Clock.xs"/>
         <file name="Trace.xs"/>
         <file name="java/package.jar"/>
     </package>
     <package name="xdc.bld"
-        version="1, 0, 2, 1566418931090"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 0, 2, 1581216521914"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="BuildEnvironment.xs"/>
         <file name="Configuration.xs"/>
         <file name="Executable.xs"/>
@@ -51,8 +51,8 @@
         <file name="package.xs"/>
     </package>
     <package name="ti.targets"
-        version="1, 0, 3, 1565309701446"
-        providerId="/db/rtree/library/trees/platformprod/platformprod-v00/exports/packages">
+        version="1, 0, 3, 1589236219860"
+        providerId="/db/rtree/library/trees/platformprod/platformprod-w20/exports/packages">
         <file name="C28_float.xs"/>
         <file name="C28_large.xs"/>
         <file name="ITarget.xs"/>
@@ -62,16 +62,16 @@
         <file name="std.h"/>
     </package>
     <package name="ti.targets.arm.elf"
-        version="1, 0, 0, 1565309704816"
-        providerId="/db/rtree/library/trees/platformprod/platformprod-v00/exports/packages">
+        version="1, 0, 0, 1589236222451"
+        providerId="/db/rtree/library/trees/platformprod/platformprod-w20/exports/packages">
         <file name="IArm.xs"/>
         <file name="linkUtils.xs"/>
         <file name="package.xs"/>
         <file name="std.h"/>
     </package>
     <package name="ti.targets.arm.clang"
-        version="1, 0, 0, 1565309714702"
-        providerId="/db/rtree/library/trees/platformprod/platformprod-v00/exports/packages">
+        version="1, 0, 0, 1589236232273"
+        providerId="/db/rtree/library/trees/platformprod/platformprod-w20/exports/packages">
         <file name="M3.xs"/>
         <file name="M33.xs"/>
         <file name="M33F.xs"/>
@@ -79,21 +79,12 @@
         <file name="M4F.xs"/>
         <file name="package.xs"/>
     </package>
-    <package name="gnu.targets"
-        version="1, 0, 1, 1565309688112"
-        providerId="/db/rtree/library/trees/platformprod/platformprod-v00/exports/packages">
-        <file name="ITarget.xs"/>
-        <file name="Linux86.xs"/>
-        <file name="Mingw.xs"/>
-        <file name="_utils.xs"/>
-        <file name="package.xs"/>
-        <file name="select.h"/>
-    </package>
     <package name="gnu.targets.arm"
-        version="1, 0, 0, 1565309691557"
-        providerId="/db/rtree/library/trees/platformprod/platformprod-v00/exports/packages">
+        version="1, 0, 0, 1589236212664"
+        providerId="/db/rtree/library/trees/platformprod/platformprod-w20/exports/packages">
         <file name="A15F.xs"/>
         <file name="A53F.xs"/>
+        <file name="A72F.xs"/>
         <file name="A8F.xs"/>
         <file name="A9F.xs"/>
         <file name="GCArmv6.xs"/>
@@ -101,17 +92,19 @@
         <file name="IM.xs"/>
         <file name="ITarget.xs"/>
         <file name="M3.xs"/>
+        <file name="_utils.xs"/>
         <file name="package.xs"/>
+        <file name="select.h"/>
     </package>
     <package name="iar.targets.arm"
-        version="1, 0, 0, 1565309696730"
-        providerId="/db/rtree/library/trees/platformprod/platformprod-v00/exports/packages">
+        version="1, 0, 0, 1589236217667"
+        providerId="/db/rtree/library/trees/platformprod/platformprod-w20/exports/packages">
         <file name="ITarget.xs"/>
         <file name="package.xs"/>
     </package>
     <package name="ti.sysbios.interfaces"
-        version="2, 0, 0, 0, 1567009698000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="2, 0, 0, 0, 1589569614000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="IHwi.h"/>
         <file name="IIntrinsicsSupport.h"/>
@@ -123,36 +116,36 @@
         <file name="package/package.defs.h"/>
     </package>
     <package name="xdc.shelf"
-        version="1, 0, 0, 1566419042553"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 0, 0, 1581216603170"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="java/antlr.jar"/>
         <file name="java/ecj.jar"/>
         <file name="java/js.jar"/>
         <file name="java/tar.jar"/>
     </package>
-    <package name="xdc.services.spec"
-        version="1, 0, 0, 1566419017798"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
-        <file name="java/package.jar"/>
-    </package>
     <package name="xdc.services.intern.gen"
-        version="1, 0, 0, 1566419002079"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 0, 0, 1581216576822"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="java/package.jar"/>
     </package>
     <package name="xdc.services.intern.xsr"
-        version="1, 0, 0, 1566419005342"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 0, 0, 1581216578901"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="java/package.jar"/>
     </package>
     <package name="xdc.services.intern.cmd"
-        version="1, 0, 0, 1566418999368"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 0, 0, 1581216574742"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
+        <file name="java/package.jar"/>
+    </package>
+    <package name="xdc.services.spec"
+        version="1, 0, 0, 1581216588215"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="java/package.jar"/>
     </package>
     <package name="ti.sysbios"
-        version="2, 0, 0, 0, 1567009697000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="2, 0, 0, 0, 1589569614000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="BIOS.h"/>
         <file name="BIOS.xdt"/>
@@ -166,8 +159,8 @@
         <file name="package/package.defs.h"/>
     </package>
     <package name="ti.sysbios.family.arm.cc26xx"
-        version="1, 0, 0, 0, 1567009698000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="1, 0, 0, 0, 1589569614000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="Alarm.xs"/>
         <file name="Boot.h"/>
@@ -183,8 +176,8 @@
         <file name="package/package.defs.h"/>
     </package>
     <package name="ti.sysbios.family.arm.m3"
-        version="2, 0, 0, 0, 1567009698000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="2, 0, 0, 0, 1589569614000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="Clobber.xs"/>
         <file name="Exception.xs"/>
@@ -206,8 +199,8 @@
         <file name="package/package.defs.h"/>
     </package>
     <package name="ti.sysbios.gates"
-        version="2, 0, 0, 0, 1567009698000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="2, 0, 0, 0, 1589569614000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="GateAll.xs"/>
         <file name="GateHwi.h"/>
@@ -223,8 +216,8 @@
         <file name="package/package.defs.h"/>
     </package>
     <package name="ti.sysbios.hal"
-        version="2, 0, 0, 0, 1567009698000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="2, 0, 0, 0, 1589569614000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="Cache.xs"/>
         <file name="Core.xs"/>
@@ -243,8 +236,8 @@
         <file name="package/package.defs.h"/>
     </package>
     <package name="ti.sysbios.heaps"
-        version="2, 0, 0, 0, 1567009698000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="2, 0, 0, 0, 1589569614000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="HeapBuf.xs"/>
         <file name="HeapCallback.xs"/>
@@ -259,8 +252,8 @@
         <file name="package/package.defs.h"/>
     </package>
     <package name="ti.sysbios.knl"
-        version="2, 0, 0, 0, 1567009698000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="2, 0, 0, 0, 1589569614000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="Clock.h"/>
         <file name="Clock.xdt"/>
@@ -295,8 +288,8 @@
         <file name="package/package.defs.h"/>
     </package>
     <package name="xdc.runtime"
-        version="2, 1, 0, 1566418965679"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="2, 1, 0, 1581216551504"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="Assert.h"/>
         <file name="Assert.xs"/>
         <file name="Assert__epilogue.h"/>
@@ -383,13 +376,13 @@
         <file name="include/string.h"/>
     </targetRoot>
     <package name="iar.targets"
-        version="1, 0, 1, 1565309694645"
-        providerId="/db/rtree/library/trees/platformprod/platformprod-v00/exports/packages">
+        version="1, 0, 1, 1589236215716"
+        providerId="/db/rtree/library/trees/platformprod/platformprod-w20/exports/packages">
         <file name="select.h"/>
     </package>
     <package name="ti.catalog.arm.cortexm4"
-        version="1, 0, 0, 1562626837331"
-        providerId="/db/rtree/library/trees/platformprod/platformprod-v00/exports/packages">
+        version="1, 0, 0, 1587572921604"
+        providerId="/db/rtree/library/trees/platformprod/platformprod-w20/exports/packages">
         <file name="CC13xx.xs"/>
         <file name="CC26xx.xs"/>
         <file name="CC32xx.xs"/>
@@ -403,22 +396,22 @@
         <file name="Vayu.xs"/>
     </package>
     <package name="ti.platforms.simplelink"
-        version="1, 0, 0, 1562626942276"
-        providerId="/db/rtree/library/trees/platformprod/platformprod-v00/exports/packages">
+        version="1, 0, 0, 1587573024869"
+        providerId="/db/rtree/library/trees/platformprod/platformprod-w20/exports/packages">
         <file name="Platform.xdt"/>
         <file name="Platform.xs"/>
         <file name="linkcmd.xdt"/>
     </package>
     <package name="ti.targets.arm.rtsarm"
-        version="1, 0, 0, 1565310403011"
-        providerId="/db/rtree/library/trees/platformprod/platformprod-v00/exports/packages">
+        version="1, 0, 0, 1589236676040"
+        providerId="/db/rtree/library/trees/platformprod/platformprod-w20/exports/packages">
         <file name="lib/auto_init.aem4f"/>
         <file name="lib/boot.aem4f"/>
         <file name="package.xs"/>
     </package>
     <package name="xdc.cfg"
-        version="1, 0, 2, 1566418940541"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 0, 2, 1581216530174"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="Main.xs"/>
         <file name="Program.xdt"/>
         <file name="Program.xs"/>
@@ -427,8 +420,8 @@
         <file name="makefile.xdt"/>
     </package>
     <package name="xdc.platform"
-        version="1, 0, 1, 1566418944866"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 0, 1, 1581216534575"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="ExeContext.xs"/>
         <file name="IPeripheral.xs"/>
         <file name="IPlatform.xs"/>
@@ -436,8 +429,8 @@
         <file name="package.xs"/>
     </package>
     <package name="xdc.rov"
-        version="1, 0, 1, 1566418955178"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 0, 1, 1581216544397"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="CallStack.xs"/>
         <file name="Model.xs"/>
         <file name="Program.xs"/>
@@ -447,14 +440,14 @@
     </package>
     <package name="xdc.rov.runtime"
         version=""
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="Monitor.xs"/>
         <file name="lib/xdc.rov.runtime.aem4f"/>
         <file name="package.xs"/>
     </package>
     <package name="xdc.runtime.knl"
-        version="1, 0, 0, 1566418971209"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 0, 0, 1581216555646"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="Cache.xs"/>
         <file name="GateH.xs"/>
         <file name="GateProcess.xs"/>
@@ -470,20 +463,20 @@
         <file name="package.xs"/>
     </package>
     <package name="xdc.services.getset"
-        version="1, 0, 0, 1566418978639"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 0, 0, 1581216560274"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="GetSet.xs"/>
     </package>
     <package name="ti.sysbios.family"
-        version="2, 0, 0, 0, 1567009698000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="2, 0, 0, 0, 1589569614000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="Settings.xs"/>
         <file name="package.xs"/>
     </package>
     <package name="ti.sysbios.family.arm"
-        version="2, 0, 0, 0, 1567009698000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="2, 0, 0, 0, 1589569614000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="Hwi_link.xdt"/>
         <file name="MPU.xs"/>
@@ -494,31 +487,31 @@
         <file name="package.xs"/>
     </package>
     <package name="ti.sysbios.rom"
-        version="1, 0, 0, 0, 1567009698000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="1, 0, 0, 0, 1589569614000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="ROM.xdt"/>
         <file name="ROM.xs"/>
         <file name="ROM_group.xdt"/>
     </package>
     <package name="ti.sysbios.rts"
-        version="2, 0, 0, 0, 1567009698000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="2, 0, 0, 0, 1589569615000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="MemAlloc.xdt"/>
         <file name="MemAlloc.xs"/>
         <file name="package.xs"/>
     </package>
     <package name="ti.sysbios.utils"
-        version="2, 0, 0, 0, 1567009699000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="2, 0, 0, 0, 1589569615000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="Load.xs"/>
         <file name="package.xs"/>
     </package>
     <package name="ti.sysbios.xdcruntime"
-        version="1, 0, 0, 1567009699000"
-        providerId="/db/vtree/library/trees/avala/avala-6.80.00.11/src">
+        version="1, 0, 0, 1589569615000"
+        providerId="/db/vtree/library/trees/avala/avala-6.81.01.05/src">
         <file name=".interfaces"/>
         <file name="CacheSupport.xs"/>
         <file name="GateProcessSupport.xs"/>
@@ -530,18 +523,19 @@
         <file name="package.xs"/>
     </package>
     <package name="xdc.services.io"
-        version="1, 0, 0, 1566419010195"
-        providerId="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/packages">
+        version="1, 0, 0, 1581216581888"
+        providerId="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/packages">
         <file name="File.xs"/>
         <file name="package.xs"/>
     </package>
-    <xdcRoot base="/db/rtree/library/trees/xdcprod/xdcprod-B24/product/xdccore/Linux/xdctools_3_60_00_24_core/">
+    <xdcRoot base="/db/rtree/library/trees/xdcprod/xdcprod-C16/product/xdccore/Linux/xdctools_3_61_00_16_core/">
         <file name="/packages/xdc/package.xdc"/>
-        <xdcCorePkg version="16, 0, 2, 1566418942861" producerId="/db/ztree/library/trees/xdc/xdc-H25/src/packages" buildCount="1" releaseName="xdc_corevers" label="default" date="1566418942861"/>
+        <xdcCorePkg version="16, 0, 2, 1581216532406" producerId="/db/ztree/library/trees/xdc/xdc-I08/src/packages" buildCount="1" releaseName="xdc_corevers" label="default" date="1581216532406"/>
     </xdcRoot>
 </references>
 <orphans>
-    <file name="/db/vtree/library/trees/avala/avala-6.80.00.11/src/config.bld"/>
-    <file name="/db/vtree/library/trees/drivers/drivers-4.10.03.00/exports/tidrivers_full/source/ti/devices/DeviceFamily.h"/>
+    <file name="/db/vtree/library/trees/avala/avala-6.81.01.05/src/config.bld"/>
+    <file name="/db/vtree/library/trees/drivers/drivers-5.20.00.04_eng/exports/tidrivers_full/source/ti/devices/DeviceFamily.h"/>
+    <file name="/db/rtree/library/trees/platformprod/platformprod-w20/exports/packages/gnu/targets/select.h"/>
 </orphans>
 </release>

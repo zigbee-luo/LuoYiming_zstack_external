@@ -2,7 +2,7 @@
  *  Do not modify this file; it is automatically 
  *  generated and any modifications will be overwritten.
  *
- * @(#) xdc-H32
+ * @(#) xdc-I11
  */
 import java.util.*;
 import org.mozilla.javascript.*;
@@ -11,7 +11,7 @@ import xdc.services.spec.Session;
 
 public class ti_targets_arm_clang
 {
-    static final String VERS = "@(#) xdc-H32\n";
+    static final String VERS = "@(#) xdc-I11\n";
 
     static final Proto.Elm $$T_Bool = Proto.Elm.newBool();
     static final Proto.Elm $$T_Num = Proto.Elm.newNum();
@@ -328,10 +328,10 @@ public class ti_targets_arm_clang
         po.addFld("ccOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "", "suffix", ""), "wh");
         po.addFld("ccConfigOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "$(ccOpts.prefix)", "suffix", "$(ccOpts.suffix)"), "wh");
         po.addFld("asmOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "", "suffix", ""), "wh");
-        po.addFld("lnkOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "-Wl,-q -Wl,-u,_c_int00", "suffix", "-Wl,-w -Wl,-c -Wl,-m,$(XDCCFGDIR)/$@.map -l $(rootDir)/lib/generic/libc.a"), "wh");
+        po.addFld("lnkOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "-Wl,-q -Wl,-u,_c_int00", "suffix", "-Wl,-w -Wl,-c -Wl,-m,$(XDCCFGDIR)/$@.map"), "wh");
         po.addFld("vers", (Proto)om.findStrict("xdc.bld.ITarget2.Command", "ti.targets.arm.clang"), Global.newObject("cmd", "tiarmclang", "opts", "--version"), "rh");
         po.addFld("includeOpts", $$T_Str, "", "wh");
-        po.addFld("profiles", new Proto.Map((Proto)om.findStrict("xdc.bld.ITarget.OptionSet", "ti.targets.arm.clang")), Global.newArray(new Object[]{Global.newArray(new Object[]{"debug", Global.newObject("compileOpts", Global.newObject("copts", "-gdwarf-3", "defs", "-D_DEBUG_=1"))}), Global.newArray(new Object[]{"release", Global.newObject("compileOpts", Global.newObject("copts", "-gdwarf-3 -Oz"))})}), "wh");
+        po.addFld("profiles", new Proto.Map((Proto)om.findStrict("xdc.bld.ITarget.OptionSet", "ti.targets.arm.clang")), Global.newArray(new Object[]{Global.newArray(new Object[]{"debug", Global.newObject("compileOpts", Global.newObject("copts", "-g", "defs", "-D_DEBUG_=1"))}), Global.newArray(new Object[]{"release", Global.newObject("compileOpts", Global.newObject("copts", "-g -Oz"))})}), "wh");
         fxn = Global.get(cap, "module$use");
         if (fxn != null) om.bind("ti.targets.arm.clang.M33$$module$use", true);
         if (fxn != null) po.addFxn("module$use", $$T_Met, fxn);
@@ -398,10 +398,10 @@ public class ti_targets_arm_clang
         po.addFld("ccOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "", "suffix", ""), "wh");
         po.addFld("ccConfigOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "$(ccOpts.prefix)", "suffix", "$(ccOpts.suffix)"), "wh");
         po.addFld("asmOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "", "suffix", ""), "wh");
-        po.addFld("lnkOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "-Wl,-q -Wl,-u,_c_int00", "suffix", "-Wl,-w -Wl,-c -Wl,-m,$(XDCCFGDIR)/$@.map -l $(rootDir)/lib/generic/libc.a"), "wh");
+        po.addFld("lnkOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "-Wl,-q -Wl,-u,_c_int00", "suffix", "-Wl,-w -Wl,-c -Wl,-m,$(XDCCFGDIR)/$@.map"), "wh");
         po.addFld("vers", (Proto)om.findStrict("xdc.bld.ITarget2.Command", "ti.targets.arm.clang"), Global.newObject("cmd", "tiarmclang", "opts", "--version"), "rh");
         po.addFld("includeOpts", $$T_Str, "", "wh");
-        po.addFld("profiles", new Proto.Map((Proto)om.findStrict("xdc.bld.ITarget.OptionSet", "ti.targets.arm.clang")), Global.newArray(new Object[]{Global.newArray(new Object[]{"debug", Global.newObject("compileOpts", Global.newObject("copts", "-gdwarf-3", "defs", "-D_DEBUG_=1"))}), Global.newArray(new Object[]{"release", Global.newObject("compileOpts", Global.newObject("copts", "-gdwarf-3 -Oz"))})}), "wh");
+        po.addFld("profiles", new Proto.Map((Proto)om.findStrict("xdc.bld.ITarget.OptionSet", "ti.targets.arm.clang")), Global.newArray(new Object[]{Global.newArray(new Object[]{"debug", Global.newObject("compileOpts", Global.newObject("copts", "-g", "defs", "-D_DEBUG_=1"))}), Global.newArray(new Object[]{"release", Global.newObject("compileOpts", Global.newObject("copts", "-g -Oz"))})}), "wh");
         fxn = Global.get(cap, "module$use");
         if (fxn != null) om.bind("ti.targets.arm.clang.M33F$$module$use", true);
         if (fxn != null) po.addFxn("module$use", $$T_Met, fxn);
@@ -456,7 +456,7 @@ public class ti_targets_arm_clang
                 po.addFld("$hostonly", $$T_Num, 1, "r");
         po.addFld("name", $$T_Str, "M4F", "rh");
         po.addFld("suffix", $$T_Str, "m4f", "rh");
-        po.addFld("isa", $$T_Str, "v7M", "rh");
+        po.addFld("isa", $$T_Str, "v7M4", "rh");
         po.addFld("rts", $$T_Str, "ti.targets.arm.rtsarm", "rh");
         po.addFld("platform", $$T_Str, "ti.platforms.cortexM:MTL1_VSOC:1", "wh");
         po.addFld("stdInclude", $$T_Str, "ti/targets/arm/clang/std.h", "wh");
@@ -468,10 +468,10 @@ public class ti_targets_arm_clang
         po.addFld("ccOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "", "suffix", ""), "wh");
         po.addFld("ccConfigOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "$(ccOpts.prefix)", "suffix", "$(ccOpts.suffix)"), "wh");
         po.addFld("asmOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "", "suffix", ""), "wh");
-        po.addFld("lnkOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "-Wl,-q -Wl,-u,_c_int00", "suffix", "-Wl,-w -Wl,-c -Wl,-m,$(XDCCFGDIR)/$@.map -l $(rootDir)/lib/generic/libc.a"), "wh");
+        po.addFld("lnkOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "-Wl,-q -Wl,-u,_c_int00", "suffix", "-Wl,-w -Wl,-c -Wl,-m,$(XDCCFGDIR)/$@.map"), "wh");
         po.addFld("vers", (Proto)om.findStrict("xdc.bld.ITarget2.Command", "ti.targets.arm.clang"), Global.newObject("cmd", "tiarmclang", "opts", "--version"), "rh");
         po.addFld("includeOpts", $$T_Str, "", "wh");
-        po.addFld("profiles", new Proto.Map((Proto)om.findStrict("xdc.bld.ITarget.OptionSet", "ti.targets.arm.clang")), Global.newArray(new Object[]{Global.newArray(new Object[]{"debug", Global.newObject("compileOpts", Global.newObject("copts", "-gdwarf-3", "defs", "-D_DEBUG_=1"))}), Global.newArray(new Object[]{"release", Global.newObject("compileOpts", Global.newObject("copts", "-gdwarf-3 -Oz"))})}), "wh");
+        po.addFld("profiles", new Proto.Map((Proto)om.findStrict("xdc.bld.ITarget.OptionSet", "ti.targets.arm.clang")), Global.newArray(new Object[]{Global.newArray(new Object[]{"debug", Global.newObject("compileOpts", Global.newObject("copts", "-g", "defs", "-D_DEBUG_=1"))}), Global.newArray(new Object[]{"release", Global.newObject("compileOpts", Global.newObject("copts", "-g -Oz"))})}), "wh");
         fxn = Global.get(cap, "module$use");
         if (fxn != null) om.bind("ti.targets.arm.clang.M4F$$module$use", true);
         if (fxn != null) po.addFxn("module$use", $$T_Met, fxn);
@@ -526,7 +526,7 @@ public class ti_targets_arm_clang
                 po.addFld("$hostonly", $$T_Num, 1, "r");
         po.addFld("name", $$T_Str, "M4", "rh");
         po.addFld("suffix", $$T_Str, "m4", "rh");
-        po.addFld("isa", $$T_Str, "v7M", "rh");
+        po.addFld("isa", $$T_Str, "v7M4", "rh");
         po.addFld("rts", $$T_Str, "ti.targets.arm.rtsarm", "rh");
         po.addFld("platform", $$T_Str, "ti.platforms.tiva:TM4C1294NCPDT:1", "wh");
         po.addFld("stdInclude", $$T_Str, "ti/targets/arm/clang/std.h", "wh");
@@ -538,10 +538,10 @@ public class ti_targets_arm_clang
         po.addFld("ccOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "", "suffix", ""), "wh");
         po.addFld("ccConfigOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "$(ccOpts.prefix)", "suffix", "$(ccOpts.suffix)"), "wh");
         po.addFld("asmOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "", "suffix", ""), "wh");
-        po.addFld("lnkOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "-Wl,-q -Wl,-u,_c_int00", "suffix", "-Wl,-w -Wl,-c -Wl,-m,$(XDCCFGDIR)/$@.map -l $(rootDir)/lib/generic/libc.a"), "wh");
+        po.addFld("lnkOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "-Wl,-q -Wl,-u,_c_int00", "suffix", "-Wl,-w -Wl,-c -Wl,-m,$(XDCCFGDIR)/$@.map"), "wh");
         po.addFld("vers", (Proto)om.findStrict("xdc.bld.ITarget2.Command", "ti.targets.arm.clang"), Global.newObject("cmd", "tiarmclang", "opts", "--version"), "rh");
         po.addFld("includeOpts", $$T_Str, "", "wh");
-        po.addFld("profiles", new Proto.Map((Proto)om.findStrict("xdc.bld.ITarget.OptionSet", "ti.targets.arm.clang")), Global.newArray(new Object[]{Global.newArray(new Object[]{"debug", Global.newObject("compileOpts", Global.newObject("copts", "-gdwarf-3", "defs", "-D_DEBUG_=1"))}), Global.newArray(new Object[]{"release", Global.newObject("compileOpts", Global.newObject("copts", "-gdwarf-3 -Oz"))})}), "wh");
+        po.addFld("profiles", new Proto.Map((Proto)om.findStrict("xdc.bld.ITarget.OptionSet", "ti.targets.arm.clang")), Global.newArray(new Object[]{Global.newArray(new Object[]{"debug", Global.newObject("compileOpts", Global.newObject("copts", "-g", "defs", "-D_DEBUG_=1"))}), Global.newArray(new Object[]{"release", Global.newObject("compileOpts", Global.newObject("copts", "-g -Oz"))})}), "wh");
         fxn = Global.get(cap, "module$use");
         if (fxn != null) om.bind("ti.targets.arm.clang.M4$$module$use", true);
         if (fxn != null) po.addFxn("module$use", $$T_Met, fxn);
@@ -608,10 +608,10 @@ public class ti_targets_arm_clang
         po.addFld("ccOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "", "suffix", ""), "wh");
         po.addFld("ccConfigOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "$(ccOpts.prefix)", "suffix", "$(ccOpts.suffix)"), "wh");
         po.addFld("asmOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "", "suffix", ""), "wh");
-        po.addFld("lnkOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "-Wl,-q -Wl,-u,_c_int00", "suffix", "-Wl,-w -Wl,-c -Wl,-m,$(XDCCFGDIR)/$@.map -l $(rootDir)/lib/generic/libc.a"), "wh");
+        po.addFld("lnkOpts", (Proto)om.findStrict("xdc.bld.ITarget2.Options", "ti.targets.arm.clang"), Global.newObject("prefix", "-Wl,-q -Wl,-u,_c_int00", "suffix", "-Wl,-w -Wl,-c -Wl,-m,$(XDCCFGDIR)/$@.map"), "wh");
         po.addFld("vers", (Proto)om.findStrict("xdc.bld.ITarget2.Command", "ti.targets.arm.clang"), Global.newObject("cmd", "tiarmclang", "opts", "--version"), "rh");
         po.addFld("includeOpts", $$T_Str, "", "wh");
-        po.addFld("profiles", new Proto.Map((Proto)om.findStrict("xdc.bld.ITarget.OptionSet", "ti.targets.arm.clang")), Global.newArray(new Object[]{Global.newArray(new Object[]{"debug", Global.newObject("compileOpts", Global.newObject("copts", "-gdwarf-3", "defs", "-D_DEBUG_=1"))}), Global.newArray(new Object[]{"release", Global.newObject("compileOpts", Global.newObject("copts", "-gdwarf-3 -Oz"))})}), "wh");
+        po.addFld("profiles", new Proto.Map((Proto)om.findStrict("xdc.bld.ITarget.OptionSet", "ti.targets.arm.clang")), Global.newArray(new Object[]{Global.newArray(new Object[]{"debug", Global.newObject("compileOpts", Global.newObject("copts", "-g", "defs", "-D_DEBUG_=1"))}), Global.newArray(new Object[]{"release", Global.newObject("compileOpts", Global.newObject("copts", "-g -Oz"))})}), "wh");
         fxn = Global.get(cap, "module$use");
         if (fxn != null) om.bind("ti.targets.arm.clang.M3$$module$use", true);
         if (fxn != null) po.addFxn("module$use", $$T_Met, fxn);

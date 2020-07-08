@@ -10,7 +10,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2015-2019, Texas Instruments Incorporated
+ Copyright (c) 2015-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@
 // ****************************************************************************
 
 #include <xdc/std.h>
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
 #include <ti/sysbios/knl/Event.h>
 #else //!ICALL_EVENTS
 #include <ti/sysbios/knl/Semaphore.h>
@@ -74,7 +74,7 @@
 // defines
 // ****************************************************************************
 
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
 #define NPITASK_ICALL_EVENT ICALL_MSG_EVENT_ID // Event_Id_31
 
 //! \brief Transport layer RX Event (ie. bytes received, RX ISR etc.)
@@ -227,11 +227,11 @@ static uint8_t *lastQueuedTxMsg;
 //!
 #define FLE_DEBUG 1
 
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
 ICall_SyncHandle syncEvent;
 #else //!ICALL_EVENTS
 #ifdef FLE_DEBUG
-#if defined(USE_ICALL)
+#if defined(USE_ICALL) && !defined(USE_DMM)
 static ICall_Semaphore npiSemHandle = NULL;
 #else
 Semaphore_Struct structnpiSem;
@@ -245,13 +245,13 @@ static Semaphore_Handle npiSemHandle;
 
 //! \brief NPI ICall Application Entity ID.
 //!
-#if defined(USE_ICALL)
+#if defined(USE_ICALL) && !defined(USE_DMM)
 ICall_EntityID npiAppEntityID = 0;
 #else
 uint8_t npiAppEntityID = 0;
 #endif
 
-#ifndef ICALL_EVENTS
+#if !defined(ICALL_EVENTS) || defined(USE_DMM)
 //! \brief Task pending events
 //!
 uint32_t NPITask_events = 0;
@@ -361,7 +361,7 @@ static void NPITask_processStackMsg(uint8_t *pMsg);
 // -----------------------------------------------------------------------------
 static void NPITask_inititializeTask(void)
 {
-#ifndef ICALL_EVENTS
+#if !defined(ICALL_EVENTS) || defined(USE_DMM)
     NPITask_events = 0;
 #endif //ICALL_EVENTS
 
@@ -402,12 +402,12 @@ static void NPITask_inititializeTask(void)
 #endif // NPI_SREQRSP
     
     /* Enroll the service that this stack represents */
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
     ICall_enrollService ( ICALL_SERVICE_CLASS_NPI, NULL, &npiAppEntityID, 
                           &syncEvent );
 #else //!ICALL_EVENTS
 #ifdef FLE_DEBUG
-#if defined(USE_ICALL)
+#if defined(USE_ICALL) && !defined(USE_DMM)
     ICall_enrollService( ICALL_SERVICE_CLASS_NPI, NULL, &npiAppEntityID, &npiSemHandle );
 #else
     Semaphore_Params semParams;
@@ -446,7 +446,7 @@ static void NPITask_inititializeTask(void)
 
 static void NPITask_process(void)
 {
-#if defined(USE_ICALL)
+#if defined(USE_ICALL) && !defined(USE_DMM)
     ICall_ServiceEnum stackid;
     ICall_EntityID dest;
 #else
@@ -461,7 +461,7 @@ static void NPITask_process(void)
     {
         /* Wait for response message */
         
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
         uint32_t NPITask_events;
           
         NPITask_events = Event_pend(syncEvent, Event_Id_NONE, 
@@ -476,7 +476,7 @@ static void NPITask_process(void)
             // modifying the event mask while the task is read/writing it.
             key = MAP_ICall_enterCriticalSection();
             
-#ifndef ICALL_EVENTS
+#if !defined(ICALL_EVENTS) || defined(USE_DMM)
             NPITask_events = NPITask_events | TX_DONE_ISR_EVENT_FLAG |
                              MRDY_ISR_EVENT_FLAG | TRANSPORT_RX_ISR_EVENT_FLAG;
             
@@ -490,7 +490,7 @@ static void NPITask_process(void)
             // MRDY event
             if (NPITask_events & NPITASK_MRDY_EVENT)
             {
-#ifndef ICALL_EVENTS
+#if !defined(ICALL_EVENTS) || defined(USE_DMM)
                 NPITask_events &= ~NPITASK_MRDY_EVENT;
 #endif //ICALL_EVENTS
 #if (NPI_FLOW_CTRL == 1)
@@ -520,7 +520,7 @@ static void NPITask_process(void)
 
                 if (Queue_empty(npiSyncTxQueue))
                 {
-#ifndef ICALL_EVENTS
+#if !defined(ICALL_EVENTS) || defined(USE_DMM)
                     // If the Sync Q is empty now (and it should be) clear the
                     // event.
                     NPITask_events &= ~NPITASK_SYNC_TX_READY_EVENT;
@@ -532,7 +532,7 @@ static void NPITask_process(void)
                     // - It means we're handling "stacked" SYNC REQ/RSP's
                     //   (which shouldn't be happening).
                     // - Preserve the event flag and repost on the semaphore.
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                     Event_post(syncEvent, NPITASK_SYNC_TX_READY_EVENT);
 #else //!ICALL_EVENTS
                     Semaphore_post(npiSemHandle);
@@ -542,7 +542,7 @@ static void NPITask_process(void)
 #endif // NPI_SREQRSP
 
             // ICall Message Event
-#if defined(USE_ICALL)
+#if defined(USE_ICALL) && !defined(USE_DMM)
             if (ICall_fetchServiceMsg(&stackid, &dest, (void * *) &pMsg)
                 == ICALL_ERRNO_SUCCESS)
             {
@@ -564,14 +564,14 @@ static void NPITask_process(void)
 
                 if (Queue_empty(npiSyncRxQueue))
                 {
-#ifndef ICALL_EVENTS
+#if !defined(ICALL_EVENTS) || defined(USE_DMM)
                     // Q is empty, it's safe to clear the event flag.
                     NPITask_events &= ~NPITASK_SYNC_FRAME_RX_EVENT;
 #endif //ICALL_EVENTS
                 }
                 else
                 {
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                     Event_post(syncEvent, NPITASK_SYNC_FRAME_RX_EVENT);
 #else //!ICALL_EVENTS
                     // Q is not empty, there's more to handle so preserve the
@@ -605,7 +605,7 @@ static void NPITask_process(void)
 
                 if (Queue_empty(npiTxQueue))
                 {
-#ifndef ICALL_EVENTS
+#if !defined(ICALL_EVENTS) || defined(USE_DMM)
                     // Q is empty, it's safe to clear the event flag.
                     NPITask_events &= ~NPITASK_TX_READY_EVENT;
 #endif //ICALL_EVENTS
@@ -614,7 +614,7 @@ static void NPITask_process(void)
                 {
                     // Q is not empty, there's more to handle so preserve the
                     // flag and repost to the task semaphore.
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                     Event_post(syncEvent, NPITASK_TX_READY_EVENT);
 #else //!ICALL_EVENTS
                     Semaphore_post(npiSemHandle);
@@ -635,7 +635,7 @@ static void NPITask_process(void)
 
                 if (NPIRxBuf_GetRxBufCount() == 0)
                 {
-#ifndef ICALL_EVENTS
+#if !defined(ICALL_EVENTS) || defined(USE_DMM)
                     // No additional bytes to collect, clear the flag.
                     NPITask_events &= ~NPITASK_TRANSPORT_RX_EVENT;
 #endif //ICALL_EVENTS
@@ -644,7 +644,7 @@ static void NPITask_process(void)
                 {
                     // Additional bytes to collect, preserve the flag and repost
                     // to the semaphore
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                     Event_post(syncEvent, NPITASK_TRANSPORT_RX_EVENT);
 #else //!ICALL_EVENTS
                     Semaphore_post(npiSemHandle);
@@ -666,7 +666,7 @@ static void NPITask_process(void)
                     NPITask_processRXQ();
                     if (Queue_empty(npiRxQueue))
                     {
-#ifndef ICALL_EVENTS
+#if !defined(ICALL_EVENTS) || defined(USE_DMM)
                         // Q is empty, it's safe to clear the event flag.
                         NPITask_events &= ~NPITASK_FRAME_RX_EVENT;
 #endif //ICALL_EVENTS
@@ -675,7 +675,7 @@ static void NPITask_process(void)
                     {
                         // Q is not empty, there's more to handle so preserve the
                         // flag and repost to the task semaphore.
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                         Event_post(syncEvent, NPITASK_FRAME_RX_EVENT);
 #else //!ICALL_EVENTS
                         Semaphore_post(npiSemHandle);
@@ -685,7 +685,7 @@ static void NPITask_process(void)
                 }
                 else
                 {
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                     Event_post(syncEvent, NPITASK_FRAME_RX_EVENT);
 #else //!ICALL_EVENTS
                     // Preserve the flag and repost to the task semaphore.
@@ -707,7 +707,7 @@ static void NPITask_process(void)
                     // There are pending SYNC RSP messages waiting to be sent
                     // to the host. Set the appropriate flag and post to
                     // the semaphore.
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                     Event_post(syncEvent, NPITASK_SYNC_TX_READY_EVENT);
 #else //!ICALL_EVENTS
                     NPITask_events |= NPITASK_SYNC_TX_READY_EVENT;
@@ -722,7 +722,7 @@ static void NPITask_process(void)
                         // There are pending ASYNC messages waiting to be sent
                         // to the host. Set the appropriate flag and post to
                         // the semaphore.
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                         Event_post(syncEvent, NPITASK_TX_READY_EVENT);
 #else //!ICALL_EVENTS
                         NPITask_events |= NPITASK_TX_READY_EVENT;
@@ -853,7 +853,7 @@ void NPITask_sendToHost(uint8_t *pMsg)
             case NPIMSG_Type_SYNCRSP:
             {
                 Queue_enqueue(npiSyncTxQueue, &recPtr->_elem);
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                 Event_post(syncevent, NPITASK_SYNC_TX_READY_EVENT);
 #else //!ICALL_EVENTS
                 NPITask_events |= NPITASK_SYNC_TX_READY_EVENT;
@@ -865,7 +865,7 @@ void NPITask_sendToHost(uint8_t *pMsg)
             case NPIMSG_Type_ASYNC:
             {
                 Queue_enqueue(npiTxQueue, &recPtr->_elem);
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                 Event_post(syncEvent, NPITASK_TX_READY_EVENT);
 #else //!ICALL_EVENTS
                 NPITask_events |= NPITASK_TX_READY_EVENT;
@@ -1018,7 +1018,7 @@ static void NPITask_processStackMsg(uint8_t *pMsg)
                 case NPIMSG_Type_SYNCRSP:
                 {
                     Queue_enqueue(npiSyncTxQueue, &recPtr->_elem);
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                     Event_post(syncEvent, NPITASK_SYNC_TX_READY_EVENT);
 #else //!ICALL_EVENTS
                     NPITask_events |= NPITASK_SYNC_TX_READY_EVENT;
@@ -1030,7 +1030,7 @@ static void NPITask_processStackMsg(uint8_t *pMsg)
                 case NPIMSG_Type_ASYNC:
                 {
                     Queue_enqueue(npiTxQueue, &recPtr->_elem);
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                     Event_post(syncEvent, NPITASK_TX_READY_EVENT);
 #else //!ICALL_EVENTS
                     NPITask_events |= NPITASK_TX_READY_EVENT;
@@ -1274,7 +1274,7 @@ static void NPITask_transportTxDoneCallBack(int size)
     }
 
     // Post the event to the NPI task thread.
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
     Event_post(syncEvent, NPITASK_TRANSPORT_TX_DONE_EVENT);
 #else //!ICALL_EVENTS
     TX_DONE_ISR_EVENT_FLAG = NPITASK_TRANSPORT_TX_DONE_EVENT;
@@ -1313,7 +1313,7 @@ static void NPITask_incomingFrameCB(uint8_t frameSize, uint8_t *pFrame,
             {
                 recPtr->npiMsg->msgType = NPIMSG_Type_ASYNC;
                 Queue_enqueue(npiRxQueue, &recPtr->_elem);
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                 Event_post(syncEvent, NPITASK_FRAME_RX_EVENT);
 #else //!ICALL_EVENTS
                 NPITask_events |= NPITASK_FRAME_RX_EVENT;
@@ -1328,7 +1328,7 @@ static void NPITask_incomingFrameCB(uint8_t frameSize, uint8_t *pFrame,
             {
                 recPtr->npiMsg->msgType = NPIMSG_Type_SYNCREQ;
                 Queue_enqueue(npiSyncRxQueue, &recPtr->_elem);
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
                 Event_post(syncEvent, NPITASK_SYNC_FRAME_RX_EVENT);
 #else //!ICALL_EVENTS
                 NPITask_events |= NPITASK_SYNC_FRAME_RX_EVENT;
@@ -1376,7 +1376,7 @@ static void NPITask_transportRXCallBack(int size)
     if ( size < NPIRxBuf_GetRxBufAvail() )
     {
         NPIRxBuf_Read(size);
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
         Event_post(syncEvent, NPITASK_TRANSPORT_RX_EVENT);
 #else //!ICALL_EVENTS
         TRANSPORT_RX_ISR_EVENT_FLAG = NPITASK_TRANSPORT_RX_EVENT;
@@ -1400,7 +1400,7 @@ static void NPITask_transportRXCallBack(int size)
 // -----------------------------------------------------------------------------
 static void NPITask_MRDYEventCB(int size)
 {
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
     Event_post(syncEvent, NPITASK_MRDY_EVENT);
 #else //!ICALL_EVENTS
     MRDY_ISR_EVENT_FLAG = NPITASK_MRDY_EVENT;
@@ -1428,14 +1428,14 @@ static void syncReqRspWatchDogTimeoutCB( UArg a0 )
         // check if there are more pending SYNC REQ's
         if (!Queue_empty(npiSyncRxQueue))
         {
-#ifdef ICALL_EVENTS
+#if defined(ICALL_EVENTS) && !defined(USE_DMM)
             Event_post(syncEvent, NPITASK_SYNC_FRAME_RX_EVENT);
 #else //!ICALL_EVENTS
             NPITask_events |= NPITASK_SYNC_FRAME_RX_EVENT;
 #endif //ICALL_EVENTS
         }
 
-#ifndef ICALL_EVENTS
+#if !defined(ICALL_EVENTS) || defined(USE_DMM)
         // re-enter to Task event loop
         Semaphore_post(npiSemHandle);
 #endif //ICALL_EVENTS

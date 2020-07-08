@@ -1,10 +1,10 @@
 /*
- *  Copyright 2019 by Texas Instruments Incorporated.
+ *  Copyright 2020 by Texas Instruments Incorporated.
  *
  */
 
 /*
- * Copyright (c) 2016-2018 Texas Instruments Incorporated - http://www.ti.com
+ * Copyright (c) 2016-2020 Texas Instruments Incorporated - http://www.ti.com
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@ metaonly module A53F inherits gnu.targets.arm.ITarget {
     override readonly config string rts = "gnu.targets.arm.rtsv8A";
     override config string platform     = "ti.platforms.cortexA:AM65X";
 
-    override config string GCCTARG = "aarch64-elf";
+    override config string GCCTARG = "aarch64-none-elf";
 
     override config String binaryParser = "xdc.targets.omf.Elf";
 
@@ -72,7 +72,7 @@ metaonly module A53F inherits gnu.targets.arm.ITarget {
     };
 
     readonly config ITarget2.Command ccBin = {
-        cmd: "bin/aarch64-elf-gcc -c -MD -MF $@.dep",
+        cmd: "bin/aarch64-none-elf-gcc -c -MD -MF $@.dep",
         opts: "-mcpu=cortex-a53+fp+simd -mabi=lp64 -mcmodel=large -mstrict-align -mfix-cortex-a53-835769 -mfix-cortex-a53-843419 -g"
     };
 
@@ -96,17 +96,17 @@ metaonly module A53F inherits gnu.targets.arm.ITarget {
     };
 
     readonly config ITarget2.Command asmBin = {
-        cmd: "bin/aarch64-elf-gcc -c -x assembler-with-cpp",
+        cmd: "bin/aarch64-none-elf-gcc -c -x assembler-with-cpp",
         opts: "-mcpu=cortex-a53+fp+simd -mabi=lp64 -mcmodel=large -mstrict-align -mfix-cortex-a53-835769 -mfix-cortex-a53-843419"
     };
 
     override config ITarget2.Options lnkOpts = {
-        prefix: "-nostartfiles -Wl,-static -Wl,--gc-sections",
-        suffix: "-Wl,--start-group -lgcc -lc -lm -Wl,--end-group -Wl,-Map=$(XDCCFGDIR)/$@.map"
+        prefix: "-mabi=lp64 -nostartfiles -Wl,-static -Wl,--gc-sections",
+        suffix: "-L$(packageBase)/libs/install-native/$(GCCTARG)/lib -Wl,--start-group -lgcc -lc -lm -Wl,--end-group -Wl,-Map=$(XDCCFGDIR)/$@.map"
     };
 
     readonly config ITarget2.Command arBin = {
-        cmd: "bin/aarch64-elf-ar ",
+        cmd: "bin/aarch64-none-elf-ar ",
         opts: ""
     };
 
@@ -119,6 +119,14 @@ metaonly module A53F inherits gnu.targets.arm.ITarget {
      *  being "nosys".
      */
     override config string bspLib = "nosys";
+
+    /*!
+     *  ======== includeOpts ========
+     *  Additional user configurable target-specific include path options
+     *
+     *  This target uses newlib run-time.
+     */
+    override config string includeOpts = "-I$(packageBase)/libs/install-native/$(GCCTARG)/include";
 
     /*
      *  ======== profiles ========
@@ -165,7 +173,7 @@ metaonly module A53F inherits gnu.targets.arm.ITarget {
     };
 }
 /*
- *  @(#) gnu.targets.arm; 1, 0, 0,0; 8-9-2019 17:14:52; /db/ztree/library/trees/xdctargets/xdctargets-v00/src/ xlibrary
+ *  @(#) gnu.targets.arm; 1, 0, 0,; 5-11-2020 15:30:13; /db/ztree/library/trees/xdctargets/xdctargets-w14/src/ xlibrary
 
  */
 

@@ -53,7 +53,6 @@
             -DMAX_DEVICE_TABLE_ENTRIES=1
             -DZSTACK_GPD
             -DFREQ_2_4G
-            -DHAL_ASSERT_SPIN
             -DNV_RESTORE
             -DNV_INIT
             -DFEATURE_NON_BEACON_MODE
@@ -64,8 +63,6 @@
             -I${PROJECT_ROOT}/Application
             -I${PROJECT_ROOT}/Stack/Config
             -I${PROJECT_ROOT}/Stack/osal_port
-            -I${PROJECT_ROOT}/Stack/HAL/Assert
-            -I${PROJECT_ROOT}/Stack/HAL/Appasrt
             -I${PROJECT_ROOT}/Stack/HAL/Crypto
             -I${PROJECT_ROOT}/Stack/HAL/Platform
             -I${PROJECT_ROOT}/Stack/HAL/RF
@@ -80,8 +77,6 @@
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/osal
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/services/saddr
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/services/sdata
-            -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/assert
-            -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/appasrt
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/crypto
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/platform
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/rf
@@ -156,7 +151,7 @@
         description="">
 
         <property name="type" value="rtsc"/>
-        <property name="xdcToolsVersion" value="3_60_02_34_core"/>
+        <property name="xdcToolsVersion" value="3_61_01_25_core"/>
         <property name="target" value="ti.targets.arm.elf.M4F"/>
         <property name="platform" value="ti.platforms.simplelink:CC2652RB1F"/>
         <property name="buildProfile" value="release"/>
@@ -242,14 +237,6 @@
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/osal_port/osal_port_tirtos/osal_port_timers.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/osal_port">
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/osal_port/osal_port_timers.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/osal_port">
-        </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/appasrt/appasrtintf.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/HAL/Appasrt">
-        </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/appasrt/hal_appasrt.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/HAL/Appasrt">
-        </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/appasrt/hal_appasrt.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/HAL/Appasrt">
-        </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/assert/hal_assert.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/HAL/Assert">
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/crypto/crypto_mac_api.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/HAL/Crypto">
         </file>

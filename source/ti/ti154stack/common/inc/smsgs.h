@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -207,6 +207,12 @@ The <b>Sensor Ramp Data Message</b> is defined as:
 #define SMSGS_DEVICE_TYPE_REQUEST_MSG_LEN 1
 /*! Device type response message length (over-the-air length) */
 #define SMSGS_DEVICE_TYPE_RESPONSE_MSG_LEN 3
+/*! Length of a BLE Device Address */
+#define B_ADDR_LEN 6
+/*! Length of the ble sensor portion of the sensor data length not including variable data field */
+#define SMSGS_SENSOR_BLE_LEN 5 + B_ADDR_LEN
+/* Max BLE Data Length */
+#define MAX_BLE_DATA_LEN 20
 
 /*!
  Message IDs for Sensor data messages.  When sent over-the-air in a message,
@@ -275,6 +281,7 @@ typedef enum
     /*! Accelerometer Sensor */
     Smsgs_dataFields_accelSensor = 0x0040,
 #endif /* LPSTK */
+    Smsgs_dataFields_bleSensor = 0x0080,
 } Smsgs_dataFields_t;
 
 /*!
@@ -378,7 +385,7 @@ typedef struct _Smsgs_identifyledreqmsg_t
 {
     /*! Command ID - 1 byte */
     Smsgs_cmdIds_t cmdId;
-    /*! time to identify in ms */
+    /*! time to identify in s */
     uint8_t identifyTime;
 } Smsgs_identifyLedReqMsg_t;
 
@@ -452,6 +459,21 @@ typedef struct _Smsgs_accelsensorfield_t
     /*! Device tilted in the Y axis. */
     uint8_t yTiltDet;
 } Smsgs_accelSensorField_t;
+
+typedef struct _Smsgs_blesensorfield_t
+{
+    /*! BLE Sensor Address */
+    uint8_t  bleAddr[B_ADDR_LEN];
+    /*! Manufacturer ID */
+    uint16_t manFacID;
+    /*! UUID */
+    uint16_t uuid;
+    /*! Length of BLE Char */
+    uint8_t dataLength;
+    /*! Pointer to BLE Characteristic Value */
+    uint8_t data[MAX_BLE_DATA_LEN];
+
+} Smsgs_bleSensorField_t;
 
 /*!
  Message Statistics Field
@@ -607,6 +629,11 @@ typedef struct _Smsgs_sensormsg_t
      */
     Smsgs_accelSensorField_t accelerometerSensor;
 #endif /* LPSTK */
+    /*!
+     BLE Sensor field - valid only if Smsgs_dataFields_bleSensorField_t
+     is set in frameControl.
+     */
+    Smsgs_bleSensorField_t bleSensor;
 } Smsgs_sensorMsg_t;
 
 /*!

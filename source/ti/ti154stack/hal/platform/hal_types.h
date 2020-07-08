@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2006-2019, Texas Instruments Incorporated
+ Copyright (c) 2006-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -65,7 +65,10 @@ typedef unsigned long   uint32;
 //typedef unsigned char   bool;
 
 typedef uint32          halDataAlign_t;
+
+#ifndef __cplusplus
 #define bool            _Bool
+#endif
 
 /* ------------------------------------------------------------------------------------------------
  *                                        Compiler Macros
@@ -141,7 +144,11 @@ typedef uint32          halDataAlign_t;
 #define PACKED_TYPEDEF_UNION        typedef union PACKED
 
 #elif defined (__GNUC__)
-#define PACKED __attribute__((__packed__))
+#define XDATA
+#define CODE
+#define DATA
+#define PACKED                      __attribute__((__packed__))
+#define PACKED_TYPEDEF_STRUCT       typedef struct PACKED
 #endif
 
 /**************************************************************************************************

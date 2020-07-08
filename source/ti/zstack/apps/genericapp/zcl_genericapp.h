@@ -56,7 +56,7 @@ extern "C"
 // Added to include Touchlink Target functionality
 #if defined ( BDB_TL_INITIATOR ) || defined ( BDB_TL_TARGET )
   #include "zcl_general.h"
-//  #include "bdb_tl_commissioning.h"
+  #include "bdb_tl_commissioning.h"
 #endif
 
 /*********************************************************************

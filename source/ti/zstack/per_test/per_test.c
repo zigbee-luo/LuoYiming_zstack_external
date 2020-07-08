@@ -234,7 +234,7 @@ void PERTest_init(Semaphore_Handle appSem, uint8_t stEnt, CUI_clientHandle_t gCu
 #endif
 
   gPERCuiHandle = gCuiHandle;
-  CUI_statusLineResourceRequest(gCuiHandle, "PER Test", &gPerTestInfoLine);
+  CUI_statusLineResourceRequest(gCuiHandle, "PER Test", false, &gPerTestInfoLine);
 }
 
 void PERTest_process(void)

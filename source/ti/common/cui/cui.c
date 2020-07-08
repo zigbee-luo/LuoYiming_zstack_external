@@ -43,9 +43,8 @@
 #include <ti/drivers/dpl/HwiP.h>
 #include <ti/drivers/UART.h>
 #include <ti/drivers/uart/UARTCC26XX.h>
-#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/utils/Random.h>
 #include <ti/drivers/apps/LED.h>
-
 #include <xdc/runtime/System.h>
 #include DeviceFamily_constructPath(driverlib/cpu.h)
 #include "ti_drivers_config.h"
@@ -56,9 +55,6 @@
 #define CUI_INITIAL_STATUS_OFFSET 5
 #define CUI_LABEL_VAL_SEP ": "
 #define CUI_MAX_LABEL_AND_SEP_LEN (MAX_STATUS_LINE_LABEL_LEN + (sizeof(CUI_LABEL_VAL_SEP)))
-
-/* LED blink period in milliseconds */
-#define LED_BLINK_PERIOD      500
 
 /*
  * Ascii Escape characters to be used by testing scripts to bookend the
@@ -94,21 +90,14 @@
 #define CUI_ESC_CUR_LINE            "\033[%d;0H" // Move cursor to a line of choice
 #define CUI_ESC_CUR_ROW_COL         "\033[%d;%dH"// Move cursor to row and col
 
-
-
-#define CUI_LED_ASSERT_PERIOD 500000
-
-#define CUI_NUM_UART_CHARS  5
+#define CUI_NUM_UART_CHARS          5
+#define CUI_MENU_START_ESCAPE_LEN   32
+#define CUI_NL_CR_LEN               2
+#define CUI_ETX_LEN                 1
 
 /******************************************************************************
  Constants
  *****************************************************************************/
-typedef enum
-{
-    CUI_MENU_NAV_LEFT,
-    CUI_MENU_NAV_RIGHT,
-} CUI_menuNavDir_t;
-
 typedef enum
 {
     CUI_RELEASED = 0,
@@ -116,20 +105,6 @@ typedef enum
     CUI_ACQUIRED = 0xDEADBEEF,
 } CUI_rscStatus_t;
 
-// Internal representation of a button resource
-typedef struct
-{
-    uint32_t clientHash;
-    Button_Handle btnHandle;
-    CUI_btnPressCB_t appCb;
-} CUI_btnResource_t;
-
-// Internal representation of a led resource
-typedef struct
-{
-    uint32_t clientHash;
-    LED_Handle ledHandle;
-} CUI_ledResource_t;
 
 // Internal representation of a menu
 typedef struct
@@ -145,27 +120,16 @@ typedef struct
     uint32_t lineOffset;
     char label[CUI_MAX_LABEL_AND_SEP_LEN];
     CUI_rscStatus_t status;
+    bool refreshInd;
 } CUI_statusLineResource_t;
 
 /*******************************************************************************
  * GLOBAL VARIABLES
  */
-
-/* Obtain BTN info from ti_drivers_config.h */
-extern Button_Config Button_config[];
-extern const uint_least8_t Button_count;
-
-/* Obtain LED info from ti_drivers_config.h */
-extern LED_Config LED_config[];
-extern const uint_least8_t LED_count;
-
 /*
  * [General Global Variables]
  */
 static bool gModuleInitialized = false;
-static bool gManageBtns = false;
-static bool gManageLeds = false;
-static bool gManageUart = false;
 static Semaphore_Params gSemParams;
 
 static CUI_clientHandle_t gClientHandles[MAX_CLIENTS];
@@ -174,41 +138,30 @@ static Semaphore_Handle gClientsSem;
 static Semaphore_Struct gClientsSemStruct;
 
 /*
- * [Button Related Global Variables]
- *
- * At compile time, create an array of Button Resources to track usage depending
- * on the size of the Button Pin Table. Subtract 1 for the `PIN_TERMINATE` value
- * in the Pin Table.
- */
-static CUI_btnResource_t *gButtonResources;
-
-/*
- * [LED Related Global Variables]
- *
- * At compile time, create an array of LED Resources to track usage depending
- * on the size of the LED Pin Table. Subtract 1 for the `PIN_TERMINATE` value
- * in the Pin Table.
- */
-static CUI_ledResource_t *gLedResources;
-
-/*
  * [UART Specific Global Variables]
  */
 static UART_Params gUartParams;
 static UART_Handle gUartHandle = NULL;
+#ifndef CUI_MIN_FOOTPRINT
 static uint8_t gUartTxBuffer[CUI_NUM_UART_CHARS];
 static uint8_t gUartRxBuffer[CUI_NUM_UART_CHARS];
-static bool gUartWriteComplete = false;
+#endif
 static Semaphore_Handle gUartSem;
 static Semaphore_Struct gUartSemStruct;
 
+static uint8_t gRingBuff[512];
+static size_t gRingBuffHeadIdx = 0;
+static size_t gRingBuffTailIdx = 0;
+static size_t gRingBuffPendLen = 0;
+
+#ifndef CUI_MIN_FOOTPRINT
 /*
  * [Menu Global Variables]
  */
 static CUI_menu_t* gpCurrMenu;
 static CUI_menu_t* gpMainMenu;
-static int32_t gCurrMenuItemEntry = 0;
-static int32_t gPrevMenuItemEntry = 0;
+static size_t gCurrMenuItemEntry = 0;
+static size_t gPrevMenuItemEntry = 0;
 static bool gCursorActive;
 static CUI_cursorInfo_t gCursorInfo;
 
@@ -216,9 +169,10 @@ static CUI_menuResource_t gMenuResources[MAX_REGISTERED_MENUS];
 static Semaphore_Handle gMenuSem;
 static Semaphore_Struct gMenuSemStruct;
 
-char menuBuff[MAX_MENU_LINE_LEN + 2     // Additional new line and return char
-              + MAX_MENU_LINE_LEN + 2   // Additional new line and return char
-              + MAX_MENU_LINE_LEN + 1]; // Additional ETX char
+char menuBuff[CUI_MENU_START_ESCAPE_LEN             // Escape characters
+              + MAX_MENU_LINE_LEN + CUI_NL_CR_LEN   // Additional new line and return char
+              + MAX_MENU_LINE_LEN + CUI_NL_CR_LEN   // Additional new line and return char
+              + MAX_MENU_LINE_LEN + CUI_ETX_LEN];   // Additional ETX char
 
 static char gpMultiMenuTitle[] = " TI DMM Application ";
 
@@ -227,20 +181,9 @@ static char gpMultiMenuTitle[] = " TI DMM Application ";
  * registered to the CUI. This menu will then be the top most Main Menu where
  * each menu that was registered will now be a sub menu.
  */
-CUI_menu_t cuiMultiMenu =
-{
-    /*
-     * The uart update fn will be that of the first menu's that was registered
-     */
-    .uartUpdateFn = NULL,
-    .pTitle =  gpMultiMenuTitle,
-    // Allocate 1 more for the Help screen
-    .numItems = MAX_REGISTERED_MENUS + 1,
-    // This menu will never have a upper or parent menu
-    .pUpper = NULL,
-    // Allocate enough space for the number of submenus that are possible
-    .menuItems[MAX_REGISTERED_MENUS + 1] = NULL,
-};
+uint8_t     cuiMultiMenuData[sizeof(CUI_menu_t) + ((MAX_REGISTERED_MENUS + 1) * sizeof(CUI_menuItem_t))];
+CUI_menu_t *cuiMultiMenu = (CUI_menu_t *)&cuiMultiMenuData;
+#endif /* CUI_MIN_FOOTPRINT */
 
 /*
  * [Status Line Variables]
@@ -253,42 +196,25 @@ static Semaphore_Struct gStatusSemStruct;
  Local Functions Prototypes
  *****************************************************************************/
 static CUI_retVal_t CUI_publicAPIChecks(const CUI_clientHandle_t _clientHandle);
-static CUI_retVal_t CUI_acquireBtn(const CUI_clientHandle_t _clientHandle, const CUI_btnRequest_t* const _pRequest);
-static CUI_retVal_t CUI_acquireLed(const CUI_clientHandle_t _clientHandle, const uint32_t _index);
-static CUI_retVal_t CUI_acquireStatusLine(const CUI_clientHandle_t _clientHandle, const char* _pLabel, uint32_t* _pLineId);
+static CUI_retVal_t CUI_acquireStatusLine(const CUI_clientHandle_t _clientHandle, const char* _pLabel, const bool _refreshInd, uint32_t* _pLineId);
 static CUI_retVal_t CUI_validateHandle(const CUI_clientHandle_t _clientHandle);
-static void CUI_menuActionNavigate(CUI_menuNavDir_t _navDir);
-static void CUI_menuActionExecute(void);
-static CUI_retVal_t CUI_writeString(void * _buffer, size_t _size);
-static void CUI_dispMenu(bool _menuPopulated);
+static int CUI_getClientIndex(const CUI_clientHandle_t _clientHandle);
 static void UartWriteCallback(UART_Handle _handle, void *_buf, size_t _size);
-static void CUI_callMenuUartUpdateFn();
+#ifndef CUI_MIN_FOOTPRINT
 static void UartReadCallback(UART_Handle _handle, void *_buf, size_t _size);
+#endif
+static CUI_retVal_t CUI_updateRemLen(size_t* _currRemLen, char* _buff, size_t _buffSize);
+static CUI_retVal_t CUI_writeString(void * _buffer, size_t _size);
+#ifndef CUI_MIN_FOOTPRINT
+static void CUI_menuActionNavigate(uint8_t _navDir);
+static void CUI_menuActionExecute(void);
+static void CUI_dispMenu(bool _menuPopulated);
+static void CUI_callMenuUartUpdateFn();
 static void CUI_updateCursor(void);
 static bool CUI_handleMenuIntercept(CUI_menuItem_t* _pItemEntry, uint8_t _input);
-static int CUI_getClientIndex(const CUI_clientHandle_t _clientHandle);
-static CUI_retVal_t CUI_updateRemLen(size_t* _currRemLen, char* _buff, size_t _buffSize);
+static bool CUI_handleMenuList(CUI_menuItem_t* _pItemEntry, uint8_t _input);
 static CUI_retVal_t CUI_findMenu(CUI_menu_t* _pMenu, CUI_menu_t* _pDesiredMenu, uint32_t* _pPrevItemIndex);
-static CUI_retVal_t CUI_publicBtnsAPIChecks(const CUI_clientHandle_t _clientHandle);
-static CUI_retVal_t CUI_publicLedsAPIChecks(const CUI_clientHandle_t _clientHandle);
-static CUI_retVal_t CUI_publicUartAPIChecks(const CUI_clientHandle_t _clientHandle);
-static CUI_retVal_t CUI_ledAssert();
-
-static void handleButtonCallback(Button_Handle handle, Button_EventMask events)
-{
-    for (uint8_t i = 0; i < Button_count; i++)
-    {
-        if (handle == gButtonResources[i].btnHandle)
-        {
-            if (gButtonResources[i].appCb != NULL)
-            {
-                gButtonResources[i].appCb(i, events);
-            }
-        }
-    }
-
-}
-
+#endif
 /******************************************************************************
  * Public CUI APIs
  *****************************************************************************/
@@ -309,8 +235,7 @@ CUI_retVal_t CUI_init(CUI_params_t* _pParams)
      *  CUI_init has been called without trying to manage any of the three
      *  resources (btns, leds, uart)
      */
-    if (!gModuleInitialized && (_pParams->manageBtns || _pParams->manageLeds
-                    || _pParams->manageUart))
+    if (!gModuleInitialized && _pParams->manageUart)
     {
 
         // Semaphore Setup
@@ -325,76 +250,22 @@ CUI_retVal_t CUI_init(CUI_params_t* _pParams)
 
             for (int i = 0; i < MAX_CLIENTS; i++)
             {
-                gClientHandles[i] = NULL;
+                /*
+                 * A client handle of 0 indicates that the client has not been
+                 * registered.
+                 */
+                gClientHandles[i] = 0U;
             }
         }
 
-        // Button Setup
-        if (_pParams->manageBtns)
         {
-            Button_init();
-            gManageBtns = true;
-
-            // Allocate memory for button resources
-            gButtonResources = malloc(Button_count * sizeof(gButtonResources[0]));
-            if (gButtonResources == NULL)
-            {
-                return CUI_FAILURE;
-            }
-
-            // Initialize button resource specifics
-            memset(gButtonResources, 0, Button_count * sizeof(gButtonResources[0]));
-            Button_Params params;
-            Button_Params_init(&params);
-
-#ifdef CUI_LONG_PRESS_DUR_MS
-            params.longPressDuration = CUI_LONG_PRESS_DUR_MS;
-#else
-            params.longPressDuration = 1000; // 1000 ms
-#endif
-
-            for (int i = 0; i < Button_count; i++)
-            {
-                // Obtain button handle for each button resource
-                gButtonResources[i].btnHandle = Button_open(i, handleButtonCallback, &params);
-            }
-        }
-
-        // LED Setup
-        if (_pParams->manageLeds)
-        {
-            LED_init();
-            gManageLeds = true;
-
-            // Allocate memory for led resources
-            gLedResources = malloc(LED_count * sizeof(gLedResources[0]));
-            if (gLedResources == NULL)
-            {
-                return CUI_FAILURE;
-            }
-
-            // Initialize led resource specifics
-            LED_Params ledParams;
-            LED_Params_init(&ledParams);
-            ledParams.blinkPeriod = LED_BLINK_PERIOD;
-            memset(gLedResources, 0, LED_count * sizeof(gLedResources[0]));
-            for(uint8_t i = 0; i < LED_count; i++)
-            {
-                // Obtain led handle for each button resource
-                gLedResources[i].ledHandle = LED_open(i, &ledParams);
-            }
-        }
-
-        if (_pParams->manageUart)
-        {
-            gManageUart = true;
-
             // UART semaphore setup
             Semaphore_construct(&gUartSemStruct, 1, &gSemParams);
             gUartSem = Semaphore_handle(&gUartSemStruct);
+#ifndef CUI_MIN_FOOTPRINT
             Semaphore_construct(&gMenuSemStruct, 1, &gSemParams);
             gMenuSem = Semaphore_handle(&gMenuSemStruct);
-
+#endif
             {
                 // General UART setup
                 UART_init();
@@ -403,9 +274,11 @@ CUI_retVal_t CUI_init(CUI_params_t* _pParams)
                 gUartParams.writeMode     = UART_MODE_CALLBACK;
                 gUartParams.writeDataMode = UART_DATA_BINARY;
                 gUartParams.writeCallback = UartWriteCallback;
+#ifndef CUI_MIN_FOOTPRINT
                 gUartParams.readMode      = UART_MODE_CALLBACK;
                 gUartParams.readDataMode  = UART_DATA_BINARY;
                 gUartParams.readCallback  = UartReadCallback;
+#endif
                 gUartHandle = UART_open(CONFIG_DISPLAY_UART, &gUartParams);
                 if (NULL == gUartHandle)
                 {
@@ -413,37 +286,39 @@ CUI_retVal_t CUI_init(CUI_params_t* _pParams)
                 }
                 else
                 {
+#ifndef CUI_MIN_FOOTPRINT
                     UART_read(gUartHandle, gUartRxBuffer, sizeof(gUartRxBuffer));
                     UART_control(gUartHandle, UARTCC26XX_CMD_RETURN_PARTIAL_ENABLE, NULL);
+#endif
 
-                    gUartWriteComplete = true;
+                    char clearScreenStr[] = CUI_ESC_CLR CUI_ESC_TRM_MODE CUI_ESC_CUR_HIDE;
 
-                    strncpy(menuBuff, CUI_ESC_CLR CUI_ESC_TRM_MODE CUI_ESC_CUR_HIDE, sizeof(menuBuff));
-                    if (CUI_SUCCESS != CUI_writeString(menuBuff, strlen(menuBuff)))
+                    if (CUI_SUCCESS != CUI_writeString(clearScreenStr, strlen(clearScreenStr)))
                     {
                         UART_close(gUartHandle);
                         return CUI_FAILURE;
                     }
-
-                    memset(menuBuff, 0, sizeof(menuBuff));
                 }
             }
 
+#ifndef CUI_MIN_FOOTPRINT
             // Multi Menu Initialization
             {
-                memset(gMenuResources, 0, sizeof(gMenuResources) / sizeof(gMenuResources[0]));
+                memset(gMenuResources, 0, sizeof(gMenuResources));
                 /*
-                 *  No additional initialization is needed in the case of a single
+                 * No additional initialization is needed in the case of a single
                  * menu being registered to the CUI module. In the case of 2 or more
                  * menus being registered the global cuiMultiMenu object will
                  * be used as the top level menu and every registered menu will be a
                  * sub menu of the cuiMultiMenu instead.
                  */
-                for (int i = 0; i < MAX_REGISTERED_MENUS + 1; i++)
-                {
-                    memset(&cuiMultiMenu.menuItems[i], 0, sizeof(cuiMultiMenu.menuItems[i]));
-                }
+                memset(cuiMultiMenu, 0, sizeof(&cuiMultiMenu));
+                cuiMultiMenu->uartUpdateFn  = NULL;
+                cuiMultiMenu->pTitle        = gpMultiMenuTitle;
+                cuiMultiMenu->numItems      = MAX_REGISTERED_MENUS + 1;
+                cuiMultiMenu->pUpper        = NULL;
             }
+#endif
 
             // Status Lines Setup
             {
@@ -472,8 +347,6 @@ CUI_retVal_t CUI_init(CUI_params_t* _pParams)
  */
 void CUI_paramsInit(CUI_params_t* _pParams)
 {
-    _pParams->manageBtns = true;
-    _pParams->manageLeds = true;
     _pParams->manageUart = true;
 }
 
@@ -490,46 +363,36 @@ void CUI_paramsInit(CUI_params_t* _pParams)
  */
 CUI_clientHandle_t CUI_clientOpen(CUI_clientParams_t* _pParams)
 {
-    size_t numClients = 0;
+    static size_t numClients = 0;
 
     if (!gModuleInitialized)
     {
-        return NULL;
+        return 0U;
     }
 
     Semaphore_pend(gClientsSem, BIOS_WAIT_FOREVER);
 
-    for (int i = 0; i < MAX_CLIENTS; i++)
-    {
-        if (gClientHandles[i] != NULL)
-        {
-            numClients++;
-        }
-    }
-
     if (numClients >= MAX_CLIENTS)
     {
-        return NULL;
+        return 0U;
     }
 
-    // +1 for the null char
-    size_t nameLen = strlen(_pParams->clientName) + 1;
+    uint32_t randomNumber;
+    if (Random_STATUS_SUCCESS != Random_seedAutomatic()) {
+         return CUI_FAILURE;
+    }
 
-    /*
-     * A very simple hash is calculated in order to perform quick client
-     * verification. Comparing two uint32_t's rather than performing strcmp
-     * on two strings.
-     */
-    uint32_t hash = NULL;
-    for (int i = 0; i < nameLen; i++)
+    uint8_t attempts = 0;
+    do
     {
-         hash += _pParams->clientName[i];
-    }
+        randomNumber = Random_getNumber();
+        attempts++;
+    }while(!randomNumber && (attempts <= 5));
 
 
-    gClientHandles[numClients] = hash;
+    gClientHandles[numClients] = randomNumber;
 
-    if (_pParams->maxStatusLines && gManageUart)
+    if (_pParams->maxStatusLines)
     {
         gMaxStatusLines[numClients] = _pParams->maxStatusLines;
         gStatusLineResources[numClients] = malloc(_pParams->maxStatusLines * sizeof(gStatusLineResources[0][0]));
@@ -540,9 +403,11 @@ CUI_clientHandle_t CUI_clientOpen(CUI_clientParams_t* _pParams)
         memset(gStatusLineResources[numClients], 0, _pParams->maxStatusLines * sizeof(gStatusLineResources[0][0]));
     }
 
+    numClients++;
+
     Semaphore_post(gClientsSem);
 
-    return hash;
+    return randomNumber;
 }
 
 /*********************************************************************
@@ -572,402 +437,26 @@ CUI_retVal_t CUI_close()
     // Only close the module if it's been initialized
     if (gModuleInitialized)
     {
-        if (gManageBtns)
+        Semaphore_pend(gStatusSem, BIOS_WAIT_FOREVER);
+        char clearScreenStr[] = CUI_ESC_CLR CUI_ESC_TRM_MODE CUI_ESC_CUR_HIDE;
+        CUI_writeString(clearScreenStr, strlen(clearScreenStr));
+        for (uint8_t i = 0; i < MAX_CLIENTS; i++)
         {
-            for (uint8_t i = 0; i < Button_count; i++)
+            if (gStatusLineResources[i])
             {
-                Button_close(gButtonResources[i].btnHandle);
+                free(gStatusLineResources[i]);
             }
-            free(gButtonResources);
         }
-
-        if (gManageLeds)
-        {
-            for (uint8_t i = 0; i < LED_count; i++)
-            {
-                LED_close(gLedResources[i].ledHandle);
-            }
-            free(gLedResources);
-        }
-
-        if (gManageUart)
-        {
-            Semaphore_pend(gStatusSem, BIOS_WAIT_FOREVER);
-            strncpy(menuBuff, CUI_ESC_CLR CUI_ESC_TRM_MODE CUI_ESC_CUR_HIDE,
-                sizeof(menuBuff));
-            CUI_writeString(menuBuff, strlen(menuBuff));
-            for (uint8_t i = 0; i < MAX_CLIENTS; i++)
-            {
-                if (gStatusLineResources[i])
-                {
-                    free(gStatusLineResources[i]);
-                }
-            }
-            UART_close(gUartHandle);
-            Semaphore_post(gStatusSem);
-        }
-
-        // Clear out the client handles
-        memset(gClientHandles, 0, sizeof(gClientHandles[0]) * MAX_CLIENTS);
+        UART_close(gUartHandle);
+        Semaphore_post(gStatusSem);
     }
 
     gModuleInitialized = false;
-    gManageUart = false;
-    gManageLeds = false;
-    gManageBtns = false;
 
     return CUI_SUCCESS;
 
 }
-
-/******************************************************************************
- * Button CUI APIs
- *****************************************************************************/
-/*********************************************************************
- * @fn          CUI_btnResourceRequest
- *
- * @brief       Request access to a button resource
- *
- * @param       _clientHandle - Valid client handle
- *              _pRequest - Pointer to a button request struct
- *
- * @return      CUI_retVal_t representing success or failure.
- */
-CUI_retVal_t CUI_btnResourceRequest(const CUI_clientHandle_t _clientHandle, const CUI_btnRequest_t* _pRequest)
-{
-    CUI_retVal_t retVal = CUI_publicBtnsAPIChecks(_clientHandle);
-    if (CUI_SUCCESS != retVal) {
-        return retVal;
-    }
-
-    if (NULL == _pRequest) {
-        return CUI_INVALID_PARAM;
-    }
-
-    retVal = CUI_acquireBtn(_clientHandle, _pRequest);
-
-    return retVal;
-}
-
-/*********************************************************************
- * @fn          CUI_btnSetCb
- *
- * @brief       Set the CUI_btnPressCB of a button resource that is currently
- *                  acquired
- *
- * @param       _clientHandle - Client handle that owns the btn
- *              _index - index of the btn you wish to set the appCb of
- *              _appCb - New AppCB
- *
- * @return      CUI_retVal_t representing success or failure.
- */
-CUI_retVal_t CUI_btnSetCb(const CUI_clientHandle_t _clientHandle, const uint32_t _index, const  CUI_btnPressCB_t _appCb)
-{
-    CUI_retVal_t retVal = CUI_publicBtnsAPIChecks(_clientHandle);
-    if (CUI_SUCCESS != retVal) {
-        return retVal;
-    }
-
-    if (_clientHandle != gButtonResources[_index].clientHash)
-    {
-        return CUI_INVALID_CLIENT_HANDLE;
-    }
-
-    gButtonResources[_index].appCb = _appCb;
-
-    return CUI_SUCCESS;
-}
-
-/*********************************************************************
- * @fn          CUI_btnGetValue
- *
- * @brief       Set the CUI_btnPressCB of a button resource that is currently
- *                  acquired
- *
- * @param       _clientHandle - Client handle that owns the btn
- *              _index - index of the btn to get the value of
- *              _pBtnState - return param to denote the state of the btn upon
- *                  request
- *
- * @return      CUI_retVal_t representing success or failure.
- */
-CUI_retVal_t CUI_btnGetValue(const CUI_clientHandle_t _clientHandle, const uint32_t _index, bool* _pBtnState)
-{
-//    CUI_retVal_t retVal = CUI_publicBtnsAPIChecks(_clientHandle);
-//    if (CUI_SUCCESS != retVal) {
-//        return retVal;
-//    }
-//
-//    if (_clientHandle != gButtonResources[_gpio].clientHash) {
-//        return CUI_INVALID_CLIENT_HANDLE;
-//    }
-
-    *_pBtnState = GPIO_read(((Button_HWAttrs*)Button_config[_index].hwAttrs)->gpioIndex);
-
-    return CUI_SUCCESS;
-}
-
-/*********************************************************************
- * @fn          CUI_btnResourceRelease
- *
- * @brief       Release access to a button resource that is currently acquired
- *
- * @param       _clientHandle - Client handle that owns the btn
- *              _index - index of the btn you want to release
- *
- * @return      CUI_retVal_t representing success or failure.
- */
-CUI_retVal_t CUI_btnResourceRelease(const CUI_clientHandle_t _clientHandle, const uint32_t _index)
-{
-    CUI_retVal_t retVal = CUI_publicBtnsAPIChecks(_clientHandle);
-    if (CUI_SUCCESS != retVal)
-    {
-        return retVal;
-    }
-
-    if (_clientHandle != gButtonResources[_index].clientHash)
-    {
-        return CUI_INVALID_CLIENT_HANDLE;
-    }
-
-    gButtonResources[_index].clientHash = NULL;
-    gButtonResources[_index].appCb = NULL;
-
-    return CUI_SUCCESS;
-}
-
-/******************************************************************************
- * LED CUI APIs
- *****************************************************************************/
-/*********************************************************************
- * @fn          CUI_ledResourceRequest
- *
- * @brief       Request access to a led resource
- *
- * @param       _clientHandle - Valid client handle
- *              _pRequest - Pointer to a led request struct
- *
- * @return      CUI_retVal_t representing success or failure.
- */
-CUI_retVal_t CUI_ledResourceRequest(const CUI_clientHandle_t _clientHandle, const CUI_ledRequest_t* _pRequest)
-{
-    CUI_retVal_t retVal = CUI_publicLedsAPIChecks(_clientHandle);
-    if (CUI_SUCCESS != retVal)
-    {
-        return retVal;
-    }
-
-    if (NULL == _pRequest)
-    {
-        return CUI_INVALID_PARAM;
-    }
-
-    retVal = CUI_acquireLed(_clientHandle, _pRequest->index);
-
-    if (CUI_SUCCESS != retVal)
-    {
-        return retVal;
-    }
-
-    return retVal;
-}
-
-/*********************************************************************
- * @fn          CUI_ledResourceRelease
- *
- * @brief       Release access to a led resource that is currently acquired
- *
- * @param       _clientHandle - Client handle that owns the led
- *              _index - index of the led you want to release
- *
- * @return      CUI_retVal_t representing success or failure.
- */
-CUI_retVal_t CUI_ledResourceRelease(const CUI_clientHandle_t _clientHandle, const uint32_t _index)
-{
-    CUI_retVal_t retVal = CUI_publicLedsAPIChecks(_clientHandle);
-    if (CUI_SUCCESS != retVal)
-    {
-        return retVal;
-    }
-
-    if (_clientHandle != gLedResources[_index].clientHash)
-    {
-        return CUI_INVALID_CLIENT_HANDLE;
-    }
-
-    /* Go Green! If no one is home, turn off the lights. */
-    LED_setOff(gLedResources[_index].ledHandle);
-
-    gLedResources[_index].clientHash = NULL;
-
-    return CUI_SUCCESS;
-}
-
-/*********************************************************************
- * @fn          CUI_ledOn
- *
- * @brief       Turn a led on
- *
- * @param       _clientHandle - Client handle that owns the led
- *              _index - index of the led you want to change the state of
- *              _brightness - brightness to set the led to. Only available when
- *                              the led has been configured as a PWM LED.
- *
- * @return      CUI_retVal_t representing success or failure.
- */
-CUI_retVal_t CUI_ledOn(const CUI_clientHandle_t _clientHandle, const uint32_t _index, const uint8_t _brightness)
-{
-    CUI_retVal_t retVal = CUI_publicLedsAPIChecks(_clientHandle);
-    if (CUI_SUCCESS != retVal)
-    {
-        return retVal;
-    }
-
-    if (_clientHandle != gLedResources[_index].clientHash)
-    {
-        return CUI_INVALID_CLIENT_HANDLE;
-    }
-
-    if (LED_getState(gLedResources[_index].ledHandle) == LED_STATE_BLINKING)
-    {
-        LED_stopBlinking(gLedResources[_index].ledHandle);
-    }
-
-    LED_setOn(gLedResources[_index].ledHandle, _brightness);
-
-    return CUI_SUCCESS;
-}
-
-/*********************************************************************
- * @fn          CUI_ledOff
- *
- * @brief       Turn a led off
- *
- * @param       _clientHandle - Client handle that owns the led
- *              _index - index of the led you want to change the state of
- *
- * @return      CUI_retVal_t representing success or failure.
- */
-CUI_retVal_t CUI_ledOff(const CUI_clientHandle_t _clientHandle, const uint32_t _index)
-{
-    CUI_retVal_t retVal = CUI_publicLedsAPIChecks(_clientHandle);
-    if (CUI_SUCCESS != retVal)
-    {
-        return retVal;
-    }
-
-    if (_clientHandle != gLedResources[_index].clientHash)
-    {
-        return CUI_INVALID_CLIENT_HANDLE;
-    }
-
-    if (LED_getState(gLedResources[_index].ledHandle) == LED_STATE_BLINKING)
-    {
-        LED_stopBlinking(gLedResources[_index].ledHandle);
-    }
-
-    LED_setOff(gLedResources[_index].ledHandle);
-
-    return CUI_SUCCESS;
-}
-
-/*********************************************************************
- * @fn          CUI_ledToggle
- *
- * @brief       Toggle the state of a led [on/off]
- *
- * @param       _clientHandle - Client handle that owns the led
- *              _index - index of the led you want to change the state of
- *
- * @return      CUI_retVal_t representing success or failure.
- */
-CUI_retVal_t CUI_ledToggle(const CUI_clientHandle_t _clientHandle, const uint32_t _index)
-{
-    CUI_retVal_t retVal = CUI_publicLedsAPIChecks(_clientHandle);
-    if (CUI_SUCCESS != retVal)
-    {
-        return retVal;
-    }
-
-    if (_clientHandle != gLedResources[_index].clientHash)
-    {
-        return CUI_INVALID_CLIENT_HANDLE;
-    }
-
-    if (LED_getState(gLedResources[_index].ledHandle) == LED_STATE_BLINKING)
-    {
-        LED_stopBlinking(gLedResources[_index].ledHandle);
-    }
-
-    LED_toggle(gLedResources[_index].ledHandle);
-
-    return CUI_SUCCESS;
-}
-
-/*********************************************************************
- * @fn          CUI_ledBlink
- *
- * @brief       Start blinking a led. Blinking will be at a rate of LED_BLINK_PERIOD ms
- *
- * @param       _clientHandle - Client handle that owns the led
- *              _index - index of the led you want to change the state of
- *              _numBlinks - number of blinks. or CUI_BLINK_CONTINUOUS to blink forever
- *
- * @return      CUI_retVal_t representing success or failure.
- */
-CUI_retVal_t CUI_ledBlink(const CUI_clientHandle_t _clientHandle, const uint32_t _index, const uint16_t _numBlinks)
-{
-    CUI_retVal_t retVal = CUI_publicLedsAPIChecks(_clientHandle);
-    if (CUI_SUCCESS != retVal)
-    {
-        return retVal;
-    }
-
-    if (_clientHandle != gLedResources[_index].clientHash)
-    {
-        return CUI_INVALID_CLIENT_HANDLE;
-    }
-
-    LED_startBlinking(gLedResources[_index].ledHandle, LED_BLINK_PERIOD, _numBlinks);
-
-    return CUI_SUCCESS;
-}
-
-/*********************************************************************
- *  @fn         CUI_ledAssert
- *
- *  @brief      Without requiring a cuiHandle_t or permission to the leds,
- *                flash blink all leds to indicate an assert.
- *
- *              Note: This function will close all existing clients that have
- *                been opened and then enter an infinite loop.
- *
- *                This function should only be used in the case of an assert
- *                where application functionality should be ended and further
- *                functionality of the application is assumed to have been
- *                broken.
- *
- *  @return     CUI_MODULE_UNINITIALIZED If module is initialized or module
- *                  not in control of leds
- *              Otherwise function will not return due to infinite loop.
- */
-static CUI_retVal_t CUI_ledAssert()
-{
-    if (!gModuleInitialized || !gManageLeds)
-    {
-       return CUI_MODULE_UNINITIALIZED;
-    }
-
-    while(1)
-    {
-        CPUdelay(CUI_LED_ASSERT_PERIOD);
-        for (int i = 0; i < LED_count; i++)
-        {
-            LED_toggle(gLedResources[i].ledHandle);
-        }
-    }
-}
-
+#ifndef CUI_MIN_FOOTPRINT
 /******************************************************************************
  * Menu CUI APIs
  *****************************************************************************/
@@ -983,7 +472,7 @@ static CUI_retVal_t CUI_ledAssert()
  */
 CUI_retVal_t CUI_registerMenu(const CUI_clientHandle_t _clientHandle, CUI_menu_t* _pMenu)
 {
-    CUI_retVal_t retVal = CUI_publicUartAPIChecks(_clientHandle);
+    CUI_retVal_t retVal = CUI_publicAPIChecks(_clientHandle);
     if (CUI_SUCCESS != retVal)
     {
         return retVal;
@@ -1010,8 +499,15 @@ CUI_retVal_t CUI_registerMenu(const CUI_clientHandle_t _clientHandle, CUI_menu_t
         {
             if (-1 == freeIndex)
             {
+                // Find the first empty hole in the array
                 freeIndex = i;
             }
+        }
+        else if (_pMenu == gMenuResources[i].pMenu)
+        {
+            // Do not allow multiple of the same menu to be registered
+            Semaphore_post(gMenuSem);
+            return CUI_INVALID_PARAM;
         }
         else
         {
@@ -1038,48 +534,41 @@ CUI_retVal_t CUI_registerMenu(const CUI_clientHandle_t _clientHandle, CUI_menu_t
              * that owner. Any additional menu's processing time will be owned
              * by the task that registered them.
              */
-            cuiMultiMenu.uartUpdateFn = gpMainMenu->uartUpdateFn;
+            cuiMultiMenu->uartUpdateFn = gpMainMenu->uartUpdateFn;
 
             /*
              * The first menu that was registered needs to be added as the first
              * sub menu of the cuiMultiMenu object
              */
-            cuiMultiMenu.menuItems[0].interceptable = false;
-            cuiMultiMenu.menuItems[0].interceptActive = false;
-            cuiMultiMenu.menuItems[0].pDesc = NULL;
-            cuiMultiMenu.menuItems[0].item.pSubMenu = gpMainMenu;
-            gpMainMenu->pUpper = &cuiMultiMenu;
+            cuiMultiMenu->menuItems[0].itemType = CUI_MENU_ITEM_TYPE_SUBMENU;
+            cuiMultiMenu->menuItems[0].interceptActive = false;
+            cuiMultiMenu->menuItems[0].pDesc = NULL;
+            cuiMultiMenu->menuItems[0].item.pSubMenu = gpMainMenu;
+            gpMainMenu->pUpper = cuiMultiMenu;
 
             /*
              * Change the old main menu Help action to a back action
              */
-            gpMainMenu->menuItems[gpMainMenu->numItems - 1].interceptable = false;
+            gpMainMenu->menuItems[gpMainMenu->numItems - 1].itemType = CUI_MENU_ITEM_TYPE_ACTION;
             gpMainMenu->menuItems[gpMainMenu->numItems - 1].interceptActive = false;
             gpMainMenu->menuItems[gpMainMenu->numItems - 1].pDesc = CUI_MENU_ACTION_BACK_DESC;
             gpMainMenu->menuItems[gpMainMenu->numItems - 1].item.pFnAction = (CUI_pFnAction_t) CUI_menuActionBack;
-
-            /*
-             * The first time through the global menu pointers need to be
-             * modified to reflect the new menu structure
-             */
-            gpMainMenu = &cuiMultiMenu;
-            gpCurrMenu = &cuiMultiMenu;
         }
 
         /*
          * Add the new menu being registered to the cuiMultiMenu as a sub
          * menu object
          */
-        cuiMultiMenu.menuItems[numMenus].interceptable = false;
-        cuiMultiMenu.menuItems[numMenus].interceptActive = false;
-        cuiMultiMenu.menuItems[numMenus].pDesc = NULL;
-        cuiMultiMenu.menuItems[numMenus].item.pSubMenu = _pMenu;
-        _pMenu->pUpper = &cuiMultiMenu;
+        cuiMultiMenu->menuItems[numMenus].itemType = CUI_MENU_ITEM_TYPE_SUBMENU;
+        cuiMultiMenu->menuItems[numMenus].interceptActive = false;
+        cuiMultiMenu->menuItems[numMenus].pDesc = NULL;
+        cuiMultiMenu->menuItems[numMenus].item.pSubMenu = _pMenu;
+        _pMenu->pUpper = cuiMultiMenu;
 
         /*
          * Change the registering menu Help action to a back action
          */
-        _pMenu->menuItems[_pMenu->numItems - 1].interceptable = false;
+        _pMenu->menuItems[_pMenu->numItems - 1].itemType = CUI_MENU_ITEM_TYPE_ACTION;
         _pMenu->menuItems[_pMenu->numItems - 1].interceptActive = false;
         _pMenu->menuItems[_pMenu->numItems - 1].pDesc = CUI_MENU_ACTION_BACK_DESC;
         _pMenu->menuItems[_pMenu->numItems - 1].item.pFnAction = (CUI_pFnAction_t) CUI_menuActionBack;
@@ -1088,10 +577,10 @@ CUI_retVal_t CUI_registerMenu(const CUI_clientHandle_t _clientHandle, CUI_menu_t
          * The Help screen must always be the last initialized item in the
          * cuiMultiMenu
          */
-        cuiMultiMenu.menuItems[numMenus + 1].interceptable = true;
-        cuiMultiMenu.menuItems[numMenus + 1].interceptActive = false;
-        cuiMultiMenu.menuItems[numMenus + 1].pDesc = CUI_MENU_ACTION_HELP_DESC;
-        cuiMultiMenu.menuItems[numMenus + 1].item.pFnIntercept = (CUI_pFnIntercept_t) CUI_menuActionHelp;
+        cuiMultiMenu->menuItems[numMenus + 1].itemType = CUI_MENU_ITEM_TYPE_INTERCEPT;
+        cuiMultiMenu->menuItems[numMenus + 1].interceptActive = false;
+        cuiMultiMenu->menuItems[numMenus + 1].pDesc = CUI_MENU_ACTION_HELP_DESC;
+        cuiMultiMenu->menuItems[numMenus + 1].item.pFnIntercept = (CUI_pFnIntercept_t) CUI_menuActionHelp;
 
         if (1 == numMenus)
         {
@@ -1101,7 +590,7 @@ CUI_retVal_t CUI_registerMenu(const CUI_clientHandle_t _clientHandle, CUI_menu_t
              * [new menu]
              * [help action]
              */
-            cuiMultiMenu.numItems = 3;
+            cuiMultiMenu->numItems = 3;
         }
         else
         {
@@ -1112,8 +601,15 @@ CUI_retVal_t CUI_registerMenu(const CUI_clientHandle_t _clientHandle, CUI_menu_t
              * [new menu]
              * [help action]
              */
-            cuiMultiMenu.numItems++;
+            cuiMultiMenu->numItems++;
         }
+
+        /*
+         * The global menu pointers need to be modified
+         * to reflect the new menu structure.
+         */
+        gpMainMenu = cuiMultiMenu;
+        gpCurrMenu = cuiMultiMenu;
     }
     else
     {
@@ -1145,8 +641,9 @@ CUI_retVal_t CUI_registerMenu(const CUI_clientHandle_t _clientHandle, CUI_menu_t
  */
 CUI_retVal_t CUI_deRegisterMenu(const CUI_clientHandle_t _clientHandle, CUI_menu_t* _pMenu)
 {
-    static char buff[32];
-    CUI_retVal_t retVal = CUI_publicUartAPIChecks(_clientHandle);
+    char buff[32];
+    CUI_retVal_t retVal = CUI_publicAPIChecks(_clientHandle);
+
     if (CUI_SUCCESS != retVal)
     {
         return retVal;
@@ -1176,7 +673,7 @@ CUI_retVal_t CUI_deRegisterMenu(const CUI_clientHandle_t _clientHandle, CUI_menu
                 matchingIndex = i;
             }
         }
-        if ((NULL != gMenuResources[i].clientHash) &&
+        if ((0U != gMenuResources[i].clientHash) &&
               (NULL != gMenuResources[i].pMenu))
         {
             numMenus++;
@@ -1194,7 +691,7 @@ CUI_retVal_t CUI_deRegisterMenu(const CUI_clientHandle_t _clientHandle, CUI_menu
         /*
          * Reduce the number of menus in the multi menu by 1
          */
-        if (3 == cuiMultiMenu.numItems)
+        if (3 == cuiMultiMenu->numItems)
         {
             /*
              * We should go back to a single menu. Remove the multi Menu.
@@ -1204,7 +701,7 @@ CUI_retVal_t CUI_deRegisterMenu(const CUI_clientHandle_t _clientHandle, CUI_menu
             uint8_t newMainMenuIndex = 0;
             for (int i = 0; i < MAX_REGISTERED_MENUS; i++)
             {
-                if (NULL != gMenuResources[i].clientHash &&
+                if (0U != gMenuResources[i].clientHash &&
                         NULL != gMenuResources[i].pMenu &&
                         i != matchingIndex)
                 {
@@ -1216,37 +713,75 @@ CUI_retVal_t CUI_deRegisterMenu(const CUI_clientHandle_t _clientHandle, CUI_menu
             gpMainMenu = gMenuResources[newMainMenuIndex].pMenu;
             gpCurrMenu = gpMainMenu;
 
-            cuiMultiMenu.numItems = 0;
+            cuiMultiMenu->numItems = 0;
 
             /* Default to the Help item that was given to it */
             gCurrMenuItemEntry = gpMainMenu->numItems - 1;
 
-            gpMainMenu->menuItems[gpMainMenu->numItems - 1].interceptable = true;
+            gpMainMenu->menuItems[gpMainMenu->numItems - 1].itemType = CUI_MENU_ITEM_TYPE_INTERCEPT;
             gpMainMenu->menuItems[gpMainMenu->numItems - 1].interceptActive = false;
             gpMainMenu->menuItems[gpMainMenu->numItems - 1].pDesc = CUI_MENU_ACTION_HELP_DESC;
             gpMainMenu->menuItems[gpMainMenu->numItems - 1].item.pFnIntercept = (CUI_pFnIntercept_t) CUI_menuActionHelp;
-
         }
         else
         {
             /*
+             * Locate where _pMenu(The menu to be removed) lies within the
+             * cuiMultiMenu[] array.
+             */
+            int multiMenuIndex = 0;
+            for (int i = 0; i < MAX_REGISTERED_MENUS; i++)
+            {
+                if (cuiMultiMenu->menuItems[i].item.pSubMenu == _pMenu)
+                {
+                    multiMenuIndex = i;
+                    break;
+                }
+            }
+
+            /*
              * Shift the remaining items in the cuiMultiMenu down to cover the
              * menu that is being de-registered.
              */
-            for (int i = matchingIndex; i < MAX_REGISTERED_MENUS; i++)
+            for (int i = multiMenuIndex; i < MAX_REGISTERED_MENUS; i++)
             {
                 /*
                  *  It is safe to use this i+1 value because cuiMultiMenu was
                  * declared to contain MAX_REGISTERED_MENUS + 1 menuItems.
                  */
-                memcpy(&cuiMultiMenu.menuItems[i], &cuiMultiMenu.menuItems[i+1], sizeof(cuiMultiMenu.menuItems[0]));
+                memcpy(&(cuiMultiMenu->menuItems[i]), &(cuiMultiMenu->menuItems[i+1]), sizeof(cuiMultiMenu->menuItems[0]));
             }
 
-            if (gCurrMenuItemEntry == (cuiMultiMenu.numItems - 1 ))
+            // Decrement the count of items in cuiMultiMenu
+            cuiMultiMenu->numItems--;
+
+            if (gpCurrMenu == _pMenu)
             {
-                gCurrMenuItemEntry--;
+                /*
+                 * If the menu being removed was the one currently being
+                 * displayed, then we need to choose a new thing to display.
+                 * The easiest solution here is to display the Help action.
+                 */
+                gpCurrMenu = cuiMultiMenu;
+                gCurrMenuItemEntry = cuiMultiMenu->numItems;
             }
-            cuiMultiMenu.numItems--;
+            else if (gpCurrMenu == cuiMultiMenu)
+            {
+                /*
+                 * If the menu being removed was not currently being displayed,
+                 * and we were currently looking at an option in cuiMultiMenu,
+                 * then it's safest just to go back to the Help screen.
+                 */
+                gCurrMenuItemEntry = cuiMultiMenu->numItems - 1;
+            }
+            else
+            {
+                /*
+                 * If the currently displayed menu had nothing to do with this
+                 * operation, it is safe to leave the display where it is.
+                 * Do not update gpCurrMenu or gCurrMenuItemEntry.
+                 */
+            }
         }
 
         CUI_dispMenu(false);
@@ -1254,7 +789,6 @@ CUI_retVal_t CUI_deRegisterMenu(const CUI_clientHandle_t _clientHandle, CUI_menu
     }
     else
     {
-
         gpMainMenu = NULL;
         gpCurrMenu = NULL;
 
@@ -1267,12 +801,13 @@ CUI_retVal_t CUI_deRegisterMenu(const CUI_clientHandle_t _clientHandle, CUI_menu
         CUI_writeString(buff, strlen(buff));
     }
 
-    gMenuResources[matchingIndex].clientHash = NULL;
+    gMenuResources[matchingIndex].clientHash = 0U;
     gMenuResources[matchingIndex].pMenu = NULL;
 
     Semaphore_post(gMenuSem);
     return CUI_SUCCESS;
 }
+
 
 /*********************************************************************
  * @fn          CUI_updateMultiMenuTitle
@@ -1291,13 +826,13 @@ CUI_retVal_t CUI_updateMultiMenuTitle(const char* _pTitle)
         return CUI_INVALID_PARAM;
     }
 
-    cuiMultiMenu.pTitle = _pTitle;
+    cuiMultiMenu->pTitle = _pTitle;
 
     /*
      * Display the updated title if the top level menu is already
      *  being shown.
      */
-    if (gpCurrMenu == &cuiMultiMenu)
+    if (gpCurrMenu == cuiMultiMenu)
     {
         CUI_dispMenu(false);
     }
@@ -1321,7 +856,7 @@ CUI_retVal_t CUI_updateMultiMenuTitle(const char* _pTitle)
  */
 CUI_retVal_t CUI_menuNav(const CUI_clientHandle_t _clientHandle, CUI_menu_t* _pMenu, const uint32_t _itemIndex)
 {
-    CUI_retVal_t retVal = CUI_publicUartAPIChecks(_clientHandle);
+    CUI_retVal_t retVal = CUI_publicAPIChecks(_clientHandle);
     if (CUI_SUCCESS != retVal)
     {
         return retVal;
@@ -1393,7 +928,7 @@ CUI_retVal_t CUI_menuNav(const CUI_clientHandle_t _clientHandle, CUI_menu_t* _pM
  */
 CUI_retVal_t CUI_processMenuUpdate(void)
 {
-    if (!gModuleInitialized || !gManageUart)
+    if (!gModuleInitialized)
     {
         return CUI_FAILURE;
     }
@@ -1425,7 +960,7 @@ CUI_retVal_t CUI_processMenuUpdate(void)
         {
             input = CUI_INPUT_LEFT;
         }
-        else if (memcmp(gUartTxBuffer, CUI_ESC_ESC, sizeof(CUI_ESC_ESC)))
+        else if (memcmp(gUartTxBuffer, CUI_ESC_ESC, sizeof(gUartTxBuffer)))
         {
             // The rx buffer is full of junk. Let's ignore it just in case.
             inputBad = true;
@@ -1448,30 +983,52 @@ CUI_retVal_t CUI_processMenuUpdate(void)
         }
 
         bool interceptState = pItemEntry->interceptActive;
+        bool updateHandled = false;
+
         /*
          *  Allow the interceptable action, if it is being shown, the chance to
          *  handle the uart input and display output if necessary.
          */
-        bool updateHandled = CUI_handleMenuIntercept(pItemEntry, input);
+        if (pItemEntry->itemType == CUI_MENU_ITEM_TYPE_INTERCEPT)
+        {
+            updateHandled = CUI_handleMenuIntercept(pItemEntry, input);
+        }
+        else if (pItemEntry->itemType == CUI_MENU_ITEM_TYPE_LIST)
+        {
+            /*
+             *  Allow the list action the chance to handle the uart input
+             *  and display output if necessary.
+             */
+            updateHandled = CUI_handleMenuList(pItemEntry, input);
+
+            if (interceptState != pItemEntry->interceptActive)
+            {
+                /*
+                 * If the interceptState has changed, it means the
+                 * user has finished with the list.
+                 */
+                input = CUI_INPUT_ESC;
+            }
+        }
 
         if (false == updateHandled)
         {
             switch(input)
             {
+                // Up and Down have no effect on menu navigation
                 case CUI_INPUT_UP:
-                    break;
-                case CUI_INPUT_RIGHT:
-                    CUI_menuActionNavigate(CUI_MENU_NAV_RIGHT);
-                    break;
                 case CUI_INPUT_DOWN:
                     break;
+                // Left and Right navigate within a menu
+                case CUI_INPUT_RIGHT:
                 case CUI_INPUT_LEFT:
-                    CUI_menuActionNavigate(CUI_MENU_NAV_LEFT);
+                    CUI_menuActionNavigate(input);
                     break;
                 case CUI_INPUT_EXECUTE:
                     CUI_menuActionExecute();
                     break;
                 case CUI_INPUT_BACK:
+                    // if there is a upper menu, navigate to it.
                     if (gpCurrMenu->pUpper)
                     {
                         gpCurrMenu = gpCurrMenu->pUpper;
@@ -1513,7 +1070,17 @@ CUI_retVal_t CUI_processMenuUpdate(void)
     UART_read(gUartHandle, gUartRxBuffer, sizeof(gUartRxBuffer));
     return CUI_SUCCESS;
 }
+#else
+CUI_retVal_t CUI_registerMenu(const CUI_clientHandle_t _clientHandle, CUI_menu_t* _pMenu) { return CUI_SUCCESS; }
 
+CUI_retVal_t CUI_deRegisterMenu(const CUI_clientHandle_t _clientHandle, CUI_menu_t* _pMenu) { return CUI_SUCCESS; }
+
+CUI_retVal_t CUI_updateMultiMenuTitle(const char* _pTitle) { return CUI_SUCCESS; }
+
+CUI_retVal_t CUI_menuNav(const CUI_clientHandle_t _clientHandle, CUI_menu_t* _pMenu, const uint32_t _itemIndex) { return CUI_SUCCESS; }
+
+CUI_retVal_t CUI_processMenuUpdate(void) { return CUI_SUCCESS; }
+#endif
 /******************************************************************************
  * Status Line CUI APIs
  *****************************************************************************/
@@ -1530,9 +1097,9 @@ CUI_retVal_t CUI_processMenuUpdate(void)
  *
  * @return      CUI_retVal_t representing success or failure.
  */
-CUI_retVal_t CUI_statusLineResourceRequest(const CUI_clientHandle_t _clientHandle, const char _pLabel[MAX_STATUS_LINE_LABEL_LEN], uint32_t* _pLineId)
+CUI_retVal_t CUI_statusLineResourceRequest(const CUI_clientHandle_t _clientHandle, const char _pLabel[MAX_STATUS_LINE_LABEL_LEN], const bool _refreshInd, uint32_t* _pLineId)
 {
-    CUI_retVal_t retVal = CUI_publicUartAPIChecks(_clientHandle);
+    CUI_retVal_t retVal = CUI_publicAPIChecks(_clientHandle);
     if (CUI_SUCCESS != retVal)
     {
         return retVal;
@@ -1543,7 +1110,7 @@ CUI_retVal_t CUI_statusLineResourceRequest(const CUI_clientHandle_t _clientHandl
         return CUI_INVALID_PARAM;
     }
 
-    retVal = CUI_acquireStatusLine(_clientHandle, _pLabel, _pLineId);
+    retVal = CUI_acquireStatusLine(_clientHandle, _pLabel, _refreshInd, _pLineId);
     if (CUI_SUCCESS != retVal)
     {
         /*
@@ -1586,11 +1153,10 @@ CUI_retVal_t CUI_statusLinePrintf(const CUI_clientHandle_t _clientHandle,
      * quick call to CUI_statusLinePrintf to not effect the buffer of a
      * previous unfinished call.
      */
-    static char statusLineBuff[2][CUI_MAX_LABEL_AND_SEP_LEN + MAX_STATUS_LINE_VALUE_LEN + 64]; // plus 64 for cursor movement/clearing
-    static uint8_t currStatusBuff = 0;
+    char statusLineBuff[CUI_MAX_LABEL_AND_SEP_LEN + MAX_STATUS_LINE_VALUE_LEN + 32]; // plus 32 for cursor movement/clearing
     va_list args;
 
-    CUI_retVal_t retVal = CUI_publicUartAPIChecks(_clientHandle);
+    CUI_retVal_t retVal = CUI_publicAPIChecks(_clientHandle);
     if (CUI_SUCCESS != retVal)
     {
         return retVal;
@@ -1609,72 +1175,74 @@ CUI_retVal_t CUI_statusLinePrintf(const CUI_clientHandle_t _clientHandle,
         return CUI_RESOURCE_NOT_ACQUIRED;
     }
 
-    Semaphore_pend(gStatusSem, BIOS_WAIT_FOREVER);
-
+#if !defined(CUI_SCROLL_PRINT)
     uint32_t offset;
+#ifndef CUI_MIN_FOOTPRINT
     if (MAX_REGISTERED_MENUS == 0)
     {
-        offset = 0;
+        offset = 1;
     }
     else
     {
         offset = CUI_INITIAL_STATUS_OFFSET;
     }
+#else
+    offset = 1;
+#endif
     offset += gStatusLineResources[clientIndex][_lineId].lineOffset;
 
     //TODO: Remove magic length number
-#if !defined(CUI_SCROLL_PRINT)
-    System_snprintf(statusLineBuff[currStatusBuff], 64,
+    System_snprintf(statusLineBuff, 32,
         CUI_ESC_CUR_HIDE CUI_ESC_CUR_HOME CUI_ESC_CUR_LINE CUI_ESC_CLR_STAT_LINE_VAL "%c",
          offset, CUI_STATUS_LINE_START_CHAR);
 #endif
-    size_t availableLen = sizeof(statusLineBuff[currStatusBuff]) - 1;
+    size_t availableLen = sizeof(statusLineBuff) - 1;
     size_t buffSize = availableLen;
 
     // Label must be printed for testing scripts to parse the output easier
-    strncat(statusLineBuff[currStatusBuff], gStatusLineResources[clientIndex][_lineId].label,
+    strncat(statusLineBuff, gStatusLineResources[clientIndex][_lineId].label,
             availableLen);
 
-    retVal = CUI_updateRemLen(&availableLen, statusLineBuff[currStatusBuff], buffSize);
+    retVal = CUI_updateRemLen(&availableLen, statusLineBuff, buffSize);
     if (CUI_SUCCESS != retVal)
     {
-        Semaphore_post(gStatusSem);
         return retVal;
     }
 
     va_start(args, _format);
-    System_vsnprintf(&statusLineBuff[currStatusBuff][strlen(statusLineBuff[currStatusBuff])], availableLen, _format, args);
+    System_vsnprintf(&statusLineBuff[strlen(statusLineBuff)], availableLen, _format, args);
     va_end(args);
 
-    retVal = CUI_updateRemLen(&availableLen, statusLineBuff[currStatusBuff], buffSize);
+    retVal = CUI_updateRemLen(&availableLen, statusLineBuff, buffSize);
     if (CUI_SUCCESS != retVal)
     {
-        Semaphore_post(gStatusSem);
         return retVal;
+    }
+
+    static char refreshChars[] = {'\\', '|', '/', '-'};
+    static uint8_t refreshCharIdx = 0;
+
+    if (gStatusLineResources[clientIndex][_lineId].refreshInd)
+    {
+        System_snprintf(&statusLineBuff[strlen(statusLineBuff)], availableLen, " %c", refreshChars[refreshCharIdx]);
+        refreshCharIdx = (refreshCharIdx + 1) % sizeof(refreshChars);
     }
 
 #if !defined(CUI_SCROLL_PRINT)
     char endChar[] = {CUI_END_CHAR};
-    strncat(statusLineBuff[currStatusBuff], endChar, 1);
+    strncat(statusLineBuff, endChar, 1);
 #else
-    strncat(statusLineBuff[currStatusBuff], CUI_NL_CR, sizeof(CUI_NL_CR));
+    strncat(statusLineBuff, CUI_NL_CR, sizeof(CUI_NL_CR));
 #endif
 
-    retVal = CUI_writeString(statusLineBuff[currStatusBuff], strlen(statusLineBuff[currStatusBuff]));
-    if (CUI_SUCCESS != retVal)
-    {
-        Semaphore_post(gStatusSem);
-        return retVal;
-    }
+    CUI_writeString(statusLineBuff, strlen(statusLineBuff));
 
-    // Switch which buffer we use for the next call to CUI_statusLinePrintf()
-    currStatusBuff = !currStatusBuff;
-
+#ifndef CUI_MIN_FOOTPRINT
     // This will check if a cursor is active and put the cursor back
     //  if it is necessary
     CUI_updateCursor();
+#endif
 
-    Semaphore_post(gStatusSem);
     return CUI_SUCCESS;
 }
 
@@ -1698,7 +1266,8 @@ void CUI_assert(const char* _assertMsg, const bool _spinLock)
          *  here it is because CUI_assert is being called before
          *  BIOS_start().
          */
-        CUI_ledAssert();
+        // TODO: solve this issue CUI_ledAssert();
+        while(1){};
     }
     if (!gModuleInitialized)
     {
@@ -1707,8 +1276,8 @@ void CUI_assert(const char* _assertMsg, const bool _spinLock)
         CUI_init(&params);
     }
 
-    static char statusLineBuff[MAX_STATUS_LINE_VALUE_LEN];
-    static char tmp[64];
+    char statusLineBuff[MAX_STATUS_LINE_VALUE_LEN];
+    char tmp[32];
 
     // Display this in the line between the menu and the status lines
     uint32_t offset = CUI_INITIAL_STATUS_OFFSET - 1;
@@ -1725,10 +1294,24 @@ void CUI_assert(const char* _assertMsg, const bool _spinLock)
     // If _spinLock is true, infinite loop and flash the leds
     if (_spinLock)
     {
-        CUI_ledAssert();
+        extern const uint_least8_t LED_count;
+        extern LED_Config LED_config[2];
+
+        LED_Params ledParams;
+        LED_Params_init(&ledParams);
+
+        for(uint8_t i = 0; i < LED_count; i++)
+        {
+            LED_close(&LED_config[i]);
+            LED_Handle ledHandle = LED_open(i, &ledParams);
+            LED_startBlinking(ledHandle, 50, LED_BLINK_FOREVER);
+        }
+
+        while(1){};
     }
 }
 
+#ifndef CUI_MIN_FOOTPRINT
 void CUI_menuActionBack(const int32_t _itemEntry)
 {
     if (NULL != gpCurrMenu->pUpper)
@@ -1742,15 +1325,16 @@ void CUI_menuActionHelp(char _input, char* _lines[3], CUI_cursorInfo_t* _curInfo
 {
     if (_input == CUI_ITEM_PREVIEW)
     {
-        strncpy(_lines[1], "Press Enter for Help", MAX_MENU_LINE_LEN);
+        strncat(_lines[1], "Press Enter for Help", MAX_MENU_LINE_LEN);
     }
     else
     {
-        strncpy(_lines[0], "[Arrow Keys] Navigate Menus | [Enter] Perform Action, Enter Submenu", MAX_MENU_LINE_LEN);
-        strncpy(_lines[1], "----------------------------|--------------------------------------", MAX_MENU_LINE_LEN);
-        strncpy(_lines[2], "[Esc] Return to Main Menu   | [Backspace] Return to Parent Menu", MAX_MENU_LINE_LEN);
+        strncat(_lines[0], "[Arrow Keys] Navigate Menus | [Enter] Perform Action, Enter Submenu", MAX_MENU_LINE_LEN);
+        strncat(_lines[1], "----------------------------|--------------------------------------", MAX_MENU_LINE_LEN);
+        strncat(_lines[2], "[Esc] Return to Main Menu   | [Backspace] Return to Parent Menu", MAX_MENU_LINE_LEN);
     }
 }
+#endif
 
 /*********************************************************************
  * Private Functions
@@ -1768,6 +1352,238 @@ static CUI_retVal_t CUI_updateRemLen(size_t* _currRemLen, char* _buff, size_t _b
     return CUI_SUCCESS;
 }
 
+static void UartWriteCallback(UART_Handle _handle, void *_buf, size_t _size)
+{
+
+    gRingBuffPendLen -= _size;
+    gRingBuffTailIdx = (gRingBuffTailIdx + _size) % sizeof(gRingBuff);
+    static size_t maxPending = 0;
+
+    if (gRingBuffPendLen > maxPending)
+    {
+        maxPending = gRingBuffPendLen;
+    }
+
+
+    if (gRingBuffPendLen)
+    {
+        if ((sizeof(gRingBuff) - gRingBuffTailIdx) < gRingBuffPendLen)
+        {
+            UART_write(gUartHandle, (const void*)&gRingBuff[gRingBuffTailIdx], sizeof(gRingBuff) - gRingBuffTailIdx);
+        }
+        else
+        {
+            UART_write(gUartHandle, (const void*)&gRingBuff[gRingBuffTailIdx], gRingBuffPendLen);
+        }
+    }
+}
+
+#ifndef CUI_MIN_FOOTPRINT
+static void UartReadCallback(UART_Handle _handle, void *_buf, size_t _size)
+{
+    // Make sure we received all expected bytes
+    if (_size)
+    {
+        // If cleared, then read it
+        if(gUartTxBuffer[0] == 0)
+        {
+            // Copy bytes from RX buffer to TX buffer
+            for(size_t i = 0; i < _size; i++)
+            {
+                gUartTxBuffer[i] = ((uint8_t*)_buf)[i];
+            }
+        }
+        memset(_buf, '\0', _size);
+        CUI_callMenuUartUpdateFn();
+    }
+    else
+    {
+        // Handle error or call to UART_readCancel()
+        UART_readCancel(gUartHandle);
+    }
+}
+#endif
+
+static CUI_retVal_t CUI_writeString(void * _buffer, size_t _size)
+{
+    /*
+     * Since the UART driver is in Callback mode which is non blocking.
+     *  If UART_write is called before a previous call to UART_write
+     *  has completed it will not be printed. By taking a quick
+     *  nap we can attempt to perform the subsequent write. If the
+     *  previous call still hasn't finished after this nap the write
+     *  will be skipped as it would have been before.
+     */
+
+    //Error if no buffer
+    if((gUartHandle == NULL) || (_buffer == NULL) )
+    {
+        return CUI_UART_FAILURE;
+    }
+
+
+    Semaphore_pend(gUartSem, BIOS_WAIT_FOREVER);
+
+    UART_writeCancel(gUartHandle);
+
+    if ((sizeof(gRingBuff) - gRingBuffPendLen) < _size)
+    {
+        uint8_t i;
+        for (i = 0; i < 10; i++)
+        {
+            if ((sizeof(gRingBuff) - gRingBuffTailIdx) < gRingBuffPendLen)
+            {
+               UART_write(gUartHandle, (const void*)&gRingBuff[gRingBuffTailIdx], sizeof(gRingBuff) - gRingBuffTailIdx);
+            }
+            else
+            {
+               UART_write(gUartHandle, (const void*)&gRingBuff[gRingBuffTailIdx], gRingBuffPendLen);
+            }
+            Task_sleep(100);
+            UART_writeCancel(gUartHandle);
+            if ((sizeof(gRingBuff) - gRingBuffPendLen) >= _size)
+            {
+                i = 0;
+                break;
+            }
+        }
+
+        if (i) {
+            //error
+            while(1){}
+
+        }
+    }
+
+
+    // update ring buff pending length
+    gRingBuffPendLen += _size;
+
+    // handle writing around the end of the ring buffer
+    if ((sizeof(gRingBuff) - gRingBuffHeadIdx) < _size)
+    {
+        memcpy(&gRingBuff[gRingBuffHeadIdx], _buffer, sizeof(gRingBuff) - gRingBuffHeadIdx);
+        memcpy(gRingBuff, &((uint8_t *)_buffer)[sizeof(gRingBuff) - gRingBuffHeadIdx], _size - (sizeof(gRingBuff) - gRingBuffHeadIdx));
+    }
+    else
+    {
+        memcpy(&gRingBuff[gRingBuffHeadIdx], _buffer, _size);
+    }
+
+    // update ring buff idx w/ wrap around logic
+    gRingBuffHeadIdx = (gRingBuffHeadIdx + _size) % sizeof(gRingBuff);
+
+
+    if ((sizeof(gRingBuff) - gRingBuffTailIdx) < gRingBuffPendLen)
+    {
+        UART_write(gUartHandle, (const void*)&gRingBuff[gRingBuffTailIdx], sizeof(gRingBuff) - gRingBuffTailIdx);
+    }
+    else
+    {
+        UART_write(gUartHandle, (const void*)&gRingBuff[gRingBuffTailIdx], gRingBuffPendLen);
+    }
+
+    Semaphore_post(gUartSem);
+    return CUI_SUCCESS;
+}
+
+static CUI_retVal_t CUI_publicAPIChecks(const CUI_clientHandle_t _clientHandle)
+{
+    if (!gModuleInitialized)
+    {
+        return CUI_MODULE_UNINITIALIZED;
+    }
+
+    return CUI_validateHandle(_clientHandle);
+}
+
+static CUI_retVal_t CUI_validateHandle(const CUI_clientHandle_t _clientHandle)
+{
+    if (NULL == _clientHandle)
+    {
+        return CUI_INVALID_CLIENT_HANDLE;
+    }
+
+    if (CUI_getClientIndex(_clientHandle) == -1)
+    {
+        return CUI_INVALID_CLIENT_HANDLE;
+    }
+    else
+    {
+        return CUI_SUCCESS;
+    }
+}
+
+static CUI_retVal_t CUI_acquireStatusLine(const CUI_clientHandle_t _clientHandle, const char _pLabel[MAX_STATUS_LINE_LABEL_LEN], const bool _refreshInd, uint32_t* _pLineId)
+{
+    Semaphore_pend(gStatusSem, BIOS_WAIT_FOREVER);
+
+    int clientIndex = CUI_getClientIndex(_clientHandle);
+    if (clientIndex == -1)
+    {
+        return CUI_INVALID_PARAM;
+    }
+
+    int freeIndex = -1;
+    for (int i = 0; i < gMaxStatusLines[clientIndex]; i++)
+    {
+        if (CUI_RELEASED == gStatusLineResources[clientIndex][i].status)
+        {
+            freeIndex = i;
+            break;
+        }
+    }
+
+    Semaphore_post(gStatusSem);
+
+    if (-1 == freeIndex)
+    {
+        return CUI_NO_ASYNC_LINES_RELEASED;
+    }
+
+    uint32_t offset = 0;
+    for (uint32_t i = 0; i < clientIndex; i++)
+    {
+        offset += gMaxStatusLines[i];
+        offset ++; // allow 1 empty line between clients
+    }
+
+    offset += freeIndex;
+
+    //Add a ": " to every label
+    memset(gStatusLineResources[clientIndex][freeIndex].label, '\0', sizeof(gStatusLineResources[clientIndex][freeIndex].label));
+    System_snprintf(gStatusLineResources[clientIndex][freeIndex].label,
+             MAX_STATUS_LINE_LABEL_LEN + strlen(CUI_LABEL_VAL_SEP),
+             "%s%s", _pLabel, CUI_LABEL_VAL_SEP);
+    gStatusLineResources[clientIndex][freeIndex].lineOffset = offset;
+    gStatusLineResources[clientIndex][freeIndex].clientHash = _clientHandle;
+    gStatusLineResources[clientIndex][freeIndex].status = CUI_ACQUIRED;
+    gStatusLineResources[clientIndex][freeIndex].refreshInd = _refreshInd;
+
+
+
+    /*
+     * Save this "line id" as a way to directly control the line, similarly to
+     * how a client can directly control a led or button through pinIds.
+     */
+    *_pLineId = freeIndex;
+
+    return CUI_SUCCESS;
+}
+
+static int CUI_getClientIndex(const CUI_clientHandle_t _clientHandle)
+{
+    for (uint32_t i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (_clientHandle == gClientHandles[i])
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+#ifndef CUI_MIN_FOOTPRINT
 static void CUI_callMenuUartUpdateFn()
 {
     /*
@@ -1797,45 +1613,9 @@ static void CUI_callMenuUartUpdateFn()
      */
 }
 
-static void UartWriteCallback(UART_Handle _handle, void *_buf, size_t _size)
-{
-    uint32_t key = HwiP_disable();
-    gUartWriteComplete = true;
-    /* Exit critical section */
-    HwiP_restore(key);
-}
-
-static void UartReadCallback(UART_Handle _handle, void *_buf, size_t _size)
-{
-    // Make sure we received all expected bytes
-    if (_size)
-    {
-        // If cleared, then read it
-        if(gUartTxBuffer[0] == 0)
-        {
-            // Copy bytes from RX buffer to TX buffer
-            for(size_t i = 0; i < _size; i++)
-            {
-                gUartTxBuffer[i] = ((uint8_t*)_buf)[i];
-            }
-        }
-        memset(_buf, '\0', _size);
-        CUI_callMenuUartUpdateFn();
-    }
-    else
-    {
-        // Handle error or call to UART_readCancel()
-        UART_readCancel(gUartHandle);
-    }
-}
-
 static void CUI_updateCursor(void)
 {
-    /*
-     *  This buffer will be passed to CUI_writeString().
-     *  The address must be valid at all times.
-     */
-    static char buff[32];
+    char buff[32];
     if (gCursorActive)
     {
         System_snprintf(buff, sizeof(buff),
@@ -1853,18 +1633,18 @@ static bool CUI_handleMenuIntercept(CUI_menuItem_t* _pItemEntry, uint8_t _input)
     char *line[3];
     memset(menuBuff, '\0', sizeof(menuBuff));
 
-    line[0] = &menuBuff[0];
-    line[1] = &menuBuff[MAX_MENU_LINE_LEN + 2];
-    line[2] = &menuBuff[MAX_MENU_LINE_LEN + 2 + MAX_MENU_LINE_LEN + 2];
+    line[0] = &menuBuff[CUI_MENU_START_ESCAPE_LEN];
+    line[1] = &menuBuff[CUI_MENU_START_ESCAPE_LEN + MAX_MENU_LINE_LEN + CUI_NL_CR_LEN];
+    line[2] = &menuBuff[CUI_MENU_START_ESCAPE_LEN + MAX_MENU_LINE_LEN + CUI_NL_CR_LEN + MAX_MENU_LINE_LEN + CUI_NL_CR_LEN];
 
     CUI_cursorInfo_t curInfo = {-1, -1};
 
-    if (_pItemEntry->interceptable)
+    if (_pItemEntry->itemType == CUI_MENU_ITEM_TYPE_INTERCEPT)
     {
         if (_pItemEntry->interceptActive)
         {
-            // If intercept is active, pressing 'E' should disable it so that
-            // normal navigation may continue
+            // If intercept is active, pressing CUI_INPUT_EXECUTE should
+            // disable it so that normal navigation may continue
             if (CUI_INPUT_EXECUTE == _input)
             {
                 _pItemEntry->interceptActive = false;
@@ -1936,100 +1716,76 @@ static bool CUI_handleMenuIntercept(CUI_menuItem_t* _pItemEntry, uint8_t _input)
     return updateHandled;
 }
 
-static CUI_retVal_t CUI_writeString(void * _buffer, size_t _size)
+static bool CUI_handleMenuList(CUI_menuItem_t* _pItemEntry, uint8_t _input)
 {
-    /*
-     * Since the UART driver is in Callback mode which is non blocking.
-     *  If UART_write is called before a previous call to UART_write
-     *  has completed it will not be printed. By taking a quick
-     *  nap we can attempt to perform the subsequent write. If the
-     *  previous call still hasn't finished after this nap the write
-     *  will be skipped as it would have been before.
-     */
+    bool updateHandled = false;
 
-    //Error if no buffer
-    if((gUartHandle == NULL) || (_buffer == NULL) )
+    char *line[3];
+    memset(menuBuff, '\0', sizeof(menuBuff));
+
+    line[0] = &menuBuff[CUI_MENU_START_ESCAPE_LEN];
+    line[1] = &menuBuff[CUI_MENU_START_ESCAPE_LEN + MAX_MENU_LINE_LEN + CUI_NL_CR_LEN];
+    line[2] = &menuBuff[CUI_MENU_START_ESCAPE_LEN + MAX_MENU_LINE_LEN + CUI_NL_CR_LEN + MAX_MENU_LINE_LEN + CUI_NL_CR_LEN];
+
+    if (_pItemEntry->itemType == CUI_MENU_ITEM_TYPE_LIST)
     {
-        return CUI_UART_FAILURE;
-    }
-
-    bool uartReady = false;
-    /* Enter critical section so this function is thread safe*/
-    uint32_t key = HwiP_disable();
-    if (gUartWriteComplete)
-    {
-        uartReady = true;
-    }
-
-    /* Exit critical section */
-    HwiP_restore(key);
-
-    Semaphore_pend(gUartSem, BIOS_WAIT_FOREVER);
-
-    if (!uartReady)
-    {
-        /*
-         * If the uart driver is not yet done with the previous call to
-         * UART_write, then we can attempt to wait a small period of time.
-         *
-         * let's sleep 5000 ticks at 1000 tick intervals and keep checking
-         * on the readiness of the UART driver.
-         *
-         * If it never becomes ready, we have no choice but to abandon this
-         * UART_write call by returning CUI_PREV_WRITE_UNFINISHED.
-         */
-        uint8_t i;
-        for (i = 0; i < 10; i++)
+        if (_pItemEntry->interceptActive)
         {
-            Task_sleep(1000);
-            uint32_t key = HwiP_disable();
-            if (gUartWriteComplete)
+            if (CUI_INPUT_ESC == _input || CUI_INPUT_BACK == _input)
             {
-                uartReady = true;
+                _pItemEntry->interceptActive = false;
+                return updateHandled;
             }
-            /* Exit critical section */
-            HwiP_restore(key);
-            if (uartReady)
+
+            // update index value
+            if (CUI_INPUT_RIGHT ==  _input)
             {
-                break;
+                _pItemEntry->item.pList->currListIndex = (_pItemEntry->item.pList->currListIndex + 1 + _pItemEntry->item.pList->maxListItems) % _pItemEntry->item.pList->maxListItems;
+            }
+            else if (CUI_INPUT_LEFT == _input)
+            {
+                _pItemEntry->item.pList->currListIndex = (_pItemEntry->item.pList->currListIndex - 1 + _pItemEntry->item.pList->maxListItems) % _pItemEntry->item.pList->maxListItems;
+            }
+
+            if (_pItemEntry->item.pList->pFnListAction)
+            {
+                _pItemEntry->item.pList->pFnListAction(_pItemEntry->item.pList->currListIndex, line, (CUI_INPUT_EXECUTE == _input));
+            }
+
+            // let normal menu navigation handle the update if input was executed
+            updateHandled = !(CUI_INPUT_EXECUTE == _input);
+
+            // turn off interceptActive
+            _pItemEntry->interceptActive = !(CUI_INPUT_EXECUTE == _input);
+        }
+        else
+        {
+            if (CUI_INPUT_EXECUTE == _input)
+            {
+                _pItemEntry->interceptActive = true;
+                if (_pItemEntry->item.pList->pFnListAction)
+                {
+                    _pItemEntry->item.pList->pFnListAction(_pItemEntry->item.pList->currListIndex, line, false);
+                }
+                updateHandled = true;
             }
         }
 
-        // If it still isn't ready, the only option we have is to ignore
-        // this print and hope that it wont be noticeable
-        if (!uartReady)
+        if (updateHandled)
         {
-            return CUI_PREV_WRITE_UNFINISHED;
+            strncpy(line[2], _pItemEntry->pDesc, MAX_MENU_LINE_LEN);
+            CUI_dispMenu(true);
         }
     }
-
-    key = HwiP_disable();
-    gUartWriteComplete = false;
-    HwiP_restore(key);
-
-    // UART_write ret val ignored because we are in callback mode. The result
-    // will always be zero.
-    if (0 != UART_write(gUartHandle, (const void *)_buffer, _size))
-    {
-        Semaphore_post(gUartSem);
-        return CUI_UART_FAILURE;
-    }
-
-    Semaphore_post(gUartSem);
-    return CUI_SUCCESS;
+    return updateHandled;
 }
 
 static void CUI_dispMenu(bool _menuPopulated)
 {
-    //TODO: Remove magic 64 number
-    // extra 64 is for cursor movement/clearing and start of menu char
-    static char dispBuff[2][sizeof(menuBuff) + 64];
-    static uint8_t currDispBuff = 0;
     char *line[3];
-
-    line[0] = &menuBuff[0];
-    line[1] = &menuBuff[MAX_MENU_LINE_LEN + 2];
-    line[2] = &menuBuff[MAX_MENU_LINE_LEN + 2 + MAX_MENU_LINE_LEN + 2];
+    line[0] = &menuBuff[CUI_MENU_START_ESCAPE_LEN];
+    line[1] = &menuBuff[CUI_MENU_START_ESCAPE_LEN + MAX_MENU_LINE_LEN + CUI_NL_CR_LEN];
+    line[2] = &menuBuff[CUI_MENU_START_ESCAPE_LEN + MAX_MENU_LINE_LEN + CUI_NL_CR_LEN + MAX_MENU_LINE_LEN + CUI_NL_CR_LEN];
 
     if (false == _menuPopulated)
     {
@@ -2050,7 +1806,7 @@ static void CUI_dispMenu(bool _menuPopulated)
              *  first line empty to keep the back screen clean.
              */
             CUI_menu_t* pMenu = gpCurrMenu;
-            while((pMenu->pUpper) && (pMenu->pUpper != &cuiMultiMenu))
+            while((pMenu->pUpper) && (pMenu->pUpper != cuiMultiMenu))
             {
                 pMenu = pMenu->pUpper;
             }
@@ -2058,16 +1814,17 @@ static void CUI_dispMenu(bool _menuPopulated)
         }
 
         // If this is an interceptable item, instead of the title, allow a preview
-        if (itemEntry->interceptable)
+        if (itemEntry->itemType == CUI_MENU_ITEM_TYPE_INTERCEPT && itemEntry->item.pFnIntercept)
         {
-            if (itemEntry->item.pFnIntercept)
-            {
-                itemEntry->item.pFnIntercept(CUI_ITEM_PREVIEW, line, &cursorInfo);
-            }
+            itemEntry->item.pFnIntercept(CUI_ITEM_PREVIEW, line, &cursorInfo);
+        }
+        else if (itemEntry->itemType == CUI_MENU_ITEM_TYPE_LIST && itemEntry->item.pList->pFnListAction)
+        {
+            itemEntry->item.pList->pFnListAction(itemEntry->item.pList->currListIndex, line, false);
         }
 
         // Guarantee the last line is not overwritten by the intercept function
-        if (gpCurrMenu->menuItems[gCurrMenuItemEntry].pDesc == NULL)
+        if (itemEntry->itemType == CUI_MENU_ITEM_TYPE_SUBMENU)
         {
             // If the curr item is a sub menu, display the sub menu title
             strncpy(line[2], itemEntry->item.pSubMenu->pTitle, MAX_MENU_LINE_LEN);
@@ -2080,18 +1837,6 @@ static void CUI_dispMenu(bool _menuPopulated)
     }
 
     /*
- * Clear the menu screen and prep it for re-draw
- */
-#if !defined(CUI_SCROLL_PRINT)
-    System_snprintf(dispBuff[currDispBuff], sizeof(dispBuff[currDispBuff]),
-        CUI_ESC_CUR_HIDE CUI_ESC_CUR_MENU_BTM CUI_ESC_CLR_UP CUI_ESC_CUR_HOME "%c",
-        MAX_MENU_LINE_LEN, CUI_MENU_START_CHAR);
-#else
-    dispBuff[currDispBuff][0] = '\0';
-#endif
-
-
-    /*
      * Start copying the menu into the dispBuff for writing to the UART
      *
      * Copy the first line, then add the newline and carriage return.
@@ -2100,162 +1845,32 @@ static void CUI_dispMenu(bool _menuPopulated)
      * The memory for the carriage returns, newlines, and the final
      *  CUI_END_CHAR are accounted for in the menuBuff already.
      */
-    strncat(dispBuff[currDispBuff], line[0], MAX_MENU_LINE_LEN);
+#if !defined(CUI_SCROLL_PRINT)
+    System_snprintf(menuBuff, 32,
+        CUI_ESC_CUR_HIDE CUI_ESC_CUR_MENU_BTM CUI_ESC_CLR_UP CUI_ESC_CUR_HOME "%c",
+        MAX_MENU_LINE_LEN, CUI_MENU_START_CHAR);
+#endif
+    // Note these memory regions do not overlap
+    strncat(menuBuff, line[0], MAX_MENU_LINE_LEN);
+    // Set the newline and carriage return
+    strncat(menuBuff, CUI_NL_CR, sizeof(CUI_NL_CR));
 
-    //Set the newline and carriage return
-    strncat(dispBuff[currDispBuff], CUI_NL_CR, sizeof(CUI_NL_CR));
+    strncat(menuBuff, line[1], MAX_MENU_LINE_LEN);
+    strncat(menuBuff, CUI_NL_CR, sizeof(CUI_NL_CR));
 
-    strncat(dispBuff[currDispBuff], line[1], MAX_MENU_LINE_LEN);
-    strncat(dispBuff[currDispBuff], CUI_NL_CR, sizeof(CUI_NL_CR));
-
-    strncat(dispBuff[currDispBuff], line[2], MAX_MENU_LINE_LEN);
+    strncat(menuBuff, line[2], MAX_MENU_LINE_LEN);
 
 #if !defined(CUI_SCROLL_PRINT)
-    char endChar[1] = {CUI_END_CHAR};
-    strncat(dispBuff[currDispBuff], endChar, 1);
+    char endChar[2] = {CUI_END_CHAR, '\0'};
+    strncat(menuBuff, endChar, strlen(endChar));
 #else
-    strncat(dispBuff[currDispBuff], CUI_NL_CR, sizeof(CUI_NL_CR));
+    strncat(menuBuff, CUI_NL_CR, strlen(CUI_NL_CR));
 #endif
-    CUI_writeString(dispBuff[currDispBuff], strlen(dispBuff[currDispBuff]));
 
-    // Switch which buffer we use for the next call to CUI_statusLinePrintf()
-    currDispBuff = !currDispBuff;
+    CUI_writeString(menuBuff, strlen(menuBuff));
 }
 
-static CUI_retVal_t CUI_publicBtnsAPIChecks(const CUI_clientHandle_t _clientHandle)
-{
-    if (!gManageBtns)
-    {
-        return CUI_NOT_MANAGING_BTNS;
-    }
-
-    return CUI_publicAPIChecks(_clientHandle);
-}
-
-static CUI_retVal_t CUI_publicLedsAPIChecks(const CUI_clientHandle_t _clientHandle)
-{
-    if (!gManageLeds)
-    {
-        return CUI_NOT_MANAGING_LEDS;
-    }
-
-    return CUI_publicAPIChecks(_clientHandle);
-}
-
-static CUI_retVal_t CUI_publicUartAPIChecks(const CUI_clientHandle_t _clientHandle)
-{
-    if (!gManageUart)
-    {
-        return CUI_NOT_MANAGING_UART;
-    }
-
-    return CUI_publicAPIChecks(_clientHandle);
-}
-
-static CUI_retVal_t CUI_publicAPIChecks(const CUI_clientHandle_t _clientHandle)
-{
-    if (!gModuleInitialized)
-    {
-        return CUI_MODULE_UNINITIALIZED;
-    }
-
-    return CUI_validateHandle(_clientHandle);
-}
-
-static CUI_retVal_t CUI_validateHandle(const CUI_clientHandle_t _clientHandle)
-{
-    if (NULL == _clientHandle)
-    {
-        return CUI_INVALID_CLIENT_HANDLE;
-    }
-
-    if (CUI_getClientIndex(_clientHandle) == -1)
-    {
-        return CUI_INVALID_CLIENT_HANDLE;
-    }
-    else
-    {
-        return CUI_SUCCESS;
-    }
-}
-
-static CUI_retVal_t CUI_acquireBtn(const CUI_clientHandle_t _clientHandle, const CUI_btnRequest_t* const _pRequest)
-{
-    if (NULL != gButtonResources[_pRequest->index].clientHash)
-    {
-        return CUI_FAILURE;
-    }
-
-    gButtonResources[_pRequest->index].clientHash = _clientHandle;
-    gButtonResources[_pRequest->index].appCb = _pRequest->appCB;
-
-    return CUI_SUCCESS;
-}
-
-static CUI_retVal_t CUI_acquireLed(const CUI_clientHandle_t _clientHandle, const uint32_t _index)
-{
-    if (NULL != gLedResources[_index].clientHash)
-    {
-        return CUI_FAILURE;
-    }
-
-    gLedResources[_index].clientHash = _clientHandle;
-
-    return CUI_SUCCESS;
-}
-
-static CUI_retVal_t CUI_acquireStatusLine(const CUI_clientHandle_t _clientHandle, const char _pLabel[MAX_STATUS_LINE_LABEL_LEN], uint32_t* _pLineId)
-{
-    Semaphore_pend(gStatusSem, BIOS_WAIT_FOREVER);
-
-    int clientIndex = CUI_getClientIndex(_clientHandle);
-
-    int freeIndex = -1;
-    for (int i = 0; i < gMaxStatusLines[clientIndex]; i++)
-    {
-        if (CUI_RELEASED == gStatusLineResources[clientIndex][i].status)
-        {
-            freeIndex = i;
-            break;
-        }
-    }
-
-    Semaphore_post(gStatusSem);
-
-    if (-1 == freeIndex)
-    {
-        return CUI_NO_ASYNC_LINES_RELEASED;
-    }
-
-    uint32_t offset = 0;
-    for (uint32_t i = 0; i < clientIndex; i++)
-    {
-        offset += gMaxStatusLines[i];
-        offset ++; // allow 1 empty line between clients
-    }
-
-    offset += freeIndex;
-
-    //Add a ": " to every label
-    memset(gStatusLineResources[clientIndex][freeIndex].label, '\0', sizeof(gStatusLineResources[clientIndex][freeIndex].label));
-    System_snprintf(gStatusLineResources[clientIndex][freeIndex].label,
-             MAX_STATUS_LINE_LABEL_LEN + strlen(CUI_LABEL_VAL_SEP),
-             "%s%s", _pLabel, CUI_LABEL_VAL_SEP);
-    gStatusLineResources[clientIndex][freeIndex].lineOffset = offset;
-    gStatusLineResources[clientIndex][freeIndex].clientHash = _clientHandle;
-    gStatusLineResources[clientIndex][freeIndex].status = CUI_ACQUIRED;
-
-
-    /*
-     * Save this "line id" as a way to directly control the line, similarly to
-     * how a client can directly control a led or button through pinIds.
-     */
-    *_pLineId = freeIndex;
-
-    return CUI_SUCCESS;
-}
-
-static void CUI_menuActionNavigate(CUI_menuNavDir_t _navDir)
+static void CUI_menuActionNavigate(uint8_t _navDir)
 {
     // No menu change necessary. There is only one screen
     if (1 == gpCurrMenu->numItems)
@@ -2263,12 +1878,12 @@ static void CUI_menuActionNavigate(CUI_menuNavDir_t _navDir)
         return;
     }
 
-    if (CUI_MENU_NAV_LEFT == _navDir)
+    if (CUI_INPUT_LEFT == _navDir)
     {
         // Wrap menu around from left to right
         gCurrMenuItemEntry =  (gCurrMenuItemEntry - 1 + gpCurrMenu->numItems) % (gpCurrMenu->numItems);
     }
-    else if (CUI_MENU_NAV_RIGHT == _navDir)
+    else if (CUI_INPUT_RIGHT == _navDir)
     {
         // Wrap menu around from right to left
         gCurrMenuItemEntry =  (gCurrMenuItemEntry + 1 + gpCurrMenu->numItems) % (gpCurrMenu->numItems);
@@ -2279,7 +1894,7 @@ static void CUI_menuActionNavigate(CUI_menuNavDir_t _navDir)
 
 static void CUI_menuActionExecute(void)
 {
-    if (NULL == gpCurrMenu->menuItems[gCurrMenuItemEntry].pDesc)
+    if (gpCurrMenu->menuItems[gCurrMenuItemEntry].itemType == CUI_MENU_ITEM_TYPE_SUBMENU)
     {
         /*
          * If Item executed was a SubMenu, then preserve gCurrMenuItemEntry and enter the
@@ -2289,11 +1904,8 @@ static void CUI_menuActionExecute(void)
         gPrevMenuItemEntry = gCurrMenuItemEntry;
         gCurrMenuItemEntry = 0;
     }
-    else
+    else if (gpCurrMenu->menuItems[gCurrMenuItemEntry].itemType == CUI_MENU_ITEM_TYPE_ACTION)
     {
-        /*
-         * If Item executed was an Action, execute the action function.
-         */
         CUI_pFnAction_t actionFn;
         actionFn = gpCurrMenu->menuItems[gCurrMenuItemEntry].item.pFnAction;
         if (actionFn)
@@ -2332,15 +1944,4 @@ static CUI_retVal_t CUI_findMenu(CUI_menu_t* _pMenu, CUI_menu_t* _pDesiredMenu, 
     }
     return CUI_FAILURE;
 }
-
-static int CUI_getClientIndex(const CUI_clientHandle_t _clientHandle)
-{
-    for (uint32_t i = 0; i < MAX_CLIENTS; i++)
-    {
-        if (_clientHandle == gClientHandles[i])
-        {
-            return i;
-        }
-    }
-    return -1;
-}
+#endif /* ifndef CUI_MIN_FOOTPRINT */

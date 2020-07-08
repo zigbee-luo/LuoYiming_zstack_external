@@ -13,7 +13,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2015-2019, Texas Instruments Incorporated
+ Copyright (c) 2015-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -88,8 +88,8 @@ extern "C"
 #               error "NPI ERROR: Board_SPI1 SPI module must be used for NPI."
 #       endif
 #  elif defined(NPI_USE_UART)
-#    define MRDY_PIN Board_BUTTON0
-#    define SRDY_PIN Board_BUTTON1
+#    define MRDY_PIN CONFIG_PIN_BTN1
+#    define SRDY_PIN CONFIG_PIN_BTN2
 #  endif
 #  define SRDY_ENABLE()                   PIN_setOutputValue(hNpiHandshakePins, SRDY_PIN, 0) /* RTS low */
 #  define SRDY_DISABLE()                  PIN_setOutputValue(hNpiHandshakePins, SRDY_PIN, 1) /* RTS high */

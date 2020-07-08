@@ -1,6 +1,6 @@
 /******************************************************************************
 
- @file sm.h
+ @file sm_ti154.h
 
  @brief TI 15.4 Security Manager interface
 
@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2018-2019, Texas Instruments Incorporated
+ Copyright (c) 2018-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -43,19 +43,19 @@
  
  
  *****************************************************************************/
-#ifndef SM_H
-#define SM_H
+#ifndef SM_TI154_H
+#define SM_TI154_H
 
 #ifdef FEATURE_SECURE_COMMISSIONING
 /******************************************************************************
  Includes
- *****************************************************************************/
+ ************************************* ****************************************/
 
 #include "ti_154stack_config.h"
 #include "advanced_config.h"
 #include "api_mac.h"
 #include "smsgs.h"
-#include "sm_ecc.h"
+#include "sm_ecc_ti154.h"
 #include "cui.h"
 #include "llc.h"
 
@@ -89,10 +89,13 @@ extern "C"
 #define SM_SENT_CM_FAIL_EVT (0x0100)
 /* SM EVNT End*/
 
-/*! Commissioning request/response timeout value in ms */
-#define SM_COMMISIONING_STATUS_TIMEOUT_VALUE (CONFIG_POLLING_INTERVAL + 60000)
+#define SM_PKT_MAX_RETRY_ATTEMPTS   5   /* max times each individual SM packet retry attempts allowed */
+#define SM_CM_MAX_RETRY_ATTEMPTS    3   /* max commissioning attempts allowed */
+
 /*! Passkey input process timeout value in ms */
 #define SM_USER_INPUT_TIMEOUT_VALUE (30000)
+/*! Commissioning request/response timeout value in ms */
+#define SM_COMMISIONING_STATUS_TIMEOUT_VALUE (CONFIG_POLLING_INTERVAL + ((SM_CM_MAX_RETRY_ATTEMPTS - 1) * SM_USER_INPUT_TIMEOUT_VALUE))
 /*! Passkey input process timeout per char in ms */
 #define SM_PASSKEY_UART_TIMEOUT_VALUE (10)
 /*! Waiting for passkey timeout value in ms */
@@ -160,9 +163,6 @@ extern "C"
 #define SM_KEYRF_ATTEMPTED      0x20    /* key refresh is in progress */
 #define SM_KEYRF_FAIL           0x30    /* key refresh attempted and failed */
 #define SM_KEYRF_DEFAULT        0xFF    /* default */
-
-#define SM_PKT_MAX_RETRY_ATTEMPTS   5   /* max times each individual SM packet retry attempts allowed */
-#define SM_CM_MAX_RETRY_ATTEMPTS    3   /* max commissioning attempts allowed */
 
 // User display messages
 #define SM_DISPLAY_MSG_LEN         50   /* display message buffer size */
@@ -370,8 +370,10 @@ extern volatile bool useSendPktStatus;
 extern bool fCommissionRequired;
 extern uint16_t keyRecoverDeviceNumber;
 extern bool readySMToRun;
-extern uint8_t SM_cmAttempts;
 #endif
+
+extern uint8_t SM_cmAttempts;
+extern bool SM_forceStopped;
 
 /******************************************************************************
  Function Prototypes
@@ -443,6 +445,14 @@ extern void SM_getSrcDeviceSecurityInfo(ApiMac_sAddrExt_t extAddress, uint16_t s
  */
 extern void SM_startCMProcess(ApiMac_deviceDescriptor_t *devInfo, ApiMac_sec_t *sec,
     bool fhEnabled, bool rxOnIdle, SM_types_t devType, uint8_t authMethods);
+
+/*!
+ * @brief       Stop the security manager Process
+ *              <BR>
+ *              The application will call this function to stop the process
+ *              of commissioning this device to a new network.
+ */
+extern void SM_stopCMProcess(void);
 
 /*!
  * @brief       Register Security manager callback functions
@@ -523,4 +533,4 @@ extern void SM_setPasskey (uint32_t passkey);
 #endif
 
 #endif /*FEATURE_SECURE_COMMISSIONING*/
-#endif /* SM_H */
+#endif /* SM_TI154_H */

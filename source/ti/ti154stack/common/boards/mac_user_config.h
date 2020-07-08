@@ -32,7 +32,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -196,7 +196,7 @@ extern const uint32_t           macCryptoDriverTable[];
                               NULL,                                 \
                               rfSelect }
 
-#define RF_CONFIG_STD_IEEE   {                                                                  \
+#define RF_CONFIG_250KBPS_IEEE_PHY_0   {                                                                  \
      &RF_prop_ieee154,                                                                          \
      txPowerTable_ieee154,                                                                      \
      (const rfc_CMD_RADIO_SETUP_PA_t *)&RF_cmdRadioSetup_ieee154,                               \
@@ -208,7 +208,7 @@ extern const uint32_t           macCryptoDriverTable[];
      (void *)NULL                                                                               \
 }
 
-#define RF_CONFIG_STD_US_915_PHY_1    {                                                         \
+#define RF_CONFIG_50KBPS_915MHZ_PHY_1    {                                                         \
      &RF_prop_2gfsk50kbps154g,                                                                  \
      txPowerTable_2gfsk50kbps154g,                                                              \
      (const rfc_CMD_PROP_RADIO_DIV_SETUP_PA_t *)&RF_cmdPropRadioDivSetup_2gfsk50kbps154g,       \
@@ -219,7 +219,7 @@ extern const uint32_t           macCryptoDriverTable[];
      (void *)NULL                                                                               \
 }
 
-#define RF_CONFIG_STD_ETSI_863_PHY_3    {                                                       \
+#define RF_CONFIG_50KBPS_868MHZ_PHY_3    {                                                       \
      &RF_prop_2gfsk50kbps154g,                                                                  \
      txPowerTable_2gfsk50kbps154g,                                                              \
      (const rfc_CMD_PROP_RADIO_DIV_SETUP_PA_t *)&RF_cmdPropRadioDivSetup_2gfsk50kbps154g,       \
@@ -230,7 +230,7 @@ extern const uint32_t           macCryptoDriverTable[];
      (void *)NULL                                                                               \
 }
 
-#define RF_CONFIG_GENERIC_CHINA_433_PHY_128   {                                                 \
+#define RF_CONFIG_50KBPS_433MHZ_PHY_128   {                                                 \
      &RF_prop_2gfsk50kbps154g433mhz,                                                            \
      txPowerTable_2gfsk50kbps154g433mhz,                                                        \
      (const rfc_CMD_PROP_RADIO_DIV_SETUP_PA_t *)&RF_cmdPropRadioDivSetup_2gfsk50kbps154g433mhz, \
@@ -241,7 +241,7 @@ extern const uint32_t           macCryptoDriverTable[];
      (void *)NULL                                                                               \
 }
 
-#define RF_CONFIG_GENERIC_US_LRM_915_PHY_129    {                                               \
+#define RF_CONFIG_5KBPS_915MHZ_PHY_129    {                                               \
      &RF_prop_slr5kbps2gfsk,                                                                    \
      txPowerTable_slr5kbps2gfsk,                                                                \
      (const rfc_CMD_PROP_RADIO_DIV_SETUP_PA_t *)&RF_cmdPropRadioDivSetup_slr5kbps2gfsk,         \
@@ -252,7 +252,7 @@ extern const uint32_t           macCryptoDriverTable[];
      (void *)NULL                                                                               \
 }
 
-#define RF_CONFIG_GENERIC_CHINA_LRM_433_PHY_130     {                                           \
+#define RF_CONFIG_5KBPS_433MHZ_PHY_130     {                                           \
      &RF_prop_slr5kbps2gfsk433mhz,                                                              \
      txPowerTable_slr5kbps2gfsk433mhz,                                                          \
      (const rfc_CMD_PROP_RADIO_DIV_SETUP_PA_t *)&RF_cmdPropRadioDivSetup_slr5kbps2gfsk433mhz,   \
@@ -263,7 +263,7 @@ extern const uint32_t           macCryptoDriverTable[];
      (void *)NULL                                                                               \
 }
 
-#define RF_CONFIG_GENERIC_ETSI_LRM_863_PHY_131    {                                             \
+#define RF_CONFIG_5KBPS_868MHZ_PHY_131    {                                             \
      &RF_prop_slr5kbps2gfsk,                                                                    \
      txPowerTable_slr5kbps2gfsk,                                                                \
      (const rfc_CMD_PROP_RADIO_DIV_SETUP_PA_t *)&RF_cmdPropRadioDivSetup_slr5kbps2gfsk,         \
@@ -274,7 +274,7 @@ extern const uint32_t           macCryptoDriverTable[];
      (void *)NULL                                                                               \
 }
 
-#define RF_CONFIG_GENERIC_US_915_PHY_132     {                                                  \
+#define RF_CONFIG_200KBPS_915MHZ_PHY_132     {                                                  \
      &RF_prop_2gfsk200kbps154g,                                                                 \
      txPowerTable_2gfsk200kbps154g,                                                             \
      (const rfc_CMD_PROP_RADIO_DIV_SETUP_PA_t *)&RF_cmdPropRadioDivSetup_2gfsk200kbps154g,      \
@@ -285,7 +285,7 @@ extern const uint32_t           macCryptoDriverTable[];
      (void *)NULL                                                                               \
 }
 
-#define RF_CONFIG_GENERIC_ETSI_863_PHY_133     {                                                \
+#define RF_CONFIG_200KBPS_868MHZ_PHY_133     {                                                \
      &RF_prop_2gfsk200kbps154g,                                                                 \
      txPowerTable_2gfsk200kbps154g,                                                             \
      (const rfc_CMD_PROP_RADIO_DIV_SETUP_PA_t *)&RF_cmdPropRadioDivSetup_2gfsk200kbps154g,      \

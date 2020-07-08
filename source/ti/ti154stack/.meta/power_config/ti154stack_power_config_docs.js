@@ -70,7 +70,6 @@ __Default__: False (unchecked)
 };
 
 exports = {
-    transmitPowerSubG: transmitPower,
-    transmitPower24G: transmitPower,
+    transmitPower: transmitPower,
     rxOnIdle: rxOnIdle
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Texas Instruments Incorporated
+ * Copyright (c) 2013-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@
 var Program = xdc.module('xdc.cfg.Program');
 
 var Timer = null;
-var TimestampProvier = null;
+var TimestampProvider = null;
 var Hwi = null;
 var BIOS = null;
 
@@ -101,7 +101,7 @@ function module$static$init(mod, params)
 function instance$meta$init()
 {
     Timer.timerInUse = true;  /* Inform TimestampProvider that */
-                              /* does not need to be configured */ 
+                              /* does not need to be configured */
 }
 
 /*

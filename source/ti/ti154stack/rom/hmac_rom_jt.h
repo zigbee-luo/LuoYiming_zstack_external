@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -793,7 +793,7 @@
 #define MAP_convertTxOptions                                                  ((uint16_t                  (*) (ApiMac_txOptions_t))   \
                    ROM_HMAC_JT_OFFSET(HMAC_API_BASE_INDEX+266))
 /*assert*/
-#define MAP_halAssertHandler                                                  ((void                      (*) (void))   \
+#define MAP_assertHandler                                                     ((void                      (*) (void))   \
                    ROM_HMAC_JT_OFFSET(HMAC_API_BASE_INDEX+267))
 
 #define MAP_macMcuLongDiv                                                     ((uint32                    (*) (uint64_t dividend, uint32 divisor))   \

@@ -92,6 +92,9 @@
 #include "zcl_sampledoorlock.h"
 #include "ti_drivers_config.h"
 
+#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/apps/LED.h>
+
 #ifdef USE_ZCL_SAMPLEAPP_UI
 #include "zcl_sampleapps_ui.h"
 #include "zcl_sample_app_def.h"
@@ -179,6 +182,8 @@ static uint16_t zclSampleDoorLock_BdbCommissioningModes;
 // Master PIN code for DoorLock
 static char aiDoorLockMasterPINCode[] = {4,0x31,0x32,0x33,0x34};
 
+static LED_Handle gRedLedHandle;
+
 #ifdef USE_ZCL_SAMPLEAPP_UI
 CONST char zclSampleDoorLock_appStr[] = APP_TITLE_STR;
 CUI_clientHandle_t gCuiHandle;
@@ -201,14 +206,13 @@ static void zclSampleDoorLock_initializeClocks(void);
 static void zclSampleDoorLock_processEndDeviceRejoinTimeoutCallback(UArg a0);
 #endif
 
-static void zclSampleDoorLock_processKey(uint32_t _btn, Button_EventMask _buttonEvents);
 static void zclSampleDoorLock_Init( void );
 
 
 
 static void zclSampleDoorLock_BasicResetCB( void );
 #ifdef USE_ZCL_SAMPLEAPP_UI
-static void zclSampleDoorLock_processKey(uint32_t _btn, Button_EventMask _buttonEvents);
+static void zclSampleDoorLock_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleDoorLock_RemoveAppNvmData(void);
 static void zclSampleDoorLock_InitializeStatusLine(CUI_clientHandle_t gCuiHandle);
 static void zclSampleDoorLock_UpdateStatusLine(void);
@@ -225,8 +229,8 @@ static ZStatus_t zclSampleDoorLock_DoorLockActuator ( uint8_t newDoorLockState )
 
 static void zclSampleDoorLock_UpdateLedState(void);
 
-static ZStatus_t zclSampleDoorLock_ReadWriteAttrCB(  uint8_t endpoint, zclAttrRec_t *pAttr,
-                                                     uint8_t oper, uint8_t *pValue, uint16_t *pLen  );
+static ZStatus_t zclSampleDoorLock_ReadWriteAttrCB( uint16_t clusterId, uint16_t attrId, uint8_t oper,
+                                          uint8_t *pValue, uint16_t *pLen );
 
 
 /*********************************************************************
@@ -518,21 +522,16 @@ static void zclSampleDoorLock_Init( void )
            &appServiceTaskEvents,                // The events processed by the sample application
            appSemHandle,                         // Semaphore to post the events in the application thread
            &zclSampleDoorLock_IdentifyTime,
-           &zclSampleDoorLock_BdbCommissioningModes,   // a pointer to the applications bdbCommissioningModes
-           zclSampleDoorLock_appStr,
-           zclSampleDoorLock_processKey,
-           zclSampleDoorLock_RemoveAppNvmData         // A pointer to the app-specific NV Item reset function
+           &zclSampleDoorLock_BdbCommissioningModes,   // A pointer to the application's bdbCommissioningModes
+           zclSampleDoorLock_appStr,                   // A pointer to the app-specific name string
+           zclSampleDoorLock_processKey,               // A pointer to the app-specific key process function
+           zclSampleDoorLock_RemoveAppNvmData          // A pointer to the app-specific NV Item reset function
            );
 
   //Request the Red LED for App
-  CUI_retVal_t retVal;
-  /* Initialize the LEDS */
-  CUI_ledRequest_t ledRequest;
-  ledRequest.index = CONFIG_LED_RED;
-
-  retVal = CUI_ledResourceRequest(gCuiHandle, &ledRequest);
-  (void) retVal;
-
+  LED_Params ledParams;
+  LED_Params_init(&ledParams);
+  gRedLedHandle = LED_open(CONFIG_LED_RED, &ledParams);
 
   //Initialize the SampleDoorLock UI status line
   zclSampleDoorLock_InitializeStatusLine(gCuiHandle);
@@ -1020,11 +1019,7 @@ static void zclSampleDoorLock_ProcessCommissioningStatus(bdbCommissioningModeMsg
     case BDB_COMMISSIONING_FORMATION:
       if(bdbCommissioningModeMsg->bdbCommissioningStatus == BDB_COMMISSIONING_SUCCESS)
       {
-        zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
-
-        //After formation, perform nwk steering again plus the remaining commissioning modes that has not been process yet
-        zstack_bdbStartCommissioningReq.commissioning_mode = BDB_COMMISSIONING_MODE_NWK_STEERING | bdbCommissioningModeMsg->bdbRemainingCommissioningModes;
-        Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
+        //YOUR JOB:
       }
       else
       {
@@ -1347,7 +1342,7 @@ static ZStatus_t zclSampleDoorLock_DoorLockActuator ( uint8_t newDoorLockState )
   zclSampleDoorLock_updateLockStateAttribute(newDoorLockState);
 
 #ifdef BDB_REPORTING
-  bdb_RepChangedAttrValue(SAMPLEDOORLOCK_ENDPOINT, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK, 0, 0, ATTRID_CLOSURES_LOCK_STATE);
+  bdb_RepChangedAttrValue(SAMPLEDOORLOCK_ENDPOINT, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK, ATTRID_CLOSURES_LOCK_STATE);
 #endif
 
   zclSampleDoorLock_UpdateLedState();
@@ -1392,11 +1387,13 @@ void zclSampleDoorLock_UpdateLedState(void)
 {
   if ( zclSampleDoorLock_getLockStateAttribute() == CLOSURES_LOCK_STATE_LOCKED )
   {
-      CUI_ledOn(gCuiHandle, CONFIG_LED_RED, NULL);
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
   }
   else if ( zclSampleDoorLock_getLockStateAttribute() == CLOSURES_LOCK_STATE_UNLOCKED )
   {
-      CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOff(gRedLedHandle);
   }
 }
 
@@ -1435,7 +1432,6 @@ void zclSampleDoorLock_UiActionEnterPin(const char _input, char* _lines[3], CUI_
             if(index < aiDoorLockMasterPINCode[0])
             {
                 index++;
-
             }
         break;
         case CUI_INPUT_LEFT:
@@ -1462,6 +1458,20 @@ void zclSampleDoorLock_UiActionEnterPin(const char _input, char* _lines[3], CUI_
             }
             zclSampleDoorLock_UpdateStatusLine();
         break;
+        default:
+        {
+            // is input valid?
+            if(CUI_IS_INPUT_NUM(_input))
+            {
+                aiDoorLockMasterPINCode[index] = _input;
+
+                if(index < aiDoorLockMasterPINCode[0])
+                {
+                    index++;
+                }
+            }
+            break;
+        }
     }
 
     _curInfo->row = 2;
@@ -1488,20 +1498,20 @@ void zclSampleDoorLock_UiActionEnterPin(const char _input, char* _lines[3], CUI_
  *
  * @return  none
  */
-static void zclSampleDoorLock_processKey(uint32_t _btn, Button_EventMask _buttonEvents)
+static void zclSampleDoorLock_processKey(uint8_t key, Button_EventMask buttonEvents)
 {
-    if (_buttonEvents & Button_EV_CLICKED)
+    if (buttonEvents & Button_EV_CLICKED)
     {
-        if(_btn == CONFIG_BTN_LEFT)
+        if(key == CONFIG_BTN_LEFT)
         {
             zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
 
             zstack_bdbStartCommissioningReq.commissioning_mode = zclSampleDoorLock_BdbCommissioningModes;
             Zstackapi_bdbStartCommissioningReq(appServiceTaskId, &zstack_bdbStartCommissioningReq);
         }
-        if(_btn == CONFIG_BTN_RIGHT)
+        if(key == CONFIG_BTN_RIGHT)
         {
-
+            //unused
         }
     }
 }
@@ -1509,7 +1519,7 @@ static void zclSampleDoorLock_processKey(uint32_t _btn, Button_EventMask _button
 static void zclSampleDoorLock_InitializeStatusLine(CUI_clientHandle_t gCuiHandle)
 {
     /* Request Async Line for Light application Info */
-    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gSampleDoorLockInfoLine);
+    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gSampleDoorLockInfoLine);
 
     zclSampleDoorLock_UpdateStatusLine();
 }

@@ -92,6 +92,9 @@
 
 #include "zcl_samplewarningdevice.h"
 
+#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/apps/LED.h>
+
 #include "ti_drivers_config.h"
 
 #ifdef USE_ZCL_SAMPLEAPP_UI
@@ -173,6 +176,8 @@ uint8_t tempWarningInProgress = 0;
 bool gSquawkReq = FALSE;
 #endif
 
+static LED_Handle gRedLedHandle;
+
 #ifdef USE_ZCL_SAMPLEAPP_UI
 CONST char zclSampleWarningDevice_appStr[] = APP_TITLE_STR;
 CUI_clientHandle_t gCuiHandle;
@@ -206,7 +211,7 @@ static void zclSampleWarningDevice_processSquawkClkTimeoutCallback(UArg a0);
 
 
 #ifdef USE_ZCL_SAMPLEAPP_UI
-static void zclSampleWarningDevice_processKey(uint32_t _btn, Button_EventMask _buttonEvents);
+static void zclSampleWarningDevice_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleWarningDevice_RemoveAppNvmData(void);
 static void zclSampleWarningDevice_InitializeStatusLine(CUI_clientHandle_t gCuiHandle);
 static void zclSampleWarningDevice_UpdateStatusLine(void);
@@ -426,7 +431,7 @@ static void zclSampleWarningDevice_Init( void )
   zcl_registerAttrList( SAMPLEWARNINGDEVICE_ENDPOINT, zclSampleWarningDevice_NumAttributes, zclSampleWarningDevice_Attrs );
 
   // Register the Application to receive the unprocessed Foundation command/response messages
-  zclport_registerZclHandleExternal( SAMPLEWARNINGDEVICE_ENDPOINT, zclSampleWarningDevice_ProcessIncomingMsg );
+  zclport_registerZclHandleExternal(zclSampleWarningDevice_ProcessIncomingMsg);
 
   zcl_registerReadWriteCB( SAMPLEWARNINGDEVICE_ENDPOINT, NULL, zclSampleWarningDevice_AuthenticateCIE );
 
@@ -462,21 +467,16 @@ static void zclSampleWarningDevice_Init( void )
            &appServiceTaskEvents,                // The events processed by the sample application
            appSemHandle,                         // Semaphore to post the events in the application thread
            &zclSampleWarningDevice_IdentifyTime,
-           &zclSampleWarningDevice_BdbCommissioningModes,   // a pointer to the applications bdbCommissioningModes
-           zclSampleWarningDevice_appStr,
-           zclSampleWarningDevice_processKey,
-           zclSampleWarningDevice_RemoveAppNvmData         // A pointer to the app-specific NV Item reset function
+           &zclSampleWarningDevice_BdbCommissioningModes,   // A pointer to the application's bdbCommissioningModes
+           zclSampleWarningDevice_appStr,                   // A pointer to the app-specific name string
+           zclSampleWarningDevice_processKey,               // A pointer to the app-specific key process function
+           zclSampleWarningDevice_RemoveAppNvmData          // A pointer to the app-specific NV Item reset function
            );
 
   //Request the Red LED for App
-  CUI_retVal_t retVal;
-  /* Initialize the LEDS */
-  CUI_ledRequest_t ledRequest;
-  ledRequest.index = CONFIG_LED_RED;
-
-  retVal = CUI_ledResourceRequest(gCuiHandle, &ledRequest);
-  (void) retVal;
-
+  LED_Params ledParams;
+  LED_Params_init(&ledParams);
+  gRedLedHandle = LED_open(CONFIG_LED_RED, &ledParams);
 
   //Initialize the SampleWarningDevice UI status line
   zclSampleWarningDevice_InitializeStatusLine(gCuiHandle);
@@ -806,7 +806,8 @@ static void zclSampleWarningDevice_process_loop(void)
                 //Only if there is no fire in the local device
                 if(zclSampleWarningDevice_ZoneStatus == 0)
                 {
-                  CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
+                  LED_stopBlinking(gRedLedHandle);
+                  LED_setOff(gRedLedHandle);
                 }
                 zclSampleWarningDevice_UpdateStatusLine();
                 appServiceTaskEvents &= ~SAMPLEAPP_WARNING_DURATION_EVT;
@@ -1070,24 +1071,25 @@ static void zclSampleWarningDevice_processAfIncomingMsgInd(zstack_afIncomingMsgI
 /*********************************************************************
  * @fn      zclSampleWarningDevice_processKey
  *
- * @brief   Process the keys pressed in the application context
+ * @brief   Key event handler function
  *
- * @param   keysPressed - keys to be process in application context
+ * @param   key - key to handle action for
+ *          buttonEvents - event to handle action for
  *
  * @return  none
  */
-static void zclSampleWarningDevice_processKey(uint32_t _btn, Button_EventMask _buttonEvents)
+static void zclSampleWarningDevice_processKey(uint8_t key, Button_EventMask buttonEvents)
 {
-    if (_buttonEvents & Button_EV_CLICKED)
+    if (buttonEvents & Button_EV_CLICKED)
     {
-        if(_btn == CONFIG_BTN_LEFT)
+        if(key == CONFIG_BTN_LEFT)
         {
             zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
 
             zstack_bdbStartCommissioningReq.commissioning_mode = zclSampleWarningDevice_BdbCommissioningModes;
             Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
         }
-        if(_btn == CONFIG_BTN_RIGHT)
+        if(key == CONFIG_BTN_RIGHT)
         {
             if(zclSampleWarningDevice_ZoneState == SS_IAS_ZONE_STATE_ENROLLED)
             {
@@ -1121,11 +1123,7 @@ static void zclSampleWarningDevice_ProcessCommissioningStatus(bdbCommissioningMo
     case BDB_COMMISSIONING_FORMATION:
       if(bdbCommissioningModeMsg->bdbCommissioningStatus == BDB_COMMISSIONING_SUCCESS)
       {
-        zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
-
-        //After formation, perform nwk steering again plus the remaining commissioning modes that has not been process yet
-        zstack_bdbStartCommissioningReq.commissioning_mode = BDB_COMMISSIONING_MODE_NWK_STEERING | bdbCommissioningModeMsg->bdbRemainingCommissioningModes;
-        Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
+        //YOUR JOB:
       }
       else
       {
@@ -1224,9 +1222,9 @@ static void zclSampleWarningDevice_BasicResetCB( void )
 static void zclSampleWarningDevice_InitializeStatusLine(CUI_clientHandle_t gCuiHandle)
 {
     /* Request Async Line for Light application Info */
-    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gSampleWarningDeviceInfoLine1);
-    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"2"CUI_DEBUG_MSG_END, &gSampleWarningDeviceInfoLine2);
-    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"3"CUI_DEBUG_MSG_END, &gSampleWarningDeviceInfoLine3);
+    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gSampleWarningDeviceInfoLine1);
+    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"2"CUI_DEBUG_MSG_END, false, &gSampleWarningDeviceInfoLine2);
+    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"3"CUI_DEBUG_MSG_END, false, &gSampleWarningDeviceInfoLine3);
 
     zclSampleWarningDevice_UpdateStatusLine();
 }
@@ -1569,7 +1567,8 @@ static ZStatus_t zclSampleWarningDevice_StartWarningCB(zclWDStartWarning_t *pCmd
         Timer_start(&WarningDurationClkStruct);
 
         tempWarningInProgress = TRUE;
-        CUI_ledOn(gCuiHandle, CONFIG_LED_RED, NULL);
+        LED_stopBlinking(gRedLedHandle);
+        LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
     }
   }
   else //if the alarm is not present
@@ -1579,7 +1578,8 @@ static ZStatus_t zclSampleWarningDevice_StartWarningCB(zclWDStartWarning_t *pCmd
     //Only if there is no fire in the local device
     if(zclSampleWarningDevice_ZoneStatus == 0)
     {
-      CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOff(gRedLedHandle);
     }
   }
 
@@ -1608,7 +1608,7 @@ ZStatus_t zclSampleWarningDevice_SquawkCB(zclWDSquawk_t* squawk)
         //Only if there is no fire in the local device
         if(zclSampleWarningDevice_ZoneStatus == 0)
         {
-          CUI_ledBlink(gCuiHandle, CONFIG_LED_RED, 1);
+          LED_startBlinking(gRedLedHandle, 500, 1);
           gSquawkReq = TRUE;
         }
     }
@@ -1739,11 +1739,12 @@ static void zclSampleWarningDevice_SendChangeNotification(void)
 
   if(zclSampleWarningDevice_ZoneStatus == SS_IAS_ZONE_STATUS_ALARM1_ALARMED)
   {
-    CUI_ledBlink(gCuiHandle, CONFIG_LED_RED, CUI_BLINK_CONTINUOUS);
+    LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
   }
   else
   {
-    CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
+    LED_stopBlinking(gRedLedHandle);
+    LED_setOff(gRedLedHandle);
   }
 }
 
@@ -1905,11 +1906,12 @@ void zclSampleWarningDevice_UiActionToggleAlarm(const int32_t _itemEntry)
 
     if(zclSampleWarningDevice_ZoneStatus == SS_IAS_ZONE_STATUS_ALARM1_ALARMED)
     {
-      CUI_ledBlink(gCuiHandle, CONFIG_LED_RED, CUI_BLINK_CONTINUOUS);
+      LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
     }
     else
     {
-      CUI_ledOff(gCuiHandle, CONFIG_LED_RED);
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOff(gRedLedHandle);
     }
 
     zclSampleWarningDevice_UpdateStatusLine();

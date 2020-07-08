@@ -1764,18 +1764,18 @@ void ZDSecMgrTransportKeyInd( ZDO_TransportKeyInd_t* ind )
     }
     else
     {
-        // Find TCLK entry with TC extAddr or first unused entry, fixed at 2020-04-07
+        // Find TCLK entry with TC extAddr or first unused entry
         uint8_t entryFound;
         entryIndex = APSME_SearchTCLinkKeyEntry(AIB_apsTrustCenterAddress,&entryFound,&TCLKDevEntryCpy);
- 
+
         if(entryIndex < gZDSECMGR_TC_DEVICE_MAX)
         {
-            OsalPort_memcpy(TCLKDevEntryCpy.extAddr, ind->srcExtAddr, Z_EXTADDR_LEN);
+          OsalPort_memcpy(TCLKDevEntryCpy.extAddr, ind->srcExtAddr, Z_EXTADDR_LEN);
 
-            //Save the KeyAttribute for joining device
-            osal_nv_write_ex(ZCD_NV_EX_TCLK_TABLE, entryIndex,
-                             sizeof(APSME_TCLinkKeyNVEntry_t),
-                             &TCLKDevEntryCpy);
+          //Save the KeyAttribute for joining device
+          osal_nv_write_ex(ZCD_NV_EX_TCLK_TABLE, entryIndex,
+                          sizeof(APSME_TCLinkKeyNVEntry_t),
+                          &TCLKDevEntryCpy);
         }
     }
 
@@ -2134,7 +2134,7 @@ void ZDSecMgrGenerateSeed(uint8_t SetDefault)
 /******************************************************************************
  * @fn          ZDSecMgrGenerateKeyFromSeed
  *
- * @brief       Generate the TC link key for an specific device usign seed and ExtAddr
+ * @brief       Generate the TC link key for an specific device using seed and ExtAddr
  *
  * @param       [in]  extAddr
  * @param       [in]  shift    number of byte shifts that the seed will do to

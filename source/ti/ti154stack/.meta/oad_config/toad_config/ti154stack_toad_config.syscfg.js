@@ -91,9 +91,23 @@ const config = [
  */
 function onEnabledChanged(inst, ui)
 {
-    ui.oldImgPath.readOnly = inst.enabled ? false : toadReadOnlyStr;
-    ui.blockCacheSize.readOnly = inst.enabled ? false : toadReadOnlyStr;
-    ui.writeBufferSize.readOnly = inst.enabled ? false : toadReadOnlyStr;
+    if(inst.enabled)
+    {
+        ui.oldImgPath.readOnly = false;
+        ui.blockCacheSize.readOnly = false;
+        ui.writeBufferSize.readOnly = false;
+    }
+    else
+    {
+        // Revert to default values to prevent warnings
+        inst.oldImgPath = "";
+        inst.blockCacheSize = 1024;
+        inst.writeBufferSize = 4096;
+
+        ui.oldImgPath.readOnly = toadReadOnlyStr;
+        ui.blockCacheSize.readOnly = toadReadOnlyStr;
+        ui.writeBufferSize.readOnly = toadReadOnlyStr;
+    }
 }
 
 /*

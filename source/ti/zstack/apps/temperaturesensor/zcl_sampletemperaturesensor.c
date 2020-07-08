@@ -75,6 +75,9 @@
 #include "bdb_interface.h"
 #include "ti_drivers_config.h"
 
+#include <ti/drivers/apps/Button.h>
+#include <ti/drivers/apps/LED.h>
+
 #ifdef USE_ZCL_SAMPLEAPP_UI
 #include "zcl_sampleapps_ui.h"
 #include "zcl_sample_app_def.h"
@@ -186,7 +189,7 @@ static void zclSampleTemperatureSensor_processEndDeviceRejoinTimeoutCallback(UAr
 #endif
 
 #ifdef USE_ZCL_SAMPLEAPP_UI
-static void zclSampleTemperatureSensor_processKey(uint32_t _btn, Button_EventMask _buttonEvents);
+static void zclSampleTemperatureSensor_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleTemperatureSensor_RemoveAppNvmData(void);
 static void zclSampleTemperatureSensor_InitializeStatusLine(CUI_clientHandle_t gCuiHandle);
 void zclSampleTemperatureSensor_UpdateStatusLine(void);
@@ -412,20 +415,17 @@ static void zclSampleTemperatureSensor_Init( void )
             &appServiceTaskEvents,                // The events processed by the sample application
             appSemHandle,                         // Semaphore to post the events in the application thread
             &zclSampleTemperatureSensor_IdentifyTime,
-            &zclSampleTemperatureSensor_BdbCommissioningModes,   // a pointer to the applications bdbCommissioningModes
-            zclSampleTemperatureSensor_appStr,
-            zclSampleTemperatureSensor_processKey,
-            zclSampleTemperatureSensor_RemoveAppNvmData         // A pointer to the app-specific NV Item reset function
+            &zclSampleTemperatureSensor_BdbCommissioningModes,   // A pointer to the application's bdbCommissioningModes
+            zclSampleTemperatureSensor_appStr,                   // A pointer to the app-specific name string
+            zclSampleTemperatureSensor_processKey,               // A pointer to the app-specific key process function
+            zclSampleTemperatureSensor_RemoveAppNvmData          // A pointer to the app-specific NV Item reset function
             );
 
   //Request the Red LED for App
-  CUI_retVal_t retVal;
-  /* Initialize the LEDS */
-  CUI_ledRequest_t ledRequest;
-  ledRequest.index = CONFIG_LED_RED;
-
-  retVal = CUI_ledResourceRequest(gCuiHandle, &ledRequest);
-  (void) retVal;
+  LED_Params ledParams;
+  LED_Params_init(&ledParams);
+  LED_Handle gRedLedHandle = LED_open(CONFIG_LED_RED, &ledParams);
+  (void) gRedLedHandle;
 
 
   //Initialize the SampleDoorLock UI status line
@@ -889,11 +889,7 @@ static void zclSampleTemperatureSensor_ProcessCommissioningStatus(bdbCommissioni
       case BDB_COMMISSIONING_FORMATION:
         if(bdbCommissioningModeMsg->bdbCommissioningStatus == BDB_COMMISSIONING_SUCCESS)
         {
-          zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
-
-          //After formation, perform nwk steering again plus the remaining commissioning modes that has not been process yet
-          zstack_bdbStartCommissioningReq.commissioning_mode = BDB_COMMISSIONING_MODE_NWK_STEERING | bdbCommissioningModeMsg->bdbRemainingCommissioningModes;
-          Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
+          //YOUR JOB:
 
         }
         else
@@ -1210,22 +1206,23 @@ static uint8_t zclSampleTemperatureSensor_ProcessInDiscAttrsExtRspCmd( zclIncomi
  *
  * @brief   Key event handler function
  *
- * @param   keysPressed - keys to be process in application context
+ * @param   key - key to handle action for
+ *          buttonEvents - event to handle action for
  *
  * @return  none
  */
-static void zclSampleTemperatureSensor_processKey(uint32_t _btn, Button_EventMask _buttonEvents)
+static void zclSampleTemperatureSensor_processKey(uint8_t key, Button_EventMask buttonEvents)
 {
-    if (_buttonEvents & Button_EV_CLICKED)
+    if (buttonEvents & Button_EV_CLICKED)
     {
-        if(_btn == CONFIG_BTN_LEFT)
+        if(key == CONFIG_BTN_LEFT)
         {
             zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
 
             zstack_bdbStartCommissioningReq.commissioning_mode = zclSampleTemperatureSensor_BdbCommissioningModes;
             Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
         }
-        if(_btn == CONFIG_BTN_RIGHT)
+        if(key == CONFIG_BTN_RIGHT)
         {
             //Unused
         }
@@ -1304,7 +1301,7 @@ void zclSampleTemperatureSensor_UiActionChangeTemp(const char _input, char* _lin
 static void zclSampleTemperatureSensor_InitializeStatusLine(CUI_clientHandle_t gCuiHandle)
 {
     /* Request Async Line for Light application Info */
-    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, &gSampleTemperatureSensorInfoLine);
+    CUI_statusLineResourceRequest(gCuiHandle, "   APP Info"CUI_DEBUG_MSG_START"1"CUI_DEBUG_MSG_END, false, &gSampleTemperatureSensorInfoLine);
 
     zclSampleTemperatureSensor_UpdateStatusLine();
 }

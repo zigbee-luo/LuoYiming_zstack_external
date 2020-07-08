@@ -37,6 +37,18 @@
 
 "use strict";
 
+const rfDesign = {
+    description: "Select which RF design to use as template",
+    longDescription: `
+The user must select an existing TI RF design to reference for radio \
+configuration. This value must match the Based on RF Design parameter in the \
+RF module.
+\n\
+__Default__: The RF design reference selected in this project is automatically \
+configured based on the example. Please move to a custom board or see the \
+other examples provided in the SDK if another reference board is desired.`
+};
+
 const freqBand = {
     description: "Configures the frequency band used for radio operations",
     readOnly: "Automatically set based on the project selected",
@@ -65,9 +77,9 @@ __Default__: 915 MHz
 \n\
 Value | Description
 --- | ---
-433 MHz | Sub-1 GHz frequency band allowed for China region
-863 MHz | Sub-1 GHz frequency band allowed for US region
-915 MHz | Sub-1 GHz frequency band allowed for ETSI region
+433 MHz | Sub-1 GHz 433 MHz ISM band 
+868 MHz | Sub-1 GHz 868 MHz ISM band 
+915 MHz | Sub-1 GHz 915 MHz ISM band 
 `
 };
 
@@ -101,9 +113,9 @@ For more information, refer to the [Data-Rate and PHY](/ti154stack/html/\
 ti154stack/ti154stack-overview.html#data-rate-and-phy) section of the \
 TI15.4-Stack User's Guide.
 \n\
-__Default__ (Sub-1 GHz): APIMAC_STD_US_915_PHY_1
+__Default__ (Sub-1 GHz): APIMAC_50KBPS_915MHZ_PHY_1
 \n\
-__Default__ (2.4 GHz): APIMAC_CHANNEL_PAGE_NONE
+__Default__ (2.4 GHz): APIMAC_250KBPS_IEEE_PHY_0
 `
 };
 
@@ -116,11 +128,12 @@ configured based on the PHY ID.
 \n\
 __Default__ (Sub-1 GHz): APIMAC_CHANNEL_PAGE_9
 \n\
-__Default__ (2.4 GHz): APIMAC_PHY_ID_NONE
+__Default__ (2.4 GHz): APIMAC_CHANNEL_PAGE_NONE
 `
 };
 
 exports = {
+    rfDesign: rfDesign,
     freqBand: freqBand,
     freqSub1: freqSub1,
     phyType: phyType,

@@ -147,7 +147,10 @@ for (var i = 0; i < Build.targets.length; i++) {
         var posixDir;
         var copts = "";
 
-        if (targ.$name.match(/^ti/)) {
+        if (targ.$name.match(/ti.targets.arm.clang/)) {
+            posixDir = "ticlang";
+        }
+        else if (targ.$name.match(/^ti/)) {
             posixDir = "ccs";
         }
         else if (targ.$name.match(/^gnu/)) {

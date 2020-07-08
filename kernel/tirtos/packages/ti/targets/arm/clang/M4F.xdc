@@ -1,10 +1,10 @@
 /*
- *  Copyright 2019 by Texas Instruments Incorporated.
+ *  Copyright 2020 by Texas Instruments Incorporated.
  *
  */
 
 /*
- * Copyright (c) 2018-2019, Texas Instruments Incorporated
+ * Copyright (c) 2018-2020, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@
 metaonly module M4F inherits ti.targets.arm.elf.IArm {
     override readonly config string name        = "M4F";
     override readonly config string suffix      = "m4f";
-    override readonly config string isa         = "v7M";
+    override readonly config string isa         = "v7M4";
     override readonly config string rts         = "ti.targets.arm.rtsarm";
     override config string platform   = "ti.platforms.cortexM:MTL1_VSOC:1";
     override config String stdInclude = "ti/targets/arm/clang/std.h";
@@ -106,7 +106,7 @@ metaonly module M4F inherits ti.targets.arm.elf.IArm {
      */
     override config xdc.bld.ITarget2.Options lnkOpts = {
         prefix: "-Wl,-q -Wl,-u,_c_int00",
-        suffix: "-Wl,-w -Wl,-c -Wl,-m,$(XDCCFGDIR)/$@.map -l $(rootDir)/lib/generic/libc.a"
+        suffix: "-Wl,-w -Wl,-c -Wl,-m,$(XDCCFGDIR)/$@.map"
     };
 
     override readonly config xdc.bld.ITarget2.Command vers = {
@@ -122,19 +122,19 @@ metaonly module M4F inherits ti.targets.arm.elf.IArm {
     override config xdc.bld.ITarget.OptionSet profiles[string] = [
         ["debug", {
             compileOpts: {
-                copts: "-gdwarf-3",
+                copts: "-g",
                 defs:  "-D_DEBUG_=1"
             }
         }],
         ["release", {
             compileOpts: {
-                copts: "-gdwarf-3 -Oz"
+                copts: "-g -Oz"
             }
         }]
     ];
 }
 /*
- *  @(#) ti.targets.arm.clang; 1, 0, 0,0; 8-9-2019 17:15:15; /db/ztree/library/trees/xdctargets/xdctargets-v00/src/ xlibrary
+ *  @(#) ti.targets.arm.clang; 1, 0, 0,; 5-11-2020 15:30:33; /db/ztree/library/trees/xdctargets/xdctargets-w14/src/ xlibrary
 
  */
 

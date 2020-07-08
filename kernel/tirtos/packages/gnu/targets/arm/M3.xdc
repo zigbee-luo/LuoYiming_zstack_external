@@ -1,17 +1,38 @@
 /*
- *  Copyright 2019 by Texas Instruments Incorporated.
+ *  Copyright 2020 by Texas Instruments Incorporated.
  *
  */
 
 /*
- *  Copyright (c) 2008-2017 Texas Instruments and others.
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v1.0
- *  which accompanies this distribution, and is available at
- *  http://www.eclipse.org/legal/epl-v10.html
+ * Copyright (c) 2008-2020 Texas Instruments Incorporated - http://www.ti.com
+ * All rights reserved.
  *
- *  Contributors:
- *      Texas Instruments - initial implementation
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * *  Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * *  Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * *  Neither the name of Texas Instruments Incorporated nor the names of
+ *    its contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+ * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 import xdc.bld.ITarget2;
 
@@ -42,17 +63,17 @@ metaonly module M3 inherits IM {
 
     override readonly config ITarget2.Command asm = {
         cmd: "$(rootDir)/bin/$(GCCTARG)-gcc -c -x assembler-with-cpp",
-        opts: "-Wa,-mcpu=cortex-m3 -Wa,-mthumb"
+        opts: "-mcpu=cortex-m3 -mthumb"
     };
 
     readonly config ITarget2.Command asmBin = {
         cmd: "bin/arm-none-eabi-gcc -c -x assembler-with-cpp",
-        opts: "-Wa,-mcpu=cortex-m3 -Wa,-mthumb"
+        opts: "-mcpu=cortex-m3 -mthumb"
     };
 
     override config ITarget2.Options lnkOpts = {
-        prefix: "-mthumb -march=armv7-m -nostartfiles -Wl,-static -Wl,--gc-sections",
-        suffix: "-L$(packageBase)/libs/install-native/$(GCCTARG)/lib/thumb/v7-m -Wl,--start-group -lgcc -lc -lm -Wl,--end-group --specs=nano.specs -Wl,-Map=$(XDCCFGDIR)/$@.map"
+        prefix: "-mcpu=cortex-m3 -mthumb -nostartfiles -Wl,-static -Wl,--gc-sections",
+        suffix: "-L$(packageBase)/libs/install-native/$(GCCTARG)/lib/thumb/v7-m/nofp -Wl,--start-group -lgcc -lc -lm -Wl,--end-group --specs=nano.specs -Wl,-Map=$(XDCCFGDIR)/$@.map"
     };
 
     /*!
@@ -64,7 +85,7 @@ metaonly module M3 inherits IM {
     override config string includeOpts = "-I$(packageBase)/libs/install-native/$(GCCTARG)/include/newlib-nano -I$(packageBase)/libs/install-native/$(GCCTARG)/include";
 }
 /*
- *  @(#) gnu.targets.arm; 1, 0, 0,0; 8-9-2019 17:14:52; /db/ztree/library/trees/xdctargets/xdctargets-v00/src/ xlibrary
+ *  @(#) gnu.targets.arm; 1, 0, 0,; 5-11-2020 15:30:14; /db/ztree/library/trees/xdctargets/xdctargets-w14/src/ xlibrary
 
  */
 

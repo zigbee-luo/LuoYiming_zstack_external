@@ -467,6 +467,11 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
       (void *)&zclSampleLight_scenes_clusterRevision
     }
   },
+
+
+
+
+
 };
 
 uint8_t CONST zclSampleLight_NumAttributes = ( sizeof(zclSampleLight_Attrs) / sizeof(zclSampleLight_Attrs[0]) );

@@ -226,11 +226,15 @@ function onModeChange(inst, ui)
     networkScript.setBeaconSuperFrameOrders(inst, ui);
 
     // Set visibility of network group dependents
-    networkScript.setNetworkConfigHiddenState(inst, ui, "channelMask");
-    networkScript.setNetworkConfigHiddenState(inst, ui, "fhChannelMask");
-    networkScript.setNetworkConfigHiddenState(inst, ui, "fhAsyncChannelMask");
+    networkScript.setNetworkConfigHiddenState(inst, ui, "channels");
+    networkScript.setNetworkConfigHiddenState(inst, ui, "fhChannels");
+    networkScript.setNetworkConfigHiddenState(inst, ui, "fhAsyncChannels");
     networkScript.setNetworkConfigHiddenState(inst, ui, "fhNetname");
-    // polling interval not used in beacon mode
+    networkScript.setNetworkConfigHiddenState(inst, ui, "fhBroadcastDwellTime");
+    networkScript.setNetworkConfigHiddenState(inst, ui, "fhBroadcastInterval");
+
+
+    // Polling interval not used in beacon mode
     networkScript.setNetworkConfigHiddenState(inst, ui, "pollingInterval");
 }
 
@@ -350,7 +354,7 @@ function modules(inst)
 {
     const dependencyModule = [];
 
-    // Pull in Multi-Stack validation module
+    // Pull in static dependency modules
     dependencyModule.push({
         name: "multiStack",
         displayName: "Multi-Stack Validation",
@@ -359,8 +363,15 @@ function modules(inst)
     });
 
     dependencyModule.push({
+        name: "rfDesign",
+        displayName: "RF Design",
+        moduleName: "/ti/devices/radioconfig/rfdesign",
+        hidden: true
+    });
+
+    dependencyModule.push({
         name: "rfModule",
-        displayName: "RF Drivers",
+        displayName: "RF",
         moduleName: "/ti/drivers/RF",
         hidden: true
 
@@ -368,7 +379,7 @@ function modules(inst)
 
     dependencyModule.push({
         name: "powerModule",
-        displayName: "Power Module",
+        displayName: "Power",
         moduleName: "/ti/drivers/Power",
         hidden: true
 

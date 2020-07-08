@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2015-2019, Texas Instruments Incorporated
+ Copyright (c) 2015-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -67,8 +67,10 @@ extern macRfCfg_maxPower_t *pMaxPower;
 #if defined(COMBO_MAC) || defined(FREQ_2_4G)
 // CMD_RADIO_SETUP for IEEE 15.4
 rfc_CMD_RADIO_SETUP_PA_t RF_cmdRadioSetup;
-// CMD_FS
-rfc_CMD_FS_t RF_cmdFs;
+// CMD_FS Rx
+rfc_CMD_FS_t RF_cmdFsRx;
+// CMD_FS Tx
+rfc_CMD_FS_t RF_cmdFsTx;
 /* IEEE TX Command */
 rfc_CMD_IEEE_TX_t RF_cmdIEEETx;
 /* IEEE RX Command */
@@ -82,7 +84,8 @@ void rfSetConfigIeee(macRfCfg_ieee_t *pRfCfg)
     pRfPowerTable = pRfCfg->pRfPowerTable;
     memcpy(&RF_cmdRadioSetup, pRfCfg->pRfSetup, sizeof(rfc_CMD_RADIO_SETUP_PA_t));
 
-    memcpy(&RF_cmdFs, pRfCfg->pRfFs, sizeof(rfc_CMD_FS_t));
+    memcpy(&RF_cmdFsRx, pRfCfg->pRfFs, sizeof(rfc_CMD_FS_t));
+    memcpy(&RF_cmdFsTx, pRfCfg->pRfFs, sizeof(rfc_CMD_FS_t));
     memcpy(&RF_cmdIEEETx, pRfCfg->pRfTx, sizeof(rfc_CMD_IEEE_TX_t));
     RF_cmdIEEETx.startTrigger.pastTrig = 1;
     RF_cmdIEEETx.condition.rule = COND_NEVER;
@@ -147,8 +150,10 @@ void rfSetConfigIeee(macRfCfg_ieee_t *pRfCfg)
 #if defined(COMBO_MAC) || !defined(FREQ_2_4G)
 // CMD_PROP_RADIO_DIV_SETUP
 rfc_CMD_PROP_RADIO_DIV_SETUP_PA_t RF_cmdPropRadioDivSetup;
-// CMD_FS
-rfc_CMD_FS_t RF_cmdFs;
+// CMD_FS Rx
+rfc_CMD_FS_t RF_cmdFsRx;
+// CMD_FS Tx
+rfc_CMD_FS_t RF_cmdFsTx;
 // CMD_PROP_TX_ADV
 rfc_CMD_PROP_TX_ADV_t RF_cmdPropTxAdv;
 // CMD_PROP_RX_ADV
@@ -181,8 +186,12 @@ void rfSetConfigSubG(macRfCfg_prop_t *pRfCfg)
     RF_cmdPropRadioDivSetup.formatConf.whitenMode = 7;
     RF_cmdPropRadioDivSetup.intFreq = 0x8000;
 
-    memcpy(&RF_cmdFs, pRfCfg->pRfFs, sizeof(rfc_CMD_FS_t));
-    RF_cmdFs.startTrigger.pastTrig = 1;
+    memcpy(&RF_cmdFsRx, pRfCfg->pRfFs, sizeof(rfc_CMD_FS_t));
+    RF_cmdFsRx.startTrigger.pastTrig = 1;
+
+    memcpy(&RF_cmdFsTx, pRfCfg->pRfFs, sizeof(rfc_CMD_FS_t));
+    RF_cmdFsTx.startTrigger.pastTrig = 1;
+
 
     memcpy(&RF_cmdPropTxAdv, pRfCfg->pRfTx, sizeof(rfc_CMD_PROP_TX_ADV_t));
     RF_cmdPropTxAdv.startTrigger.triggerType = TRIG_NOW;

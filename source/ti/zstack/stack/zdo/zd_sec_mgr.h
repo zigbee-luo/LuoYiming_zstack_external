@@ -531,7 +531,6 @@ extern void ZDSecMgrFallbackNwkKey( void );
 extern void ZDSecMgrUpdateTCAddress( uint8_t *extAddr );
 
 
-
 /******************************************************************************
 ******************************************************************************/
 

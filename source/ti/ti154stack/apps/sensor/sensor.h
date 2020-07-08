@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -87,12 +87,12 @@ extern "C"
 #define SENSOR_UPDATE_STATS_EVT 0x0010
 #endif /* DISPLAY_PER_STATS */
 
-#ifdef USE_DMM
+#if (USE_DMM) && !(DMM_CENTRAL)
 /*! Event ID - start provisioning Event */
 #define SENSOR_PROV_EVT 0x0020
+#endif /* USE_DMM && !DMM_CENTRAL */
 /*! Event ID - Disassociate Event */
 #define SENSOR_DISASSOC_EVT 0x0040
-#endif /* USE_DMM */
 
 #ifdef DMM_OAD
 /*! Event ID - Pause 154 Sensor */
@@ -207,6 +207,15 @@ extern void Sensor_setSmAuthMethod(SMMsgs_authMethod_t authMethod);
  * @return   authMethod - Authentication Mode
  */
 extern SMMsgs_authMethod_t Sensor_getSmAuthMethod(void);
+#endif
+
+#ifdef DMM_CENTRAL
+/*!
+ * @brief Updates BLE sensor data and forwards data to collector
+ *
+ * @param bleInfo - BLE sensor data
+ */
+extern void Sensor_forwardBleData(const Smsgs_bleSensorField_t *bleInfo);
 #endif
 
 #ifdef __cplusplus

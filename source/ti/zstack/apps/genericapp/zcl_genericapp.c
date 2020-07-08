@@ -68,7 +68,7 @@
 #include "zcl_genericapp.h"
 #include "zcl_port.h"
 
-#include "cui.h"
+#include <ti/drivers/apps/Button.h>
 #include "ti_drivers_config.h"
 #include "util_timer.h"
 
@@ -76,6 +76,12 @@
 
 #if !defined (DISABLE_GREENPOWER_BASIC_PROXY) && (ZG_BUILD_RTR_TYPE)
 #include "gp_common.h"
+#endif
+
+#if defined ( BDB_TL_INITIATOR )
+#include "touchlink_initiator_app.h"
+#elif defined ( BDB_TL_TARGET )
+#include "touchlink_target_app.h"
 #endif
 
 /*********************************************************************
@@ -96,7 +102,8 @@
  * GLOBAL VARIABLES
  */
 byte zclGenericApp_TaskID;
-static CUI_clientHandle_t gCuiHandle;
+static Button_Handle gRightButtonHandle;
+static Button_Handle gLeftButtonHandle;
 
 /*********************************************************************
  * GLOBAL FUNCTIONS
@@ -125,7 +132,7 @@ static Clock_Struct EndDeviceRejoinClkStruct;
 static NVINTF_nvFuncts_t *pfnZdlNV = NULL;
 
 // Key press parameters
-static uint8_t keys = 0xFF;
+static Button_Handle keys = NULL;
 
 
 afAddrType_t zclGenericApp_DstAddr;
@@ -140,12 +147,12 @@ static void zclGenericApp_processZStackMsgs(zstackmsg_genericReq_t *pMsg);
 static void SetupZStackCallbacks(void);
 static void zclGenericApp_processAfIncomingMsgInd(zstack_afIncomingMsgInd_t *pInMsg);
 static void zclGenericApp_initializeClocks(void);
-static void Initialize_CUI(void);
+static void Initialize_UI(void);
 #if ZG_BUILD_ENDDEVICE_TYPE
 static void zclGenericApp_processEndDeviceRejoinTimeoutCallback(UArg a0);
 #endif
-static void zclGenericApp_changeKeyCallback(uint32_t _btn, Button_EventMask _buttonEvents);
-static void zclGenericApp_processKey(uint32_t _btn);
+static void zclGenericApp_changeKeyCallback(Button_Handle _btn, Button_EventMask _buttonEvents);
+static void zclGenericApp_processKey(Button_Handle _btn);
 static void zclGenericApp_Init( void );
 static void zclGenericApp_BasicResetCB( void );
 static void zclGenericApp_RemoveAppNvmData(void);
@@ -291,62 +298,32 @@ static void zclGenericApp_initialization(void)
 
 
 /*******************************************************************************
- * @fn          Initialize_CUI
+ * @fn          Initialize_UI
  *
- * @brief       Initialize the Common User Interface
+ * @brief       Initialize the User Interface
  *
  * @param       none
  *
  * @return      none
  */
-static void Initialize_CUI(void)
+static void Initialize_UI(void)
 {
-    CUI_params_t params;
-    CUI_paramsInit(&params);
-
-    //Do not initialize the UART, no APP menu has been defined
-    params.manageUart = FALSE;
-
-    CUI_retVal_t retVal = CUI_init(&params);
-    if (CUI_SUCCESS != retVal)
-        while(1){};
-
-    CUI_clientParams_t clientParams;
-    CUI_clientParamsInit(&clientParams);
-
-    strncpy(clientParams.clientName, "GenericApp", MAX_CLIENT_NAME_LEN);
-
-    gCuiHandle = CUI_clientOpen(&clientParams);
-    if (gCuiHandle == NULL)
-        while(1){};
-
     /* Initialize btns */
-    CUI_btnRequest_t btnRequest;
-    btnRequest.index = CONFIG_BTN_RIGHT;
-    btnRequest.appCB = NULL;
+    Button_Params bparams;
+    Button_Params_init(&bparams);
+    gLeftButtonHandle = Button_open(CONFIG_BTN_LEFT, zclGenericApp_changeKeyCallback, &bparams);
+    // Open Right button without appCallBack
+    gRightButtonHandle = Button_open(CONFIG_BTN_RIGHT, NULL, &bparams);
 
-    retVal = CUI_btnResourceRequest(gCuiHandle, &btnRequest);
-    if (CUI_SUCCESS != retVal)
-        while(1){};
-
-    bool btnState = false;
-    retVal = CUI_btnGetValue(gCuiHandle, CONFIG_BTN_RIGHT, &btnState);
-    if(!btnState)
+    if (!GPIO_read(((Button_HWAttrs*)gRightButtonHandle->hwAttrs)->gpioIndex))
     {
         zclGenericApp_RemoveAppNvmData();
         Zstackapi_bdbResetLocalActionReq(appServiceTaskId);
     }
 
-    CUI_btnSetCb(gCuiHandle, CONFIG_BTN_RIGHT, zclGenericApp_changeKeyCallback);
-
-    btnRequest.index = CONFIG_BTN_LEFT;
-    btnRequest.appCB = zclGenericApp_changeKeyCallback;
-
-    retVal = CUI_btnResourceRequest(gCuiHandle, &btnRequest);
-    if (CUI_SUCCESS != retVal)
-        while(1){};
+    // Set button callback
+    Button_setCallback(gRightButtonHandle, zclGenericApp_changeKeyCallback);
 }
-
 
 /*******************************************************************************
  * @fn      SetupZStackCallbacks
@@ -387,7 +364,7 @@ static void zclGenericApp_Init( void )
   zclGenericApp_DstAddr.endPoint = 0;
   zclGenericApp_DstAddr.addr.shortAddr = 0;
 
-  Initialize_CUI();
+  Initialize_UI();
 
   //Register Endpoint
   zclGenericAppEpDesc.endPoint = GENERICAPP_ENDPOINT;
@@ -587,7 +564,7 @@ static void zclGenericApp_process_loop( void )
           {
               // Process Key Presses
               zclGenericApp_processKey(keys);
-              keys = 0xFF;
+              keys = NULL;
               appServiceTaskEvents &= ~GENERICAPP_KEY_EVT;
           }
 
@@ -894,11 +871,7 @@ static void zclGenericApp_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *
     case BDB_COMMISSIONING_FORMATION:
       if(bdbCommissioningModeMsg->bdbCommissioningStatus == BDB_COMMISSIONING_SUCCESS)
       {
-        zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
-
-        //After formation, perform nwk steering again plus the remaining commissioning modes that has not been process yet
-        zstack_bdbStartCommissioningReq.commissioning_mode = BDB_COMMISSIONING_MODE_NWK_STEERING | bdbCommissioningModeMsg->bdbRemainingCommissioningModes;
-        Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
+        //YOUR JOB:
       }
       else
       {
@@ -955,30 +928,6 @@ static void zclGenericApp_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *
 #endif
   }
 }
-
-/*********************************************************************
- * @fn      zclGenericApp_ProcessTouchlinkTargetEnable
- *
- * @brief   Called to process when the touchlink target functionality
- *          is enabled or disabled
- *
- * @param   none
- *
- * @return  none
- */
-#if ( defined ( BDB_TL_TARGET ) && (BDB_TOUCHLINK_CAPABILITY_ENABLED == TRUE) )
-static void zclGenericApp_ProcessTouchlinkTargetEnable( uint8_t enable )
-{
-  if ( enable )
-  {
-    HalLedSet ( HAL_LED_1, HAL_LED_MODE_ON );
-  }
-  else
-  {
-    HalLedSet ( HAL_LED_1, HAL_LED_MODE_OFF );
-  }
-}
-#endif
 
 /*********************************************************************
  * @fn      zclGenericApp_BasicResetCB
@@ -1231,7 +1180,7 @@ static uint8_t zclGenericApp_ProcessInDiscAttrsExtRspCmd( zclIncoming_t *pInMsg 
  *
  * @return  none
  */
-static void zclGenericApp_changeKeyCallback(uint32_t _btn, Button_EventMask _buttonEvents)
+static void zclGenericApp_changeKeyCallback(Button_Handle _btn, Button_EventMask _buttonEvents)
 {
     if (_buttonEvents & Button_EV_CLICKED)
     {
@@ -1254,11 +1203,11 @@ static void zclGenericApp_changeKeyCallback(uint32_t _btn, Button_EventMask _but
  *
  * @return  none
  */
-static void zclGenericApp_processKey(uint32_t _btn)
+static void zclGenericApp_processKey(Button_Handle _btn)
 {
     zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
     //Button 1
-    if(_btn == CONFIG_BTN_LEFT)
+    if(_btn == gLeftButtonHandle)
     {
         if(ZG_BUILD_COORDINATOR_TYPE && ZG_DEVICE_COORDINATOR_TYPE)
         {
@@ -1273,7 +1222,7 @@ static void zclGenericApp_processKey(uint32_t _btn)
         }
     }
     //Button 2
-    if(_btn == CONFIG_BTN_RIGHT)
+    if(_btn == gRightButtonHandle)
     {
         Zstackapi_bdbResetLocalActionReq(appServiceTaskId);
     }

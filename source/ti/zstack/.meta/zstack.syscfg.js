@@ -208,6 +208,12 @@ function modules(inst)
         hidden: true
     });
 
+    submodules.push({
+        name: "rfDesign",
+        displayName: "RF Design",
+        moduleName: "/ti/devices/radioconfig/rfdesign"
+    });
+
     return submodules;
 }
 

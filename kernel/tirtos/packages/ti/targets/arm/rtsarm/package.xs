@@ -63,7 +63,7 @@ function getSects() {
     }
 }
 /*
- *  @(#) ti.targets.arm.rtsarm; 1, 0, 0,0; 8-9-2019 17:26:43; /db/ztree/library/trees/xdctargets/xdctargets-v00/src/ xlibrary
+ *  @(#) ti.targets.arm.rtsarm; 1, 0, 0,; 5-11-2020 15:37:56; /db/ztree/library/trees/xdctargets/xdctargets-w14/src/ xlibrary
 
  */
 

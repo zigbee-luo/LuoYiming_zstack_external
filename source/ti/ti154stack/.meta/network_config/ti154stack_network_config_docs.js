@@ -57,7 +57,7 @@ that the value is prefaced by '0x'.
 `
 };
 
-const channelMask = {
+const channels = {
     description: "Configures channels to be scanned",
     longDescription: `
 Configures the channel mask used for non-beacon and beacon modes. Each bit \
@@ -76,16 +76,16 @@ __Default__ (2.4 GHz): 11 to 14
 \n\
 __Range__:
 \n\
-Frequency Band | 5 kbps | 50 kbps | 200 kbps | 250 kbps
---- | --- | --- | --- | --- |
-433 MHz |  0 to 6 | 0 to 6 | Not Supported | Not Supported
-863 MHz | 0 to 33 | 0 to 33 | 0 to 16 | Not Supported
-915 MHz | 0 to 128 | 0 to 128 | 0 to 63 | Not Supported
-2.4 GHz | Not Supported | Not Supported | Not Supported | 11 to 26
+Frequency Band | 5 kbps   | 50 kbps  | 200 kbps | 250 kbps |
+:------------: | :------: | :------: | :------: | :------: |
+433 MHz        | 0 to 6   | 0 to 6   | -        | -        |
+868 MHz        | 0 to 33  | 0 to 33  | 0 to 16  | -        |
+915 MHz        | 0 to 128 | 0 to 128 | 0 to 63  | -        |
+2.4 GHz        | -        | -        | -        | 11 to 26 |
 `
 };
 
-const fhChannelMask = {
+const fhChannels = {
     description: "Configures channels to be scanned",
     longDescription: `
 Represents the list of channels on which the device can hop. In frequency \
@@ -104,19 +104,19 @@ ti154stack-overview.html#data-rate-and-phy) and \
 frequency-hopping-mode.html#frequency-hopping-mode) \
 sections of the TI15.4-Stack User's Guide.
 \n\
-__Default__: 0 to 4
+__Default__: All supported channels
 \n\
 __Range__:
 \n\
-Frequency Band | 5 kbps | 50 kbps | 200 kbps
---- | --- | --- | --- |
-433 MHz |  0 to 6 | 0 to 6 | Not Supported
-863 MHz | 0 to 33 | 0 to 33 | 0 to 16
-915 MHz | 0 to 128 | 0 to 128 | 0 to 63
+Frequency Band | 5 kbps   | 50 kbps  | 200 kbps |
+:------------: | :------: | :------: | :------: |
+433 MHz        | 0 to 6   | 0 to 6   | -        |
+868 MHz        | 0 to 33  | 0 to 33  | 0 to 16  |
+915 MHz        | 0 to 128 | 0 to 128 | 0 to 63  |
 `
 };
 
-const fhAsyncChannelMask = {
+const fhAsyncChannels = {
     description: "Configures channels to target async frames",
     longDescription: `
 Configures the list of channels to target the async frames. It is represented \
@@ -127,17 +127,15 @@ number of channels supported by PHY Config are excluded by stack. To avoid \
 interference on a channel, remove it from async mask and add it to the \
 exclude channels for FH Channel Mask (\`CONFIG_FH_CHANNEL_MASK\`).
 \n\
-__Default__ (Collector): 0 to 128
-\n\
-__Default__ (Sensor): 0 to 55
+__Default__: All supported channels
 \n\
 __Range__:
 \n\
-Frequency Band | 5 kbps | 50 kbps | 200 kbps
---- | --- | --- | --- |
-433 MHz |  0 to 6 | 0 to 6 | Not Supported
-863 MHz | 0 to 33 | 0 to 33 | 0 to 16
-915 MHz | 0 to 128 | 0 to 128 | 0 to 63
+Frequency Band | 5 kbps   | 50 kbps  | 200 kbps |
+:------------: | :------: | :------: | :------: |
+433 MHz        | 0 to 6   | 0 to 6   | -        |
+868 MHz        | 0 to 33  | 0 to 33  | 0 to 16  |
+915 MHz        | 0 to 128 | 0 to 128 | 0 to 63  |
 `
 };
 
@@ -384,9 +382,9 @@ __Range__: 0 to 255
 
 exports = {
     panID: panID,
-    channelMask: channelMask,
-    fhChannelMask: fhChannelMask,
-    fhAsyncChannelMask: fhAsyncChannelMask,
+    channels: channels,
+    fhChannels: fhChannels,
+    fhAsyncChannels: fhAsyncChannels,
     maxDevices: maxDevices,
     fhNetname: fhNetname,
     macBeaconOrder: macBeaconOrder,

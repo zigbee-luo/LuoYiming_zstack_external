@@ -80,7 +80,7 @@ initialize by copy { readwrite };
 // Define Flash = 0 if application doesn't use Flash memory
 // else define Flash = 1
 //
-define symbol Flash = 1
+define symbol Flash = 1;
 
 if (!isdefinedsymbol(Flash))
 {

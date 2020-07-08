@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -69,8 +69,15 @@
 #endif
 
 #ifdef USE_DMM
+#ifdef DMM_CENTRAL
+#include "central_display.h"
+#else
 #include "remote_display.h"
+#endif /* DMM_CENTRAL */
 #include "ti_dmm_application_policy.h"
+#ifdef FEATURE_SECURE_COMMISSIONING
+#include "sm_commissioning_gatt_profile.h"
+#endif /* FEATURE_SECURE_COMMISSIONING */
 #endif /* USE_DMM */
 
 #ifdef LPSTK
@@ -83,6 +90,10 @@
 #include <ti/devices/DeviceFamily.h>
 #include <ti/boards/device_type.h>
 #endif /* DEVICE_TYPE_MSG */
+
+#ifdef FEATURE_SECURE_COMMISSIONING
+#include "sm_ti154.h"
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 /******************************************************************************
  Constants and definitions
@@ -122,8 +133,8 @@
 #define MIN_POLLING_INTERVAL 1000
 #define MAX_POLLING_INTERVAL 10000
 
-/* Blink Time for Identify LED Request (in milliseconds) */
-#define IDENTIFY_LED_TIME 1000
+/* Blink Time for Identify LED Request (in seconds) */
+#define IDENTIFY_LED_TIME 1
 
 /* Inter packet interval in certification test mode */
 #if CERTIFICATION_TEST_MODE
@@ -227,6 +238,15 @@ STATIC Smsgs_accelSensorField_t accelerometerSensor =
     { 0 };
 #endif /* LPSTK */
 
+#ifdef DMM_CENTRAL
+/*!
+ BLE Sensor field - valid only if Smsgs_dataFields_bleSensor
+ is set in frameControl.
+ */
+STATIC Smsgs_bleSensorField_t bleSensor =
+    { 0 };
+#endif
+
 #endif //OAD_IMG_A
 
 STATIC Llc_netInfo_t parentInfo = {0};
@@ -293,11 +313,11 @@ static void smFailCMProcessCb(ApiMac_deviceDescriptor_t *devInfo,
                               SMMsgs_errorCode_t errorCode);
 static void smSuccessCMProcessCb(ApiMac_deviceDescriptor_t *devInfo,
                                  bool keyRefreshment);
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
-#ifdef USE_DMM
+#if (USE_DMM)
 static void macSyncLossCb(ApiMac_mlmeSyncLossInd_t *pSyncLossInd);
-
+#if !(DMM_CENTRAL)
 // Remote display callback functions
 static void setRDAttrCb(RemoteDisplayAttr_t remoteDisplayAttr, void *const value, uint8_t len);
 static void getRDAttrCb(RemoteDisplayAttr_t remoteDisplayAttr, void *value, uint8_t len);
@@ -310,6 +330,7 @@ static void getProvisioningCb(ProvisionAttr_t provisioningAttr, void *value, uin
 
 // Helper functions
 void swapBytes(uint8_t *arr, uint8_t len);
+#endif /* !DMM_CENTRAL */
 #endif /* USE_DMM */
 
 #ifdef DMM_OAD
@@ -339,13 +360,13 @@ STATIC ApiMac_callbacks_t Sensor_macCallbacks =
       NULL,
       /*! Start Confirmation callback */
       NULL,
-#ifdef USE_DMM
+#if (USE_DMM)
       /*! Sync Loss Indication callback */
       macSyncLossCb,
 #else
       /*! Sync Loss Indication callback */
       NULL,
-#endif
+#endif /* USE_DMM */
       /*! Poll Confirm callback */
       NULL,
       /*! Comm Status Indication callback */
@@ -387,9 +408,9 @@ STATIC SM_callbacks_t SMCallbacks =
       /* Security authentication successful callback */
       smSuccessCMProcessCb
     };
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
-#ifdef USE_DMM
+#if (USE_DMM) && !(DMM_CENTRAL)
 RemoteDisplay_clientProvisioningtCbs_t provisioning_sensorCbs =
 {
     setProvisioningCb,
@@ -403,7 +424,7 @@ RemoteDisplayCbs_t remoteDisplay_sensorCbs =
     setRDAttrCb,
     getRDAttrCb
 };
-#endif /* USE_DMM */
+#endif /* USE_DMM && !DMM_CENTRAL */
 
 #ifdef DMM_OAD
 /*********************************************************************
@@ -468,6 +489,9 @@ void Sensor_init(void)
 #endif /* LPSTK */
     configSettings.frameControl |= Smsgs_dataFields_msgStats;
     configSettings.frameControl |= Smsgs_dataFields_configSettings;
+#ifdef DMM_CENTRAL
+    configSettings.frameControl |= Smsgs_dataFields_bleSensor;
+#endif
 
     if(!CERTIFICATION_TEST_MODE)
     {
@@ -494,7 +518,21 @@ void Sensor_init(void)
     ApiMac_registerCallbacks(&Sensor_macCallbacks);
 
     /* Initialize the platform specific functions */
+    Ssf_init(sem);
+
 #ifdef LPSTK
+#ifdef BLE_START
+    /*
+     * NOTE!!
+     * OAD_open() must be called before the LPSTK sensors are initialized because there
+     * is no arbitration between the Flash and Accelerometer SPI writes.
+     * OAD_open() is called in remote_display.c, see RemoteDisplay_init().
+     * Here we refer to BLE OAD, not 15.4 OAD.
+     */
+
+    /* Wait for BLE application to finish initializing the BLE OAD Module */
+    Ssf_PendAppSem();
+#endif /* BLE_START */
     /* This initializes all LPSTK's sensors, LEDs, and Buttons */
     Lpstk_init(sem, lpstkAccelerometerTiltCb);
 
@@ -506,7 +544,6 @@ void Sensor_init(void)
                                                 LPSTK_ACCELEROMETER),
                                                 2000);
 #endif /* LPSTK */
-    Ssf_init(sem);
 
 #ifdef FEATURE_SECURE_COMMISSIONING
     /* Intialize the security manager and register callbacks */
@@ -548,7 +585,7 @@ void Sensor_init(void)
     /* Initialize the app clocks */
     initializeClocks();
 
-#if defined(BLE_START) && defined(USE_DMM)
+#if defined(BLE_START) && defined(USE_DMM) && !(DMM_CENTRAL)
     RemoteDisplay_registerRDCbs(remoteDisplay_sensorCbs);
     RemoteDisplay_registerClientProvCbs(provisioning_sensorCbs);
 #endif /* BLE_START && USE_DMM */
@@ -575,7 +612,7 @@ void Sensor_init(void)
     /* Update BLE remote display with initial state, which will trigger a read
      * of the default JDLLC setting
      */
-#if defined(BLE_START) && defined(USE_DMM)
+#if defined(BLE_START) && defined(USE_DMM) && !(DMM_CENTRAL)
     RemoteDisplay_updateSensorJoinState(Jdllc_states_initWaiting);
 #endif
 
@@ -656,16 +693,22 @@ void Sensor_process(void)
                 if(Ssf_getDeviceKeyInfo(&devKeyInfo) == TRUE)
                 {
                     SM_recoverKeyInfo(devInfo, parentInfo, devKeyInfo);
+#ifdef USE_DMM
+                    RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_SUCCESS);
+#endif /* USE_DMM */
                 }
 
             }
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
             Jdllc_rejoin(&devInfo, &parentInfo);
             rejoining = true;
 
         }
         else
         {
+            /* Reset flag when joining a new network */
+            rejoining = false;
+
             /* Get Start Timestamp */
 #ifdef OSAL_PORT2TIRTOS
             joinTimeTicks = Clock_getTicks();
@@ -701,7 +744,7 @@ void Sensor_process(void)
          */
         if(SM_Current_State != SM_CM_InProgress)
         {
-#endif //FEATURE_SECURE_COMMISSIONING
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 
 #if SENSOR_TEST_RAMP_DATA_SIZE
@@ -715,7 +758,7 @@ void Sensor_process(void)
 #endif //SENSOR_TEST_RAMP_DATA_SIZE
 #ifdef FEATURE_SECURE_COMMISSIONING
         }
-#endif //FEATURE_SECURE_COMMISSIONING
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 #endif //OAD_IMG_A
 
@@ -744,7 +787,7 @@ void Sensor_process(void)
     /* Process Launchpad Sensortag specific events */
     Lpstk_processEvents();
 #endif /* LPSTK */
-#ifdef USE_DMM
+#if (USE_DMM) && !(DMM_CENTRAL)
     /* Is it provision start event? */
     if(Sensor_events & SENSOR_PROV_EVT)
     {
@@ -754,37 +797,22 @@ void Sensor_process(void)
         /* Clear the event */
         Util_clearEvent(&Sensor_events, SENSOR_PROV_EVT);
     }
+#endif /* USE_DMM && !(DMM_CENTRAL) */
 
     /* Is it disassociate event? */
     if(Sensor_events & SENSOR_DISASSOC_EVT)
     {
         Jdllc_sendDisassociationRequest();
-
-        /* Clear the event */
-        Util_clearEvent(&Sensor_events, SENSOR_DISASSOC_EVT);
-    }
-#endif
 
 #ifdef USE_DMM
-    /* Is it provision start event? */
-    if(Sensor_events & SENSOR_PROV_EVT)
-    {
-        /* update policy */
-        DMMPolicy_updateStackState(DMMPolicy_StackRole_154Sensor, DMMPOLICY_154_PROVISIONING);
-
-        /* Clear the event */
-        Util_clearEvent(&Sensor_events, SENSOR_PROV_EVT);
-    }
-
-    /* Is it disassociate event? */
-    if(Sensor_events & SENSOR_DISASSOC_EVT)
-    {
-        Jdllc_sendDisassociationRequest();
-
-        /* Clear the event */
-        Util_clearEvent(&Sensor_events, SENSOR_DISASSOC_EVT);
-    }
+#ifdef FEATURE_SECURE_COMMISSIONING
+        RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_IDLE);
+#endif /* FEATURE_SECURE_COMMISSIONING */
 #endif /* USE_DMM */
+
+        /* Clear the event */
+        Util_clearEvent(&Sensor_events, SENSOR_DISASSOC_EVT);
+    }
 
 #ifdef DMM_OAD
     if(Sensor_events & SENSOR_PAUSE_EVT)
@@ -833,7 +861,7 @@ void Sensor_process(void)
     if((Sensor_events == 0) && (SM_events == 0))
 #else
     if(Sensor_events == 0)
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
     {
         /* Wait for response message or events */
         ApiMac_processIncoming();
@@ -940,7 +968,6 @@ bool Sensor_sendMsg(Smsgs_cmdIds_t type, ApiMac_sAddr_t *pDstAddr,
         if(type == Smsgs_cmdIds_sensorData || type == Smsgs_cmdIds_rampdata)
         {
             Ssf_setReadingClock(configSettings.reportingInterval);
-            Sensor_msgStats.msgsAttempted++;
         }
     }
 
@@ -986,7 +1013,7 @@ extern SMMsgs_authMethod_t Sensor_getSmAuthMethod(void)
 {
     return smAuthMethod;
 }
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 /******************************************************************************
  Local Functions
@@ -998,11 +1025,13 @@ extern SMMsgs_authMethod_t Sensor_getSmAuthMethod(void)
  */
 static void initializeClocks(void)
 {
+#ifndef DMM_CENTRAL
     /* Initialize the reading clock */
     Ssf_initializeReadingClock();
-#ifdef USE_DMM
+#if (USE_DMM)
     Ssf_initializeProvisioningClock();
 #endif /* USE_DMM */
+#endif /* !DMM_CENTRAL */
 }
 
 /*!
@@ -1208,7 +1237,7 @@ static void dataIndCB(ApiMac_mcpsDataInd_t *pDataInd)
 
                         /* send the response message directly */
                         cmdBytes[0] = (uint8_t) Smsgs_cmdIds_trackingRsp;
-                      
+
                         Sensor_sendMsg(Smsgs_cmdIds_trackingRsp,
                                            &pDataInd->srcAddr, true,
                                            1, cmdBytes);
@@ -1289,7 +1318,11 @@ static void dataIndCB(ApiMac_mcpsDataInd_t *pDataInd)
                     }
                     else if(CMMsgId == SMMsgs_cmdIds_processRequest)
                     {
+#ifdef USE_DMM
                         /* Kick off commissioning process to obtain security information */
+                        DMMPolicy_updateStackState(DMMPolicy_StackRole_154Sensor, DMMPOLICY_154_PROVISIONING);
+                        RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_STARTING);
+#endif /* USE_DMM */
                         SM_startCMProcess(&parentInfo.devInfo, &devSec, parentInfo.fh,
                                           true, SM_type_device, smAuthMethod);
                     }
@@ -1425,7 +1458,7 @@ static void processSensorMsgEvt(void)
     Sensor_msgStats.txEncryptFailures = (uint16_t)stat;
 
     ApiMac_mlmeGetReqArray(ApiMac_attribute_extendedAddress,
-    		               sensor.extAddress);
+                           sensor.extAddress);
 
     /* fill in the message */
     sensor.frameControl = configSettings.frameControl;
@@ -1469,13 +1502,21 @@ static void processSensorMsgEvt(void)
     }
 #endif /* LPSTK */
 
+#ifdef DMM_CENTRAL
+    if(sensor.frameControl & Smsgs_dataFields_bleSensor)
+    {
+        memcpy(&sensor.bleSensor, &bleSensor,
+                               sizeof(Smsgs_bleSensorField_t));
+    }
+#endif
+
     /* inform the user interface */
     Ssf_sensorReadingUpdate(&sensor);
 
-#if defined(BLE_START) && (USE_DMM)
+#if defined(BLE_START) && (USE_DMM) && !(DMM_CENTRAL)
     /* Sync BLE application with new data */
     RemoteDisplay_updateSensorData();
-#endif /* USE_DMM */
+#endif /* BLE_START && USE_DMM && !(DMM_CENTRAL) */
     /* send the data to the collector */
     sendSensorMessage(&collectorAddr, &sensor);
 }
@@ -1551,6 +1592,18 @@ static bool sendSensorMessage(ApiMac_sAddr_t *pDstAddr, Smsgs_sensorMsg_t *pMsg)
         len += sizeof(Smsgs_accelSensorField_t);
     }
 #endif /* LPSTK */
+#ifdef DMM_CENTRAL
+    if(pMsg-> frameControl & Smsgs_dataFields_bleSensor)
+    {
+        len += SMSGS_SENSOR_BLE_LEN;
+        if(pMsg->bleSensor.dataLength > MAX_BLE_DATA_LEN)
+        {
+            pMsg->bleSensor.dataLength = MAX_BLE_DATA_LEN;
+        }
+        len += pMsg->bleSensor.dataLength;
+    }
+#endif
+
     pMsgBuf = (uint8_t *)Ssf_malloc(len);
     if(pMsgBuf)
     {
@@ -1638,6 +1691,29 @@ static bool sendSensorMessage(ApiMac_sAddr_t *pDstAddr, Smsgs_sensorMsg_t *pMsg)
             *pBuf++ = pMsg->accelerometerSensor.yTiltDet;
         }
 #endif /* LPSTK */
+#ifdef DMM_CENTRAL
+        if(pMsg->frameControl & Smsgs_dataFields_bleSensor)
+        {
+            uint8_t i;
+            for(i= 0; i < B_ADDR_LEN; i++)
+            {
+                *pBuf++ = pMsg->bleSensor.bleAddr[i];
+            }
+            pBuf = Util_bufferUint16(pBuf,
+                                     pMsg->bleSensor.manFacID);
+            pBuf = Util_bufferUint16(pBuf,
+                                     pMsg->bleSensor.uuid);
+            *pBuf++ = pMsg->bleSensor.dataLength;
+
+            i = pMsg->bleSensor.dataLength;
+            while(i != 0)
+            {
+                i--;
+                *pBuf++ = pMsg->bleSensor.data[i];
+            }
+        }
+#endif
+
         ret = Sensor_sendMsg(Smsgs_cmdIds_sensorData, pDstAddr, true, len, pMsgBuf);
 
         Ssf_free(pMsgBuf);
@@ -1748,10 +1824,10 @@ static void processConfigRequest(ApiMac_mcpsDataInd_t *pDataInd)
 
     /* Response the the source device */
     sendConfigRsp(&pDataInd->srcAddr, &configRsp);
-#if defined(BLE_START) && (USE_DMM)
+#if defined(BLE_START) && (USE_DMM) && !(DMM_CENTRAL)
     /* Sync BLE application with new data */
     RemoteDisplay_updateSensorData();
-#endif /* USE_DMM */
+#endif /* USE_DMM && !DMM_CENTRAL */
 }
 
 /*!
@@ -1874,6 +1950,12 @@ static uint16_t validateFrameControl(uint16_t frameControl)
     {
         newFrameControl |= Smsgs_dataFields_configSettings;
     }
+#ifdef DMM_CENTRAL
+    if(frameControl & Smsgs_dataFields_bleSensor)
+    {
+        newFrameControl |= Smsgs_dataFields_bleSensor;
+    }
+#endif
 
     return (newFrameControl);
 }
@@ -1945,7 +2027,7 @@ static void jdllcJoinedCb(ApiMac_deviceDescriptor_t *pDevInfo,
 
 #ifdef FEATURE_SECURE_COMMISSIONING
         SM_Sensor_SAddress = pDevInfo->shortAddress;
-#endif
+#endif /* FEATURE_SECURE_COMMISSIONING */
     if((rejoining == false) && (pParentInfo->fh == false))
     {
 #ifdef FEATURE_MAC_SECURITY
@@ -2021,7 +2103,10 @@ static void jdllcDisassocIndCb(ApiMac_sAddrExt_t *pExtAddress,
 #ifdef FEATURE_SECURE_COMMISSIONING
     SM_removeEntryFromSeedKeyTable(&ApiMac_extAddr);
     Ssf_clearDeviceKeyInfo();
-#endif
+#ifdef USE_DMM
+    RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_IDLE);
+#endif /* USE_DMM */
+#endif /* FEATURE_SECURE_COMMISSIONING */
 
 #ifdef FEATURE_NATIVE_OAD
     /* OAD abort with no auto resume */
@@ -2050,7 +2135,10 @@ static void jdllcDisassocCnfCb(ApiMac_sAddrExt_t *pExtAddress,
 #ifdef FEATURE_SECURE_COMMISSIONING
     SM_removeEntryFromSeedKeyTable(&ApiMac_extAddr);
     Ssf_clearDeviceKeyInfo();
-#endif
+#ifdef USE_DMM
+    RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_IDLE);
+#endif /* USE_DMM */
+#endif /* FEATURE_SECURE_COMMISSIONING */
 #ifdef FEATURE_NATIVE_OAD
     /* OAD abort with no auto resume */
     OADClient_abort(false);
@@ -2101,9 +2189,9 @@ static void jdllcStateChangeCb(Jdllc_states_t state)
     }
 #endif /* USE_DMM */
 
-#if defined(BLE_START) && (USE_DMM)
+#if defined(BLE_START) && (USE_DMM) && !(DMM_CENTRAL)
     RemoteDisplay_updateSensorJoinState(state);
-#endif /* BLE_START && USE_DMM */
+#endif /* BLE_START && USE_DMM && !DMM_CENTRAL */
 
     Ssf_stateChangeUpdate(state);
 
@@ -2125,11 +2213,12 @@ static void macSyncLossCb(ApiMac_mlmeSyncLossInd_t *pSyncLossInd)
 {
     /* Update policy */
     DMMPolicy_updateStackState(DMMPolicy_StackRole_154Sensor, DMMPOLICY_154_PROVISIONING);
-#if defined(BLE_START) && (USE_DMM)
+#if defined(BLE_START) && (USE_DMM) && !(DMM_CENTRAL)
     RemoteDisplay_updateSensorJoinState((Jdllc_states_t)RemoteDisplay_JOIN_STATE_SYNC_LOSS);
 #endif
 }
 
+#if !(DMM_CENTRAL)
 /*!
  * @brief      DMM Provisioning connect (Association) callback function
  */
@@ -2147,6 +2236,7 @@ static void provisionDisconnectCb(void)
     Ssf_setProvisioningClock(false);
 }
 
+#endif /* !DMM_CENTRAL */
 #endif /* USE_DMM */
 
 #ifdef FEATURE_SECURE_COMMISSIONING
@@ -2158,6 +2248,16 @@ void smFailCMProcessCb(ApiMac_deviceDescriptor_t *devInfo, bool rxOnIdle,
 {
     /* restore, write back current Pib value for auto request attribute */
     ApiMac_mlmeSetReqBool(ApiMac_attribute_autoRequest, currAutoReq);
+
+    if (SM_forceStopped == true)
+    {
+        Util_setEvent(&Sensor_events, SENSOR_DISASSOC_EVT);
+    }
+
+#ifdef USE_DMM
+    DMMPolicy_updateStackState(DMMPolicy_StackRole_154Sensor, DMMPOLICY_154_UNINIT);
+    RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_FAIL);
+#endif /* USE_DMM */
 }
 
 /*!
@@ -2167,11 +2267,16 @@ void smSuccessCMProcessCb(ApiMac_deviceDescriptor_t *devInfo, bool keyRefreshmen
 {
     /* restore, write back current Pib value for auto request attribute */
     ApiMac_mlmeSetReqBool(ApiMac_attribute_autoRequest, currAutoReq);
+
+#ifdef USE_DMM
+    DMMPolicy_updateStackState(DMMPolicy_StackRole_154Sensor, DMMPOLICY_154_CONNECTED);
+    RemoteDisplay_updateSmState(SMCOMMISSIONSTATE_SUCCESS);
+#endif
 }
 
 #endif /* FEATURE_SECURE_COMMISSIONING */
 
-#ifdef USE_DMM
+#if (USE_DMM) && !(DMM_CENTRAL)
 /** @brief  Set remote display callback functions
  *
  *  @param  remoteDisplayAttr  Remote display attribute value to set
@@ -2285,16 +2390,11 @@ static void setProvisioningCb(ProvisionAttr_t provisioningAttr,
 #endif
             break;
         }
-        case ProvisionAttr_FFDAddr:
-        {
-            // Fix byte order
-            swapBytes((uint8_t *)byteArr, len);
-            Jdllc_setFfdAddr(byteArr);
-            break;
-        }
         case ProvisionAttr_NtwkKey:
         {
+#ifdef FEATURE_MAC_SECURITY
             Jdllc_setDefaultKey(byteArr);
+#endif
             break;
         }
         default:
@@ -2330,10 +2430,6 @@ static void getProvisioningCb(ProvisionAttr_t provisioningAttr, void *value, uin
             }
             break;
         }
-        case ProvisionAttr_ExtPanId:
-        {
-            break;
-        }
         case ProvisionAttr_Freq:
         {
             *(uint8_t*)value = Jdllc_getFreq();
@@ -2351,7 +2447,9 @@ static void getProvisioningCb(ProvisionAttr_t provisioningAttr, void *value, uin
         }
         case ProvisionAttr_NtwkKey:
         {
+#ifdef FEATURE_MAC_SECURITY
             Jdllc_getDefaultKey((uint8_t *)value);
+#endif
             break;
         }
         case ProvisionAttr_ProvState:
@@ -2379,7 +2477,7 @@ void swapBytes(uint8_t *arr, uint8_t len)
         arr[j] = tmp;
     }
 }
-#endif /* USE_DMM */
+#endif /* USE_DMM && !DMM_CENTRAL */
 
 #ifdef DMM_OAD
 
@@ -2426,3 +2524,25 @@ static void lpstkAccelerometerTiltCb(void)
     configSettings.frameControl = tempFrameCtrl;
 }
 #endif /* LPSTK */
+
+#ifdef DMM_CENTRAL
+/*********************************************************************
+ * @fn      Sensor_forwardBleData
+ *
+ * @brief   Forward BLE data to collector
+ */
+void Sensor_forwardBleData(const Smsgs_bleSensorField_t *bleInfo)
+{
+    // Update sensor data to be sent
+    memcpy(&bleSensor, bleInfo, sizeof(Smsgs_bleSensorField_t));
+
+    // If connected forward BLE sensor data
+    if ((Jdllc_getProvState() == Jdllc_states_joined) ||
+        (Jdllc_getProvState() == Jdllc_states_rejoined))
+    {
+        // Ensure Frame Control is set as Config Messages set frame control to default
+        configSettings.frameControl |= Smsgs_dataFields_bleSensor;
+        processSensorMsgEvt();
+    }
+}
+#endif

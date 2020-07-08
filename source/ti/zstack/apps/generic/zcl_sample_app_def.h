@@ -35,7 +35,7 @@
   contact Texas Instruments Incorporated at www.TI.com.
 **************************************************************************************************/
 
-#include "zcl_generic.h"
+#include "zcl_genericapp.h"
 
 #ifndef APPLICATION_UI_ZCL_SAMPLE_APP_DEF_H_
 #define APPLICATION_UI_ZCL_SAMPLE_APP_DEF_H_

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2019 Texas Instruments Incorporated - http://www.ti.com
  * All rights reserved.
@@ -41,6 +40,10 @@
 // Get common utility functions
 const Common = system.getScript("/ti/ti154stack/ti154stack_common.js");
 
+// Get common rf settings
+const rfCommon = system.getScript("/ti/ti154stack/rf_config/"
+    + "ti154stack_rf_config_common.js");
+
 // Get transmit power settings script
 const powerScript = system.getScript("/ti/ti154stack/power_config/"
     + "ti154stack_power_config");
@@ -57,16 +60,6 @@ const oadScript = system.getScript("/ti/ti154stack/oad_config/"
 const Docs = system.getScript("/ti/ti154stack/rf_config/"
     + "ti154stack_rf_config_docs.js");
 
-// Get proprietary Sub-1 GHz RF defaults for the LaunchPad or device being used
-const propPhySettings = system.getScript("/ti/ti154stack/rf_config/"
-    + Common.getDeviceOrLaunchPadName(true)
-    + "_rf_defaults.js").defaultPropPhyList;
-
-// Get IEEE 2.4 GHz RF defaults for the LaunchPad or device being used
-const ieeePhySettings = system.getScript("/ti/ti154stack/rf_config/"
-+ Common.getDeviceOrLaunchPadName(true)
-+ "_rf_defaults.js").defaultIEEEPhyList;
-
 // Configurables for the RF Configuration module
 const config = {
     name: "radioSettings",
@@ -74,10 +67,19 @@ const config = {
     description: "Configure PHY settings for radio operations",
     config: [
         {
+            name: "rfDesign",
+            displayName: "Based On RF Design",
+            options: getRfDesignOptions(),
+            default: getRfDesignOptions()[0].name,
+            description: Docs.rfDesign.description,
+            longDescription: Docs.rfDesign.longDescription,
+            onChange: onRadioConfigChange
+        },
+        {
             name: "freqBand",
             displayName: "Frequency Band",
-            options: getFrequencyBandOptions(),
-            default: getDefaultFreqBand(Common.IS_SUB1GHZ_DEVICE()),
+            options: rfCommon.getFreqBandOptions,
+            default: rfCommon.getDefaultFreqBand(Common.isSub1GHzDevice()),
             description: Docs.freqBand.description,
             longDescription: Docs.freqBand.longDescription,
             onChange: onFreqBandChange
@@ -85,9 +87,9 @@ const config = {
         {
             name: "freqSub1",
             displayName: "Sub-1 GHz Frequency",
-            options: getSub1GHzFrequencies(),
-            default: getDefaultFreqSub1(),
-            hidden: !Common.IS_SUB1GHZ_DEVICE(),
+            options: getFreqSub1Options,
+            default: getDefaultFreqSub1(null),
+            hidden: !Common.isSub1GHzDevice(),
             description: Docs.freqSub1.description,
             longDescription: Docs.freqSub1.longDescription,
             onChange: onFreqSub1orPhyTypeChange
@@ -95,10 +97,8 @@ const config = {
         {
             name: "phyType",
             displayName: "Phy Type",
-            options: getPhyTypeOptions(),
-            default: getDefaultPhyType(Common.IS_SUB1GHZ_DEVICE()),
-            getDisabledOptions: getDisabledPhyTypeOptions(),
-            hidden: false,
+            options: rfCommon.getPhyTypeOptions,
+            default: rfCommon.getDefaultPhyType(Common.isSub1GHzDevice()),
             description: Docs.phyType.description,
             longDescription: Docs.phyType.longDescription,
             onChange: onFreqSub1orPhyTypeChange
@@ -129,6 +129,69 @@ const config = {
  */
 
 /*
+ * ======== getRfDesignOptions ========
+ * Generates an array of SRFStudio compatible rfDesign options based on device
+ *
+ * @param deviceId - device being used
+ * @returns Array - Array of rfDesign options, if the device isn't supported,
+ *                  returns null
+ */
+function getRfDesignOptions()
+{
+    const deviceId = system.deviceData.deviceId;
+    let newRfDesignOptions = null;
+
+    if(deviceId === "CC1352P1F3RGZ")
+    {
+        newRfDesignOptions = [
+            {name: "LAUNCHXL-CC1352P1"},
+            {name: "LAUNCHXL-CC1352P-2"},
+            {name: "LAUNCHXL-CC1352P-4"}
+        ];
+    }
+    else if(deviceId === "CC1352R1F3RGZ")
+    {
+        newRfDesignOptions = [{name: "LAUNCHXL-CC1352R1"}];
+    }
+    else if(deviceId === "CC1312R1F3RGZ")
+    {
+        newRfDesignOptions = [{name: "LAUNCHXL-CC1312R1"}];
+    }
+    else if(deviceId === "CC2642R1FRGZ")
+    {
+        newRfDesignOptions = [{name: "LAUNCHXL-CC26X2R1"}];
+    }
+    else if(deviceId === "CC2652R1FRGZ")
+    {
+        newRfDesignOptions = [{name: "LAUNCHXL-CC26X2R1"}];
+    }
+    else if(deviceId === "CC2652RB")
+    {
+        newRfDesignOptions = [{name: "LAUNCHXL-CC2652RB"}];
+    }
+
+    return(newRfDesignOptions);
+}
+
+/*
+ * ======== onRadioConfigChange ========
+ * On change function for rfDesign config
+ * Updates visibility and values of RF device-dependent configs
+ *
+ * @param inst - 15.4 instance
+ * @param ui   - user interface object
+ */
+function onRadioConfigChange(inst, ui)
+{
+    // Update dependencies
+    const isSubGSelected = (inst.freqBand === "freqBandSub1");
+
+    inst.freqBand = rfCommon.getDefaultFreqBand(isSubGSelected);
+    inst.freqSub1 = getDefaultFreqSub1(inst);
+    onFreqBandChange(inst, ui);
+}
+
+/*
  * ======== onFreqBandChange ========
  * On change function for freqBand config
  * Updates visibility and values of frequency band-dependent configs
@@ -140,15 +203,12 @@ function onFreqBandChange(inst, ui)
 {
     // Set visibility of dependent configs
     setRFConfigHiddenState(inst, ui, "freqSub1");
-    powerScript.setPowerConfigHiddenState(inst, ui, "transmitPowerSubG");
-    powerScript.setPowerConfigHiddenState(inst, ui, "transmitPower24G");
 
     // Phy type must be updated before phy ID and channel page
     setPhyType(inst);
-    setPhyIDChannelPage(inst);
+    onFreqSub1orPhyTypeChange(inst);
 
     // Update values of frequency dependent configs
-    networkScript.setDefaultChannelMasks(inst, inst.freqBand);
     oadScript.setDefaultOADBlockSize(inst, inst.freqBand);
 }
 
@@ -157,62 +217,27 @@ function onFreqBandChange(inst, ui)
  * On change function for freqBandSub1 and phy type configs
  * Updates values of phy ID and channel page based on frequency and phy type
  *
- * @param ui   - user interface object
+ * @param inst - 15.4 instance
  */
 function onFreqSub1orPhyTypeChange(inst)
 {
     setPhyIDChannelPage(inst);
 
     // Update values of frequency dependent configs
-    networkScript.setDefaultChannelMasks(inst, inst.freqBand);
+    networkScript.setDefaultChannelMasks(inst);
 }
 
 /*
- *  ======== getFrequencyBandOptions ========
- *  Gets the array of frequency bands supported by the board/devices
+ * ======== getFreqSub1Options ========
+ * Generates a list of sub-1 GHz frequency bands supported for drop down config
  *
- *  @returns Array - an array containing one or more dictionaries with the
- *                   following keys: displayName, name
+ * @param inst - 15.4 instance (null during initialization)
+ * @returns Array - array of options representing sub-1 GHz bands supported
  */
-function getFrequencyBandOptions()
-{
-    const freqBandOptions = [];
-
-    if(Common.IS_SUB1GHZ_DEVICE())
-    {
-        freqBandOptions.push(
-            {
-                name: "freqBandSub1",
-                displayName: "Sub-1 GHz"
-            }
-        );
-    }
-
-    if(Common.IS_24GHZ_DEVICE())
-    {
-        freqBandOptions.push(
-            {
-                name: "freqBand24",
-                displayName: "2.4 GHz"
-            }
-        );
-    }
-
-    return(freqBandOptions);
-}
-
-/*
- *  ======== getSub1GHzFrequencies ========
- *  Gets the array of sub-1 GHz frequencies supported by the board/devices
- *
- *  @returns Array - an array containing one or more dictionaries with the
- *                   following keys: displayName, name
- */
-function getSub1GHzFrequencies()
+function getFreqSub1Options(inst)
 {
     let freqSub1Options;
-
-    if(Common.IS_433MHZ_DEVICE())
+    if(Common.is433MHzDevice(inst))
     {
         freqSub1Options = [
             {
@@ -226,7 +251,7 @@ function getSub1GHzFrequencies()
         freqSub1Options = [
             {
                 name: "freq863",
-                displayName: "863 MHz"
+                displayName: "868 MHz"
             },
             {
                 name: "freq915",
@@ -239,83 +264,42 @@ function getSub1GHzFrequencies()
 }
 
 /*
- *  ======== getPhyTypeOptions ========
- *  Retrieves the sub-1 GHz phy types from the <board_name>_rf_defaults.js
- *  file and returns an options array for the 15.4 stack
- *
- *  @returns Array - an array containing one or more dictionaries with the
- *                   following keys: displayName, name
- */
-function getPhyTypeOptions()
-{
-    // Construct the drop down options array
-    const phyList = propPhySettings.concat(ieeePhySettings);
-    return(_.map(phyList, (phy) => phy.phyDropDownOption));
-}
-
-/*
- *  ======== getDisabledPhyTypeOptions ========
- *  Generates a list of options that should be disabled in phy type drop-down
- *      * 250kbps disabled for Sub-1 GHz
- *      * non-250kbps disabled for 2.4GHz
- *
- * @returns Array - array of phy options that should be disabled
- */
-function getDisabledPhyTypeOptions()
-{
-    return(inst) =>
-    {
-        const disabledOptions = [];
-
-        // Disable IEEE phy type if Sub-1 GHz selected (if 2.4 GHz supported)
-        if(inst.freqBand === "freqBandSub1" && Common.IS_24GHZ_DEVICE())
-        {
-            disabledOptions.push({
-                name: "phyIEEE",
-                reason: "Only available on 2.4 GHz projects"
-            });
-        }
-
-        // Disable non-IEEE phy types if 2.4 GHz selected (if Sub-1 supported)
-        if(inst.freqBand === "freqBand24" && Common.IS_SUB1GHZ_DEVICE())
-        {
-            let phyType = null;
-            for(phyType of propPhySettings)
-            {
-                disabledOptions.push({
-                    name: phyType.phyDropDownOption.name,
-                    reason: "Only available on Sub-1 GHz projects"
-                });
-            }
-        }
-        return(disabledOptions);
-    };
-}
-
-/*
  *  ======== getPhy154Settings ========
  *  Retrieves array of 15.4 phy ID and channel page settings corresponding
  *  to selected data rate from the <board_name>_rf_defaults.js
  *
+ *  @param inst - 15.4 instance (null during initialization)
  *  @param freqBand - Frequency band (Sub-1 or 2.4 GHz)
  *  @param freqSub1 - Sub-1 GHz frequency (Has no effect for 2.4 GHz)
  *  @param phyType - Name of phy type (phy5kbps, phy50kbps, phy200kbps, phyIEEE)
  *  @returns Array - an array containing dictionary with channel page and phy ID
  */
-function getPhy154Settings(freqBand, freqSub1, phyType)
+function getPhy154Settings(inst, freqBand, freqSub1, phyType)
 {
-    let phy154Setting;
+    const rfPhySettings = rfCommon.getBoardPhySettings(inst);
+    let phy154Setting = null;
+
     if(freqBand === "freqBandSub1")
     {
+        // Get proprietary Sub-1 GHz RF defaults for the device being used
+        const propPhySettings = rfPhySettings.defaultPropPhyList;
+
         // Find phy object associated with phy type
         const phyObj = _.find(propPhySettings,
             (settings) => (settings.phyDropDownOption.name === phyType));
 
-        // Get phy ID and channel page of given sub-1 frequency and data rate
-        phy154Setting = phyObj.phy154Settings[freqSub1];
+        // Get phy ID and channel page of given sub-1 frequency and rate
+        if(phyObj)
+        {
+            phy154Setting = phyObj.phy154Settings[freqSub1];
+        }
     }
-    else
+
+    else if(freqBand === "freqBand24")
     {
+        // Get IEEE 2.4 GHz RF defaults for the device being used
+        const ieeePhySettings = rfPhySettings.defaultIEEEPhyList;
+
         // Only one phy type for 2.4GHz
         phy154Setting = ieeePhySettings[0].phy154Settings.phyIEEE;
     }
@@ -332,7 +316,7 @@ function getPhy154Settings(freqBand, freqSub1, phyType)
 function setPhyType(inst)
 {
     const isSubGSelected = (inst.freqBand === "freqBandSub1");
-    inst.phyType = getDefaultPhyType(isSubGSelected);
+    inst.phyType = rfCommon.getDefaultPhyType(isSubGSelected);
 }
 
 /*
@@ -343,79 +327,34 @@ function setPhyType(inst)
  */
 function setPhyIDChannelPage(inst)
 {
-    const newSettings = getPhy154Settings(inst.freqBand, inst.freqSub1,
-        inst.phyType);
-    inst.phyID = newSettings.ID;
-    inst.channelPage = newSettings.channelPage;
+    const phyType = rfCommon.getSafePhyType(inst);
+    const freqBand = rfCommon.getSafeFreqBand(inst);
+    const freqSub1 = getSafeFreqSub1(inst);
+
+    const newSettings = getPhy154Settings(inst, freqBand, freqSub1,
+        phyType);
+
+    // Check needed to ensure combination of safe values is valid
+    if(newSettings)
+    {
+        inst.phyID = newSettings.ID;
+        inst.channelPage = newSettings.channelPage;
+    }
 }
 
 /*
- *  ======== getDefaultFreqBand ========
- *  Retrieves the default frequency band:
- *      * 2.4 GHz for 26X2 boards
- *      * Sub-1 GHz for others
+ * ======== getDefaultFreqSub1 ========
+ * Retrieves the default sub-1 GHz frequency value from the drop down options
+ *     * 433MHz for CC1352P4
+ *     * 915MHz for others
  *
- *  @param getSubGDefault - Boolean, True selects Sub-1 GHz default value
- *  @returns - name of default frequency band
+ * @param inst - 15.4 instance (null during initialization)
+ * @returns - name of default frequency
  */
-function getDefaultFreqBand(getSubGDefault)
+function getDefaultFreqSub1(inst)
 {
-    let defaultFreqBand;
-    if(getSubGDefault)
-    {
-        defaultFreqBand = "freqBandSub1";
-    }
-    else
-    {
-        defaultFreqBand = "freqBand24";
-    }
-
-    return(defaultFreqBand);
-}
-
-/*
- *  ======== getDefaultPhyType ========
- *  Retrieves the default phyType
- *      * 50kbps for Sub-1 GHz
- *      * 250kbps for 2.4 Ghz
- *
- *  @param getSubGDefault - Boolean, True selects Sub-1 GHz default value
- *  @returns - name of default phyType (50kbps, 2-GFSK)
- */
-function getDefaultPhyType(getSubGDefault)
-{
-    let defaultPhyType;
-    if(getSubGDefault)
-    {
-        defaultPhyType = "phy50kbps";
-    }
-    else
-    {
-        defaultPhyType = "phyIEEE";
-    }
-
-    return(defaultPhyType);
-}
-
-/*
- *  ======== getDefaultFreqSub1 ========
- *  Retrieves the default sub-1 GHz frequency value
- *
- *  @returns - name of default frequency (433 for P4, 915 otherwise)
- */
-function getDefaultFreqSub1()
-{
-    let defaultFreq;
-    if(Common.IS_433MHZ_DEVICE())
-    {
-        defaultFreq = "freq433";
-    }
-    else
-    {
-        defaultFreq = "freq915";
-    }
-
-    return(defaultFreq);
+    const sub1FreqOpts = getFreqSub1Options(inst);
+    return _.last(sub1FreqOpts).name;
 }
 
 /*
@@ -426,11 +365,13 @@ function getDefaultFreqSub1()
  */
 function getDefaultPhy154Settings()
 {
-    const defaultFreqBand = getDefaultFreqBand(Common.IS_SUB1GHZ_DEVICE());
-    const defaultFreqSub1 = getDefaultFreqSub1();
-    const defaultPhyType = getDefaultPhyType(Common.IS_SUB1GHZ_DEVICE());
+    const isSubGSelected = Common.isSub1GHzDevice();
+    const defaultFreqBand = rfCommon.getDefaultFreqBand(isSubGSelected);
+    const defaultPhyType = rfCommon.getDefaultPhyType(isSubGSelected);
+    const defaultFreqSub1 = getDefaultFreqSub1(null);
 
-    return(getPhy154Settings(defaultFreqBand, defaultFreqSub1, defaultPhyType));
+    return(getPhy154Settings(null, defaultFreqBand, defaultFreqSub1,
+        defaultPhyType));
 }
 
 /*
@@ -451,6 +392,7 @@ function getRFConfigHiddenState(inst, cfgName)
             isVisible = (inst.freqBand === "freqBandSub1");
             break;
         }
+        case "rfDesign":
         case "freqBand":
         case "phyType":
         case "phyID":
@@ -480,10 +422,18 @@ function setRFConfigHiddenState(inst, ui, cfgName)
     ui[cfgName].hidden = getRFConfigHiddenState(inst, cfgName);
     if(ui[cfgName].hidden)
     {
-        // get a list of all nested and unnested configs
-        const configToReset = Common.findConfig(config.config, cfgName);
-        // restore the default value for the hidden parameter.
-        Common.restoreDefaultValue(inst, configToReset, cfgName);
+        if(cfgName === "freqSub1")
+        {
+            // Separate case required for freqSub1 since default value depends
+            // on board which can change at runtime via rfDesign
+            inst.freqSub1 = getDefaultFreqSub1(inst);
+        }
+        else
+        {
+            const configToReset = Common.findConfig(config.config, cfgName);
+            // restore the default value for the hidden parameter.
+            Common.restoreDefaultValue(inst, configToReset, cfgName);
+        }
     }
 }
 
@@ -502,6 +452,31 @@ function setFreqBandReadOnlyState(ui, readOnly)
 }
 
 /*
+ * ======== getSafeFreqSub1 ========
+ * Safely retrieve the value of the config by returning the instance value it's
+ * valid, otherwise returns the default value.
+ *
+ * Due to their nature, dynamic enum configurables may be incorrectly modified
+ * through the .syscfg file. While all dynamic configs have validation functions
+ * to detect such errors, the dependency of the radio config module requires
+ * safe access to some configs to avoid SysCOnfig breaks.
+ *
+ * @param inst - 15.4 module instance (null during initialization)
+ * @returns - config value in instance (if valid), otherwise config default
+ *            value
+ */
+function getSafeFreqSub1(inst)
+{
+    const validOptions = getFreqSub1Options(inst);
+    const defaultFreqBand = getDefaultFreqSub1(inst);
+
+    const freqBand = Common.getSafeDynamicConfig(inst, "freqSub1",
+        defaultFreqBand, validOptions);
+
+    return(freqBand);
+}
+
+/*
  * ======== validate ========
  * Validate this inst's configuration
  *
@@ -510,13 +485,22 @@ function setFreqBandReadOnlyState(ui, readOnly)
  */
 function validate(inst, validation)
 {
-    // Verify that phy type is supported by frequency band. Should never happen
-    // because phy type is reset to default value when switching frequency band
-    if(((inst.freqBand === "freqBandSub1") && (inst.phyType === "phyIEEE"))
-        || ((inst.freqBand === "freqBand24") && (inst.phyType !== "phyIEEE")))
+    // Validate dynamic configs
+    let validOptions = rfCommon.getFreqBandOptions(inst);
+    Common.validateDynamicEnum(inst, validation, "freqBand", validOptions);
+
+    validOptions = getFreqSub1Options(inst);
+    Common.validateDynamicEnum(inst, validation, "freqSub1", validOptions);
+
+    validOptions = rfCommon.getPhyTypeOptions(inst);
+    Common.validateDynamicEnum(inst, validation, "phyType", validOptions);
+
+    // Get the RF Design module to verify that RF Design configs match
+    const rfDesign = system.modules["/ti/devices/radioconfig/rfdesign"].$static;
+    if(inst.rfDesign !== rfDesign.rfDesign)
     {
-        validation.logError("PHY type not supported by frequency band",
-            inst, "phyType");
+        validation.logError(`Must match ${system.getReference(rfDesign,
+            "rfDesign")} in the RF Design Module`, inst, "rfDesign");
     }
 }
 
@@ -535,24 +519,41 @@ function validate(inst, validation)
  */
 function addRFSettingDependency(inst)
 {
+    const boardPhySettings = rfCommon.getBoardPhySettings(inst);
+
+    // Get proprietary Sub-1 GHz RF defaults for the device being used
+    const propPhySettings = boardPhySettings.defaultPropPhyList;
+
+    // Get IEEE 2.4 GHz RF defaults for the device being used
+    const ieeePhySettings = boardPhySettings.defaultIEEEPhyList;
+
+    const phyType = rfCommon.getSafePhyType(inst);
+    const freqBand = rfCommon.getSafeFreqBand(inst);
+
     // Find PHY object
     const phyList = propPhySettings.concat(ieeePhySettings);
     const selectedPhy = _.find(phyList,
-        (setting) => (setting.phyDropDownOption.name === inst.phyType));
+        (setting) => (setting.phyDropDownOption.name === phyType));
 
+    // Get settings from selected phy
     const radioConfigArgs = _.cloneDeep(selectedPhy.args);
 
     // Only generate either default PA or high PA table as required
     radioConfigArgs.codeExportConfig.paExport = "active";
 
-    // Get params to map current 15.4 tx power config to radio config tx
-    // power config
-    const txPower154Obj = powerScript.mapCurrTxPowerToRFConfig(inst);
-    // Set radio config tx power to 15.4 tx power
+    // Retrieve phy and phy group from rf_defaults files to get tx power
+    // configuration that needs to be set in the radio config module
+    const rfPhySettings = rfCommon.getPhyTypeGroupFromRFConfig(inst);
+    const rfPhyType = rfPhySettings.phyType;
+    const rfPhyGroup = rfPhySettings.phyGroup;
+    const txPower154Obj = powerScript.getRFTxPowerFrom154TxPower(inst, freqBand,
+        rfPhyType, rfPhyGroup);
+
+    // Set radio config tx power based on 15.4 tx power setting
     radioConfigArgs[txPower154Obj.cfgName] = txPower154Obj.txPower;
 
-    // Set high PA if supported by board
-    if(Common.IS_HIGHPA_DEVICE())
+    // Set high PA in radio config if supported by board
+    if(Common.isHighPADevice())
     {
         radioConfigArgs.highPA = txPower154Obj.highPA;
     }
@@ -597,6 +598,7 @@ exports = {
     config: config,
     validate: validate,
     moduleInstances: moduleInstances,
+    getFreqSub1Options: getFreqSub1Options,
     getPhy154Settings: getPhy154Settings,
     setFreqBandReadOnlyState: setFreqBandReadOnlyState,
     setRFConfigHiddenState: setRFConfigHiddenState,

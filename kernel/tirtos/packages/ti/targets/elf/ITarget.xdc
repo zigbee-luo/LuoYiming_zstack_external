@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019 by Texas Instruments Incorporated.
+ *  Copyright 2020 by Texas Instruments Incorporated.
  *
  */
 
@@ -179,7 +179,7 @@ metaonly interface ITarget inherits ti.targets.ITarget {
     override config String binaryParser = "xdc.targets.omf.Elf";
 }
 /*
- *  @(#) ti.targets.elf; 1, 0, 0,0; 8-9-2019 17:15:10; /db/ztree/library/trees/xdctargets/xdctargets-v00/src/ xlibrary
+ *  @(#) ti.targets.elf; 1, 0, 0,; 5-11-2020 15:30:28; /db/ztree/library/trees/xdctargets/xdctargets-w14/src/ xlibrary
 
  */
 

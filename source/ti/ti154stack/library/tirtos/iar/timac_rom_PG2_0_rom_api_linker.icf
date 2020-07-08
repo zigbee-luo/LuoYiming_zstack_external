@@ -162,7 +162,7 @@
 --define_symbol macBeaconSetSched=0x10035369
 --define_symbol macBeaconCheckSched=0x100355dd
 --define_symbol macBeaconRequeue=0x10035535
---define_symbol macBeaconCheckTxTime=0x100354b5
+//--define_symbol macBeaconCheckTxTime=0x100354b5
 --define_symbol macBeaconSetupCap=0x10035421
 --define_symbol macCoordReset=0x10035c85
 --define_symbol macBuildAssociateRsp=0x1003560d
@@ -206,7 +206,7 @@
 --define_symbol macDataRxMemFree=0x10037515
 --define_symbol macRxCompleteCallback=0x10036cd9
 --define_symbol macDataTxTimeAvailable=0x100374fd
---define_symbol macBuildDataFrame=0x10036a61
+//--define_symbol macBuildDataFrame=0x10036a61
 --define_symbol macCheckSched=0x100374e1
 --define_symbol macSetSched=0x1003753d
 --define_symbol macDataTxComplete=0x10037079
@@ -268,7 +268,7 @@
 --define_symbol macMainSetTaskId=0x100388e1
 --define_symbol macMainReserve=0x10038899
 --define_symbol mac_msg_deallocate=0x100387f9
---define_symbol macMgmtReset=0x1003967d
+//--define_symbol macMgmtReset=0x1003967d
 --define_symbol macGetCoordAddress=0x10039c35
 --define_symbol macGetMyAddrMode=0x10039d81
 --define_symbol macDestAddrCmp=0x10039ae9
@@ -297,7 +297,7 @@
 --define_symbol macUpdateCsmPhyParam=0x10039ea5
 --define_symbol macIsCsmOperational=0x10039e7d
 --define_symbol MAC_MlmeResetReq=0x100391c9
---define_symbol MAC_ResumeReq=0x10039729
+//--define_symbol MAC_ResumeReq=0x10039729
 --define_symbol MAC_YieldReq=0x10039c69
 --define_symbol MAC_MlmeSyncReq=0x10039ddd
 --define_symbol macSetDefaultsByPhyID=0x10039095

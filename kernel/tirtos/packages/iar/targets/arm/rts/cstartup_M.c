@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019 by Texas Instruments Incorporated.
+ *  Copyright 2020 by Texas Instruments Incorporated.
  *
  */
 
@@ -51,7 +51,7 @@ void __iar_program_startC( void )
     __cmain();
 }
 /*
- *  @(#) iar.targets.arm.rts; 1, 0, 0,0; 8-9-2019 17:26:32; /db/ztree/library/trees/xdctargets/xdctargets-v00/src/ xlibrary
+ *  @(#) iar.targets.arm.rts; 1, 0, 0,; 5-11-2020 15:37:48; /db/ztree/library/trees/xdctargets/xdctargets-w14/src/ xlibrary
 
  */
 

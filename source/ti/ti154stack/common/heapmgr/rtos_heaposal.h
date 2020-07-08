@@ -16,7 +16,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2017-2019, Texas Instruments Incorporated
+ Copyright (c) 2017-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -166,6 +166,7 @@
 #define HEAPMGR_MEMFAIL HEAPMGR_PREFIXED(MemFail)
 #endif
 #define HEAPMGR_TOTALFREESIZE HEAPMGR_PREFIXED(MemFreeTotal)
+#define HEAPMGR_TOTALFREEError HEAPMGR_PREFIXED(MemFreeError)
 
 typedef uint8_t  hmU8_t;
 typedef uint16_t hmU16_t;
@@ -235,6 +236,7 @@ hmU32_t HEAPMGR_MEMUB   = 0; // Upper-bound of memory usage
 hmU16_t HEAPMGR_MEMFAIL = 0; // Memory allocation failure count
 #endif // HEAPMGR_METRICS
 hmU32_t HEAPMGR_TOTALFREESIZE = 0;
+hmU32_t HEAPMGR_TOTALFREEError = 0;
 
 #ifdef HEAPMGR_PROFILER
 #define HEAPMGR_PROMAX  8
@@ -332,8 +334,7 @@ void HEAPMGR_INIT(void)
 
   // free size is the total size minus the NULL block define for FF2.
   HEAPMGR_TOTALFREESIZE = HEAPMGR_SIZE - HDRSZ;
-
-  heapInitialize = 1; // Mark initialized after 0-size malloc
+  heapInitialize = 1;
 }
 
 /**
@@ -618,6 +619,16 @@ void HEAPMGR_FREE(void *ptr)
   currHdr = (heapmgrHdr_t *)((hmU8_t *)ptr - HDRSZ);
 
   HEAPMGR_ASSERT(*currHdr & HEAPMGR_IN_USE);
+  /*
+   * check if the memory is freed already.
+   * if the memory is freed, immediatly return and increment the error count
+   */
+  if (!(*currHdr & HEAPMGR_IN_USE))
+  { /* memory is not in use */
+      HEAPMGR_TOTALFREEError++ ;
+      HEAPMGR_UNLOCK();
+      return;
+  }
 #ifdef HEAPMGR_METRICS
   if(*currHdr & HEAPMGR_IN_USE)
   {

@@ -86,7 +86,7 @@ REGION_ALIAS("REGION_ARM_EXIDX", `Program.platform.dataMemory`);
 /*
  * Linker command file contributions from all loaded packages:
  */
-%var _utils = xdc.loadCapsule("gnu/targets/linkUtils.xs");
+%var _utils = xdc.loadCapsule("gnu/targets/arm/linkUtils.xs");
 `_utils.genContributions($args)`
 
 SECTIONS {
@@ -229,7 +229,7 @@ SECTIONS {
 %}
 %%{
 /*
- * @(#) gnu.targets.arm; 1, 0, 0,0; 8-9-2019 17:14:53; /db/ztree/library/trees/xdctargets/xdctargets-v00/src/ xlibrary
+ * @(#) gnu.targets.arm; 1, 0, 0,; 5-11-2020 15:30:14; /db/ztree/library/trees/xdctargets/xdctargets-w14/src/ xlibrary
 
  */
 

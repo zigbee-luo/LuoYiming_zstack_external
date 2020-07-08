@@ -5,22 +5,50 @@
  @brief Function pointer interface to the NV API
 
  Group: CMCU, LPC
- $Target Device: DEVICES $
+ Target Device: cc13x2_26x2
 
  ******************************************************************************
- $License: BSD3 2018 $
+ 
+ Copyright (c) 2018-2020, Texas Instruments Incorporated
+ All rights reserved.
+
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+
+ *  Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
+ *  Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+
+ *  Neither the name of Texas Instruments Incorporated nor the names of
+    its contributors may be used to endorse or promote products derived
+    from this software without specific prior written permission.
+
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
  ******************************************************************************
- $Release Name: PACKAGE NAME $
- $Release Date: PACKAGE RELEASE DATE $
+ 
+ 
  *****************************************************************************/
 #ifndef NVINTF_H
 #define NVINTF_H
 
 #include <stdbool.h>
 #include <stdint.h>
-#ifndef NV_LINUX
-#include <xdc/std.h>
-#else
+#ifdef NV_LINUX
 #include <stddef.h>
 #endif
 
@@ -71,6 +99,8 @@ status = nvFps.readItem(id, 0, len, buf);
 #define NVINTF_SYSID_6MESH  5
 #define NVINTF_SYSID_TIOP   6
 #define NVINTF_SYSID_APP    7
+#define NVINTF_SYSID_WBMS   8
+#define NVINTF_SYSID_BMESH  9
 
 // NV driver status codes
 #define NVINTF_SUCCESS      0
@@ -100,10 +130,6 @@ status = nvFps.readItem(id, 0, len, buf);
 //*****************************************************************************
 // Typedefs
 //*****************************************************************************
-
-#ifdef NV_LINUX
-typedef int IArg;
-#endif
 
 /**
  * NV Item Identification structure
@@ -173,13 +199,22 @@ typedef uint8_t (*NVINTF_writeItem)(NVINTF_itemID_t id,
 typedef uint32_t (*NVINTF_getItemLen)(NVINTF_itemID_t id);
 
 //! Function pointer definition for the NVINTF_lockItem() function
-typedef IArg (*NVINTF_lockNV)(void);
+typedef int32_t (*NVINTF_lockNV)(void);
 
 //! Function pointer definition for the NVINTF_unlockItem() function
-typedef void (*NVINTF_unlockNV)(IArg);
+typedef void (*NVINTF_unlockNV)(int32_t);
 
 //! Function pointer definition for the NVINTF_doNext() function
 typedef uint8_t (*NVINTF_doNext)(NVINTF_nvProxy_t *nvProxy);
+
+//! Function pointer definition for the NVINTF_expectComp() function
+typedef bool (*NVINTF_expectComp)(uint16_t length);
+
+//! Function pointer definition for the NVINTF_eraseNV() function
+typedef uint8_t (*NVINTF_eraseNV)(void);
+
+//! Function pointer definition for the NVINTF_getFreeNV() function
+typedef uint32_t (*NVINTF_getFreeNV)(void);
 
 //! Structure of NV API function pointers
 typedef struct nvintf_nvfuncts_t
@@ -191,7 +226,7 @@ typedef struct nvintf_nvfuncts_t
     //! Create item function
     NVINTF_createItem createItem;
     //! Update item function
-    NVINTF_createItem updateItem;
+    NVINTF_updateItem updateItem;
     //! Delete NV item function
     NVINTF_deleteItem deleteItem;
     //! Read item function based on ID
@@ -208,6 +243,12 @@ typedef struct nvintf_nvfuncts_t
     NVINTF_lockNV lockNV;
     //! Unlock item function
     NVINTF_unlockNV unlockNV;
+    //! Expect compact function
+    NVINTF_expectComp expectComp;
+    //! Erase NV function
+    NVINTF_eraseNV eraseNV;
+    //! Get Free NV function
+    NVINTF_getFreeNV getFreeNV;
 } NVINTF_nvFuncts_t;
 
 //*****************************************************************************

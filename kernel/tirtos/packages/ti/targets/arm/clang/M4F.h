@@ -31,13 +31,14 @@
  *  compatible subset of the actual target ISA.
  */
 #define xdc_target__isaCompatible_v7M  1
+#define xdc_target__isaCompatible_v7M4  1
 
 /*
- *  ======== xdc_target__isa_v7M ========
+ *  ======== xdc_target__isa_v7M4 ========
  *  This macro identifies the specific target ISA for which we are being
  *  compiled.
  */
-#define xdc_target__isa_v7M  1
+#define xdc_target__isa_v7M4  1
 
 /*
  *  ======== xdc_target__{big|little}Endian ========

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019 Texas Instruments Incorporated - http://www.ti.com
+ * Copyright (c) 2015-2020 Texas Instruments Incorporated - http://www.ti.com
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -391,7 +391,7 @@ function getDefaultCustomCCOpts()
         }
     }
     else if (Program.build.target.$name.match(/clang/)) {
-        customCCOpts += " -Oz -gdwarf-3 ";
+        customCCOpts += " -Oz -g ";
         /* add any target unique CC options provided in config.bld */
         customCCOpts = Program.build.target.ccOpts.prefix + " " + customCCOpts;
         customCCOpts += Program.build.target.ccOpts.suffix + " ";
@@ -862,7 +862,7 @@ function getCommandLineDefs()
      * absorb all the "-Dxyz"'s and "--define"'s in the compiler command line
      */
     for (i = 0; i < tokens.length; i++) {
-        if (tokens[i].match(/-D/) || tokens[i].match(/--define/)) {
+        if (tokens[i].match(/^-D/) || tokens[i].match(/--define/)) {
             defs += tokens[i];
             if (tokens[i] == "-D") {
                 defs += tokens[++i];  /* intentionally removes spaces for IAR Assembler */

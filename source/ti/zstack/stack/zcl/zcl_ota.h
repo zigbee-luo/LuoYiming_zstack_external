@@ -82,13 +82,8 @@ extern "C"
 // Simple descriptor values
 /// Simple descriptor data for OTA cluster endpoint
 #define ZCL_OTA_ENDPOINT                              14
-#ifdef OTA_HA
 #define ZCL_OTA_SAMPLE_PROFILE_ID                     ZCL_HA_PROFILE_ID
 #define ZCL_OTA_SAMPLE_DEVICEID                       0
-#else
-#define ZCL_OTA_SAMPLE_PROFILE_ID                     ZCL_SE_PROFILE_ID
-#define ZCL_OTA_SAMPLE_DEVICEID                       ZCL_SE_DEVICEID_PHYSICAL
-#endif
 #define ZCL_OTA_DEVICE_VERSION                        0
 #define ZCL_OTA_FLAGS                                 0
 
@@ -457,6 +452,8 @@ extern uint8_t zclOta_OtaUpgradeEndReqTransSeq;
 extern uint8_t currentOtaEndpoint;
 extern uint16_t zclOTA_clusterRevision;
 
+/** @} End ZCL_OTA_CLUSTER_GLOBALS */
+
 /**
  * @defgroup ZCL_OTA_CLUSTER_FUNCTIONS ZCL OTA Cluster Functions
  * @{
@@ -499,6 +496,19 @@ extern void zclOTA_PermitOta(uint8_t permit);
  * @return      ZCL OTA Status
  */
 extern uint8_t zclOTA_getStatus( void );
+
+#if ((defined OTA_SERVER) && (OTA_SERVER == TRUE))
+/*********************************************************************
+ * @fn      zclOTA_getSeqNo
+ *
+ * @brief   Get the next ZCL OTA Frame Counter for packet sequence number
+ *
+ * @param   none
+ *
+ * @return  next ZCL OTA frame counter
+ */
+extern uint8_t zclOTA_getSeqNo(void);
+#endif
 
 #if defined(OTA_CLIENT) && (OTA_CLIENT == TRUE)
 /******************************************************************************
@@ -592,12 +602,11 @@ extern void zclOTA_ProcessInDefaultRspCmd( zclIncomingMsg_t *pInMsg );
  *
  * @param   srcEp   - endpoint from which the message is send
  * @param   dstAddr - Short address of the client
- * @param   seqNo   - seq number for OTA response, add by luoyiming 2020-01-31
  * @param   pParams - Parameters of the Image Notify message
  *
  * @return  ZStatus_t
  */
-extern ZStatus_t zclOTA_SendImageNotify(uint8_t srcEndpoint, afAddrType_t *dstAddr, uint8_t seqNo, zclOTA_ImageNotifyParams_t *pParams);
+extern ZStatus_t zclOTA_SendImageNotify(uint8_t srcEndpoint, afAddrType_t *dstAddr, zclOTA_ImageNotifyParams_t *pParams);
 
 /******************************************************************************
  * @fn      zclOTA_SendQuerySpecificFileRsp
@@ -606,12 +615,12 @@ extern ZStatus_t zclOTA_SendImageNotify(uint8_t srcEndpoint, afAddrType_t *dstAd
  *
  * @param   srcEp   - endpoint from which the message is send
  * @param   dstAddr - where you want the message to go
- * @param   seqNo   - seq number for OTA response, add by luoyiming 2020-01-31
  * @param   pParams - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  */
-extern ZStatus_t zclOTA_SendQuerySpecificFileRsp (uint8_t srcEp, afAddrType_t *dstAddr, uint8_t seqNo, zclOTA_QueryImageRspParams_t *pParams );
+extern ZStatus_t zclOTA_SendQuerySpecificFileRsp (uint8_t srcEp, afAddrType_t *dstAddr, zclOTA_QueryImageRspParams_t *pParams, uint8_t transSeqNum );
 
 /******************************************************************************
  * @fn      zclOTA_SendQueryNextImageRsp
@@ -620,12 +629,12 @@ extern ZStatus_t zclOTA_SendQuerySpecificFileRsp (uint8_t srcEp, afAddrType_t *d
  *
  * @param   srcEp   - endpoint from which the message is send
  * @param   dstAddr - where you want the message to go
- * @param   seqNo   - seq number for OTA response, add by luoyiming 2020-01-31
  * @param   pParams - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  */
-extern ZStatus_t zclOTA_SendQueryNextImageRsp (uint8_t srcEp, afAddrType_t *dstAddr, uint8_t seqNo, zclOTA_QueryImageRspParams_t *pParams );
+extern ZStatus_t zclOTA_SendQueryNextImageRsp (uint8_t srcEp, afAddrType_t *dstAddr, zclOTA_QueryImageRspParams_t *pParams, uint8_t transSeqNum );
 
 /******************************************************************************
  * @fn      zclOTA_SendImageBlockRsp
@@ -634,12 +643,12 @@ extern ZStatus_t zclOTA_SendQueryNextImageRsp (uint8_t srcEp, afAddrType_t *dstA
  *
  * @param   srcEp   - endpoint from which the message is send
  * @param   dstAddr - where you want the message to go
- * @param   seqNo   - seq number for OTA response, add by luoyiming 2020-01-31
  * @param   pParams - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  */
-extern ZStatus_t zclOTA_SendImageBlockRsp (uint8_t srcEp, afAddrType_t *dstAddr, uint8_t seqNo, zclOTA_ImageBlockRspParams_t *pParams );
+extern ZStatus_t zclOTA_SendImageBlockRsp (uint8_t srcEp, afAddrType_t *dstAddr, zclOTA_ImageBlockRspParams_t *pParams, uint8_t transSeqNum );
 
 /******************************************************************************
  * @fn      zclOTA_SendUpgradeEndRsp
@@ -648,12 +657,12 @@ extern ZStatus_t zclOTA_SendImageBlockRsp (uint8_t srcEp, afAddrType_t *dstAddr,
  *
  * @param   srcEp   - endpoint from which the message is send
  * @param   dstAddr - where you want the message to go
- * @param   seqNo   - seq number for OTA response, add by luoyiming 2020-01-31
  * @param   pParams - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
  *
  * @return  ZStatus_t
  */
-extern ZStatus_t zclOTA_SendUpgradeEndRsp (uint8_t srcEp, afAddrType_t *dstAddr, uint8_t seqNo, zclOTA_UpgradeEndRspParams_t *pParams );
+extern ZStatus_t zclOTA_SendUpgradeEndRsp (uint8_t srcEp, afAddrType_t *dstAddr, zclOTA_UpgradeEndRspParams_t *pParams, uint8_t transSeqNum );
 
 /** @} End ZCL_OTA_CLUSTER_FUNCTIONS */
 

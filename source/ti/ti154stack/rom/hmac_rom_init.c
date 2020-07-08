@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2017-2019, Texas Instruments Incorporated
+ Copyright (c) 2017-2020, Texas Instruments Incorporated
  All rights reserved.
 
  IMPORTANT: Your use of this Software is limited to those specific rights
@@ -53,7 +53,6 @@
 #include "mac_api.h"
 #include "mac_main.h"
 #include "hal_types.h"
-#include "hal_assert.h"
 #include "mac_coord.h"
 #include "mac_data.h"
 #include "mac_device.h"
@@ -241,7 +240,7 @@ extern macMgmt_t macMgmt;
 extern bool macPanCoordinator;
 
 /* Action set 1 */
-extern macAction_t macMgmtAction1[10];
+extern macAction_t macMgmtAction1[12];
 
 /* Action set 2 */
 extern macAction_t macMgmtAction2[5];
@@ -635,6 +634,9 @@ extern uint8 MAC_CbackCheckPending(void);
 
 /*Api_mac.c */
 extern uint16_t convertTxOptions(ApiMac_txOptions_t txOptions);
+
+/* main.c */
+extern void assertHandler(void);
 
 /* mac_hl_patch.c */
 extern uint8 macPibCheckByPatch(uint8 pibAttribute, void *pValue);
@@ -1114,8 +1116,8 @@ const uint32 HMAC_ROM_Flash_JT[] =
    (uint32)&convertTxOptions,                            //ROM_HMAC_JT_OFFSET[266]
 
 /*Assert */
-   (uint32)&halAssertHandler,                            //ROM_HMAC_JT_OFFSET[267]
-   (uint32)&macMcuLongDiv,                              //ROM_HMAC_JT_OFFSET[268]
+   (uint32)&assertHandler,                               //ROM_HMAC_JT_OFFSET[267]
+   (uint32)&macMcuLongDiv,                               //ROM_HMAC_JT_OFFSET[268]
 
    (uint32)&MAC_CbackCheckPending,                       //ROM_HMAC_JT_OFFSET[269]
 

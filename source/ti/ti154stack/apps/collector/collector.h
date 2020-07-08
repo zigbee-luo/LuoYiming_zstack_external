@@ -9,7 +9,7 @@
 
  ******************************************************************************
  
- Copyright (c) 2016-2019, Texas Instruments Incorporated
+ Copyright (c) 2016-2020, Texas Instruments Incorporated
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -131,14 +131,14 @@ Sensor to poll and get the frame*/
                                   (BASE_SUPER_FRAME_DURATION * \
                                    SYMBOL_DURATION_50_kbps))
 
-#elif ((CONFIG_PHY_ID >= APIMAC_GENERIC_US_915_PHY_132) && (CONFIG_PHY_ID <= APIMAC_GENERIC_ETSI_863_PHY_133))
+#elif ((CONFIG_PHY_ID >= APIMAC_200KBPS_915MHZ_PHY_132) && (CONFIG_PHY_ID <= APIMAC_200KBPS_868MHZ_PHY_133))
 
 /* MAC Indirect Persistent Timeout */
 #define INDIRECT_PERSISTENT_TIME (MAX((5 * 1000 * CONFIG_POLLING_INTERVAL / 2),MIN_PERSISTENCE_TIME_USEC) / \
                                   (BASE_SUPER_FRAME_DURATION * \
                                    SYMBOL_DURATION_200_kbps))
 
-#elif (CONFIG_PHY_ID == APIMAC_PHY_ID_NONE)
+#elif (CONFIG_PHY_ID == APIMAC_250KBPS_IEEE_PHY_0)
 
 /* MAC Indirect Persistent Timeout */
 #ifdef FEATURE_SECURE_COMMISSIONING
