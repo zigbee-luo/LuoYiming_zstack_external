@@ -57,8 +57,6 @@
             -DFREQ_2_4G
             -DOSAL_PORT2TIRTOS
             -DOSAL_PORT2TIRTOS_OSALMAP
-            -DRCN_APP_ASSERT
-            -DHAL_ASSERT_SPIN
             -DZDO_API_BASIC
             -DTC_LINKKEY_JOIN
             -DNV_RESTORE
@@ -78,8 +76,6 @@
             -I${PROJECT_ROOT}/Stack/bdb
             -I${PROJECT_ROOT}/Stack/Config
             -I${PROJECT_ROOT}/Stack/gp
-            -I${PROJECT_ROOT}/Stack/HAL/Assert
-            -I${PROJECT_ROOT}/Stack/HAL/Appasrt
             -I${PROJECT_ROOT}/Stack/HAL/Crypto
             -I${PROJECT_ROOT}/Stack/HAL/Platform
             -I${PROJECT_ROOT}/Stack/HAL/RF
@@ -99,8 +95,6 @@
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/osal
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/services/saddr
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/services/sdata
-            -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/assert
-            -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/appasrt
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/crypto
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/platform
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/rf
@@ -186,7 +180,7 @@
         description="">
 
         <property name="type" value="rtsc"/>
-        <property name="xdcToolsVersion" value="3_60_02_34_core"/>
+        <property name="xdcToolsVersion" value="3_61_01_25_core"/>
         <property name="target" value="ti.targets.arm.elf.M4F"/>
         <property name="platform" value="ti.platforms.simplelink:CC1352P1F3"/>
         <property name="buildProfile" value="release"/>
@@ -312,14 +306,6 @@
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/stack/gp/gp_bit_fields.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Common/gp">
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/stack/gp/gp_bit_fields.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Common/gp">
-        </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/appasrt/appasrtintf.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/HAL/Appasrt">
-        </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/appasrt/hal_appasrt.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/HAL/Appasrt">
-        </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/appasrt/hal_appasrt.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/HAL/Appasrt">
-        </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/assert/hal_assert.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/HAL/Assert">
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/hal/crypto/crypto_mac_api.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/HAL/Crypto">
         </file>
@@ -603,7 +589,7 @@
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/stack/zcl/zcl_ss.h" openOnCreation="false" excludeFromBuild="true" action="copy" targetDirectory="Common/zcl">
         </file>
-        <file path="../../zc_genericapp.syscfg" openOnCreation="false" excludeFromBuild="false" action="copy">
+        <file path="../../generic.syscfg" openOnCreation="false" excludeFromBuild="false" action="copy">
         </file>
         <file path="../../tirtos/makefile.defs" openOnCreation="false" excludeFromBuild="false" action="copy">
         </file>
