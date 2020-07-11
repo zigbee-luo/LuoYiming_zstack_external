@@ -278,8 +278,8 @@ static void *zclParseInReadReportCfgRspCmd( zclParseCmd_t *pCmd );
 static void *zclParseInDefaultRspCmd( zclParseCmd_t *pCmd );
 
 #ifdef ZCL_DISCOVER
-static uint8_t zclFindNextCmdRec( uint8_t endpoint, uint16_t clusterID, uint16_t manuCode, uint8_t commandID, uint8_t direction, uint8_t *pCmdID, zclCommandRec_t *pCmd );
-static uint8_t zclFindNextAttrRec( uint8_t endpoint, uint16_t clusterID, uint16_t manuCode, uint8_t direction, uint16_t *attrId, zclAttrRec_t *pAttr );
+static uint8_t zclFindNextCmdRec( uint8_t endpoint, uint16_t clusterID, uint16_t manuCode, uint8_t commandID, uint8_t direction, uint8_t *pCmdID, zclCommandRec_t *pCmd, uint8_t *startIdx );
+static uint8_t zclFindNextAttrRec( uint8_t endpoint, uint16_t clusterID, uint16_t manuCode, uint8_t direction, uint16_t *attrId, zclAttrRec_t *pAttr, uint8_t *startIdx );
 static void *zclParseInDiscCmdsRspCmd( zclParseCmd_t *pCmd );
 static void *zclParseInDiscAttrsRspCmd( zclParseCmd_t *pCmd );
 static void *zclParseInDiscAttrsExtRspCmd( zclParseCmd_t *pCmd );
@@ -3129,11 +3129,12 @@ static void zclSetSecurityOption( uint8_t endpoint, uint16_t clusterID, uint8_t 
  * @param   direction- direction of received command
  * @param   pCmdID - command looking for
  * @param   pCmd - command information within command record list
+ * @param   startIdx - startIdx of zclCmdRecsList, luoyiming fix at 2020-07-11
  *
  * @return  pointer to command record, NULL no more records of this cluster
  */
 static uint8_t zclFindNextCmdRec( uint8_t endpoint, uint16_t clusterID, uint16_t manuCode, uint8_t commandID,
-                                  uint8_t direction, uint8_t *pCmdID, zclCommandRec_t *pCmd )
+                                  uint8_t direction, uint8_t *pCmdID, zclCommandRec_t *pCmd, uint8_t *startIdx )
 {
   zclCmdRecsList_t *pRec = zclFindCmdRecsList( endpoint );
   uint8_t i;
@@ -3147,7 +3148,7 @@ static uint8_t zclFindNextCmdRec( uint8_t endpoint, uint16_t clusterID, uint16_t
 
   if ( pRec != NULL )
   {
-    for ( i = 0; i < pRec->numCommands; i++ )
+    for ( i = *startIdx; i < pRec->numCommands; i++ )
     {
       // match manufacturer command at first, luoyiming 2020-01-08
       if ( ( pRec->pCmdRecs[i].flag & CMD_FLAG_MANUCODE ) && matchManuCode == FALSE )
@@ -3165,6 +3166,9 @@ static uint8_t zclFindNextCmdRec( uint8_t endpoint, uint16_t clusterID, uint16_t
             // Update command ID
             *pCmdID = pCmd->cmdID;
 
+            // Update startIdx, luoyiming 2020-07-11
+            *startIdx = i; 
+
             return ( TRUE ); // EMBEDDED RETURN
           }
           else if ( ( direction == ZCL_FRAME_CLIENT_SERVER_DIR ) && ( pRec->pCmdRecs[i].flag & CMD_DIR_SERVER_RECEIVED ) )
@@ -3173,6 +3177,9 @@ static uint8_t zclFindNextCmdRec( uint8_t endpoint, uint16_t clusterID, uint16_t
 
             // Update command ID
             *pCmdID = pCmd->cmdID;
+
+            // Update startIdx, luoyiming 2020-07-11
+            *startIdx = i; 
 
             return ( TRUE ); // EMBEDDED RETURN
           }
@@ -3186,6 +3193,9 @@ static uint8_t zclFindNextCmdRec( uint8_t endpoint, uint16_t clusterID, uint16_t
             // Update command ID
             *pCmdID = pCmd->cmdID;
 
+            // Update startIdx, luoyiming 2020-07-11
+            *startIdx = i; 
+
             return ( TRUE ); // EMBEDDED RETURN
           }
           else if ( ( direction == ZCL_FRAME_SERVER_CLIENT_DIR ) && ( pRec->pCmdRecs[i].flag & CMD_DIR_CLIENT_GENERATED ) )
@@ -3194,6 +3204,9 @@ static uint8_t zclFindNextCmdRec( uint8_t endpoint, uint16_t clusterID, uint16_t
 
             // Update command ID
             *pCmdID = pCmd->cmdID;
+
+            // Update startIdx, luoyiming 2020-07-11
+            *startIdx = i; 
 
             return ( TRUE ); // EMBEDDED RETURN
           }
@@ -3218,11 +3231,12 @@ static uint8_t zclFindNextCmdRec( uint8_t endpoint, uint16_t clusterID, uint16_t
  * @param   clusterID - cluster ID
  * @param   manuCode - manufacturer code, added by luoyiming
  * @param   attr - attribute looking for
+ * @param   startIdx - startIdx of zclAttrRecsList, luoyiming fix at 2020-07-11
  *
  * @return  pointer to attribute record, NULL if not found
  */
-static uint8_t zclFindNextAttrRec( uint8_t endpoint, uint16_t clusterID, uint16_t manuCode, 
-                                 uint8_t direction, uint16_t *attrId, zclAttrRec_t *pAttr )
+static uint8_t zclFindNextAttrRec( uint8_t endpoint, uint16_t clusterID, uint16_t manuCode, uint8_t direction,
+                                   uint16_t *attrId, zclAttrRec_t *pAttr, uint8_t *startIdx )
 {
   zclAttrRecsList *pRec = zclFindAttrRecsList( endpoint );
   uint8_t attrDir;
@@ -3238,7 +3252,7 @@ static uint8_t zclFindNextAttrRec( uint8_t endpoint, uint16_t clusterID, uint16_
   {
     uint16_t x;
 
-    for ( x = 0; x < pRec->numAttributes; x++ )
+    for ( x = *startIdx; x < pRec->numAttributes; x++ )
     {
       // match manufacturer attribute at first, luoyiming 2020-01-08
       if ( ( pRec->attrs[x].attr.accessControl & ACCESS_MANU_ATTR ) && matchManuCode == FALSE )
@@ -3254,6 +3268,7 @@ static uint8_t zclFindNextAttrRec( uint8_t endpoint, uint16_t clusterID, uint16_
           // return attribute and found attribute ID
           *pAttr = pRec->attrs[x];
           *attrId = pAttr->attr.attrId;
+          *startIdx = x; // Update startIdx for next loop, luoyiming 2020-07-11
 
           return ( TRUE ); // EMBEDDED RETURN
         }
@@ -5211,6 +5226,7 @@ static uint8_t zclProcessInDiscAttrs( zclIncoming_t *pInMsg )
   uint16_t attrID;
   uint8_t numAttrs;
   uint8_t i;
+  uint8_t startIdx = 0;
 
   pDiscoverCmd = (zclDiscoverAttrsCmd_t *)pInMsg->attrCmd;
 
@@ -5219,10 +5235,12 @@ static uint8_t zclProcessInDiscAttrs( zclIncoming_t *pInMsg )
   {
     // finds the next attribute on this endpoint/cluster after the range.
     // attributes must be in numerical order in the list.
-    if ( !zclFindNextAttrRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode, pInMsg->hdr.fc.direction, &attrID, &attrRec ) )
+    if ( !zclFindNextAttrRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode,
+                              pInMsg->hdr.fc.direction, &attrID, &attrRec, &startIdx ) )
     {
       break;
     }
+    startIdx += 1; // update startIdx for next loop, luoyiming fixed at 2020-07-22
   }
 
   numAttrs = i;  // store range of attributes in buffer
@@ -5260,6 +5278,7 @@ static void zclProcessInDiscAttrsCmd( zclIncoming_t *pInMsg, zclDiscoverAttrsCmd
   zclAttrRec_t attrRec;
   uint16_t attrID;
   uint8_t i;
+  uint8_t startIdx = 0; // start index is 0, add by luoyiming 2020-07-11
 
   // Allocate space for the response command
   pDiscoverRsp = (zclDiscoverAttrsRspCmd_t *)zcl_mem_alloc( sizeof (zclDiscoverAttrsRspCmd_t)
@@ -5273,17 +5292,20 @@ static void zclProcessInDiscAttrsCmd( zclIncoming_t *pInMsg, zclDiscoverAttrsCmd
   {
     for ( i = 0, attrID = pDiscoverCmd->startAttr; i < numAttrs; i++, attrID++ )
     {
-      if ( !zclFindNextAttrRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode, pInMsg->hdr.fc.direction, &attrID, &attrRec ) )
+      if ( !zclFindNextAttrRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode,
+                                pInMsg->hdr.fc.direction, &attrID, &attrRec, &startIdx ) )
       {
         break; // should not happen, as numAttrs already calculated
       }
 
       pDiscoverRsp->attrList[i].attrID = attrRec.attr.attrId;
       pDiscoverRsp->attrList[i].dataType = attrRec.attr.dataType;
+      startIdx += 1; // update startIdx for next loop, luoyiming fixed at 2020-07-22
     }
 
     // Are there more attributes to be discovered?
-    if ( zclFindNextAttrRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode, pInMsg->hdr.fc.direction, &attrID, &attrRec ) )
+    if ( zclFindNextAttrRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode,
+                             pInMsg->hdr.fc.direction, &attrID, &attrRec, &startIdx ) )
     {
       discComplete = FALSE;
     }
@@ -5320,6 +5342,7 @@ static void zclProcessInDiscAttrsExtCmd( zclIncoming_t *pInMsg, zclDiscoverAttrs
   zclAttrRec_t attrRec;
   uint16_t attrID;
   uint8_t i;
+  uint8_t startIdx = 0; // start index is 0, add by luoyiming 2020-07-11
 
     // Allocate space for the response command
   pDiscoverExtRsp = (zclDiscoverAttrsExtRsp_t *)zcl_mem_alloc( sizeof (zclDiscoverAttrsExtRsp_t)
@@ -5334,7 +5357,8 @@ static void zclProcessInDiscAttrsExtCmd( zclIncoming_t *pInMsg, zclDiscoverAttrs
   {
     for ( i = 0, attrID = pDiscoverCmd->startAttr; i < numAttrs; i++, attrID++ )
     {
-      if ( !zclFindNextAttrRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode, pInMsg->hdr.fc.direction, &attrID, &attrRec ) )
+      if ( !zclFindNextAttrRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode,
+                                pInMsg->hdr.fc.direction, &attrID, &attrRec, &startIdx ) )
       {
         break; // Should not happen, as numAttrs already calculated
       }
@@ -5342,10 +5366,12 @@ static void zclProcessInDiscAttrsExtCmd( zclIncoming_t *pInMsg, zclDiscoverAttrs
       pDiscoverExtRsp->aExtAttrInfo[i].attrID = attrRec.attr.attrId;
       pDiscoverExtRsp->aExtAttrInfo[i].attrDataType = attrRec.attr.dataType;
       pDiscoverExtRsp->aExtAttrInfo[i].attrAccessControl = attrRec.attr.accessControl & ACCESS_CONTROLEXT_MASK;
+      startIdx += 1; // update startIdx for next loop, luoyiming fixed at 2020-07-22
     }
 
     // Are there more attributes to be discovered?
-    if ( zclFindNextAttrRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode, pInMsg->hdr.fc.direction, &attrID, &attrRec ) )
+    if ( zclFindNextAttrRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode,
+                             pInMsg->hdr.fc.direction, &attrID, &attrRec, &startIdx ) )
     {
       discComplete = FALSE;
     }
@@ -5381,16 +5407,19 @@ static uint8_t zclProcessInDiscCmd( zclIncoming_t *pInMsg )
   uint8_t cmdID;
   uint8_t i = 0;
   uint8_t j = 0;
+  uint8_t startIdx = 0;
 
   pDiscoverCmd = (zclDiscoverCmdsCmd_t *)pInMsg->attrCmd;
 
   // Find out the number of commands supported within the specified range
   for ( i = 0, cmdID = pDiscoverCmd->startCmdID; i < pDiscoverCmd->maxCmdID; i++, cmdID++ )
   {
-    if ( !zclFindNextCmdRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode, pInMsg->hdr.commandID, pInMsg->hdr.fc.direction, &cmdID, &cmdRec ) )
+    if ( !zclFindNextCmdRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode,
+                             pInMsg->hdr.commandID, pInMsg->hdr.fc.direction, &cmdID, &cmdRec, &startIdx ) )
     {
       break;  // Command not supported
     }
+    startIdx += 1; // update startIdx for next loop, luoyiming fixed at 2020-07-22
   }
 
   // Allocate space for the response command
@@ -5404,19 +5433,23 @@ static uint8_t zclProcessInDiscCmd( zclIncoming_t *pInMsg )
 
   if ( i != 0 )
   {
+    startIdx = 0; // reset startIdx, luoyiming fixed at 2020-07-22
     for ( j = 0, cmdID = pDiscoverCmd->startCmdID; j < i; j++, cmdID++ )
     {
-      if ( !zclFindNextCmdRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode, pInMsg->hdr.commandID, pInMsg->hdr.fc.direction, &cmdID, &cmdRec ) )
+      if ( !zclFindNextCmdRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode,
+                               pInMsg->hdr.commandID, pInMsg->hdr.fc.direction, &cmdID, &cmdRec, &startIdx ) )
       {
         break; // Attribute not supported
       }
 
       cmdRsp->pCmdID[j] = cmdRec.cmdID;
+      startIdx += 1; // update startIdx for next loop, luoyiming fixed at 2020-07-22
     }
   }
 
   // Are there more commands to be discovered?
-  if ( zclFindNextCmdRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode, pInMsg->hdr.commandID, pInMsg->hdr.fc.direction, &cmdID, &cmdRec ) )
+  if ( zclFindNextCmdRec( pInMsg->msg->endPoint, pInMsg->msg->clusterId, pInMsg->hdr.manuCode,
+                          pInMsg->hdr.commandID, pInMsg->hdr.fc.direction, &cmdID, &cmdRec, &startIdx ) )
   {
     cmdRsp->discComplete = FALSE;
   }
