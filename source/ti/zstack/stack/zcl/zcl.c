@@ -5097,7 +5097,7 @@ static uint8_t zclProcessInWriteUndividedCmd( zclIncoming_t *pInMsg )
     // Attribute Data length
     if ( attrRec.attr.dataPtr != NULL )
     {
-      dataLen = zclGetAttrDataLength( attrRec.attr.dataType, attrRec.attr.dataPtr );
+      dataLen = zclGetAttrDataLength( attrRec.attr.dataType, (uint8*)attrRec.attr.dataPtr );
     }
     else // Use CB
     {
