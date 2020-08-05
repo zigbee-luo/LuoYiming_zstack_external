@@ -3184,7 +3184,7 @@ ZDO_ActiveEndpointRsp_t *ZDO_ParseEPListRsp( zdoIncomingMsg_t *inMsg )
  */
 void ZDO_ParseServerDiscRsp( zdoIncomingMsg_t *inMsg, ZDO_ServerDiscRsp_t *pRsp )
 {
-  pRsp->transSeq = pRsp->transSeq;  //add by luoyiming
+  pRsp->transSeq = inMsg->TransSeq;  //add by luoyiming
   pRsp->status = inMsg->asdu[0];
   pRsp->serverMask = BUILD_UINT16( inMsg->asdu[1], inMsg->asdu[2] );
 }
