@@ -65,10 +65,10 @@
  * CONSTANTS
  */
 // Maximums for the data buffer queue
-#define NWK_MAX_DATABUFS_WAITING    8     // Waiting to be sent to MAC
-#define NWK_MAX_DATABUFS_SCHEDULED  5     // Timed messages to be sent
-#define NWK_MAX_DATABUFS_CONFIRMED  5     // Held after MAC confirms
-#define NWK_MAX_DATABUFS_TOTAL      12    // Total number of buffers
+#define NWK_MAX_DATABUFS_WAITING    16     // Waiting to be sent to MAC
+#define NWK_MAX_DATABUFS_SCHEDULED  10    // Timed messages to be sent
+#define NWK_MAX_DATABUFS_CONFIRMED  10    // Held after MAC confirms
+#define NWK_MAX_DATABUFS_TOTAL      30    // Total number of buffers
 
 // 1-255 (0 -> 256) X RTG_TIMER_INTERVAL
 // A known shortcoming is that when a message is enqueued as "hold" for a
@@ -90,7 +90,7 @@
 // #define CNT_RTG_TIMER            60
 // #define NWK_INDIRECT_MSG_TIMEOUT (30 * 24 * 60)
 // Maximum msgs to hold per associated device.
-#define NWK_INDIRECT_MSG_MAX_PER    3
+#define NWK_INDIRECT_MSG_MAX_PER    6
 // Maximum total msgs to hold for all associated devices.
 #define NWK_INDIRECT_MSG_MAX_ALL    \
                             (NWK_MAX_DATABUFS_TOTAL - NWK_INDIRECT_MSG_MAX_PER)
