@@ -950,6 +950,7 @@ uint8_t ZMacScanReq( ZMacScanReq_t *pData )
   memset(&scanReq, 0, sizeof(ApiMac_mlmeScanReq_t));
   OsalPort_memcpy(&scanReq.sec, &pData->Sec, sizeof(ApiMac_sec_t));
 
+  pData->ScanChannels &= 0x07FFF800; // only scan 2.4GHz in zigbee stack, fixed by luoyiming 2021-01-05.
   _ScanChannels = pData->ScanChannels;
   OsalPort_bufferUint32(scanReq.scanChannels, pData->ScanChannels);
   scanReq.scanType = (ApiMac_scantype_t)pData->ScanType;

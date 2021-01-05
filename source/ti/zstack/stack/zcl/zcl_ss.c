@@ -239,8 +239,8 @@ void zclSS_RegisterUnsupportCallback( ZStatus_t (*callback)(zclIncoming_t*pInMsg
   // Register as a ZCL Plugin
   if ( zclSSPluginRegisted == FALSE )
   {
-    zcl_registerPlugin( ZCL_CLUSTER_ID_GEN_BASIC,
-                        ZCL_CLUSTER_ID_GEN_MULTISTATE_VALUE_BASIC,
+    zcl_registerPlugin( ZCL_CLUSTER_ID_SS_IAS_ZONE,
+                        ZCL_CLUSTER_ID_SS_IAS_WD,
                         zclSS_HdlIncoming );
 
     zclSSPluginRegisted = TRUE;

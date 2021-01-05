@@ -32,7 +32,7 @@
 // @cliArgs --board /ti/boards/CC26X2R1_LAUNCHXL
 
 /*
- *  zc_genericapp.syscfg
+ *  generic.syscfg
  */
 
 /* Modules */

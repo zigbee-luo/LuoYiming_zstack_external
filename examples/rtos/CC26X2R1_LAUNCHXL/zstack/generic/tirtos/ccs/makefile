@@ -135,7 +135,7 @@ CFLAGS = -I../.. \
     -DCC26X2R1_LAUNCHXL \
     -DDeviceFamily_CC26X2 \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/boards" \
-    "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source" \
+    "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source" \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/posix/ccs" \
     --little_endian \
     --display_error_number \
