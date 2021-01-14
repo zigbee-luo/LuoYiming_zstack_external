@@ -4154,7 +4154,7 @@ static void *zclParseInWriteRspCmd( zclParseCmd_t *pCmd )
     for( i = 0; i < writeRspCmd->numAttr; i++ )
     {
       writeRspCmd->attrList[i].status = *pBuf++;
-      writeRspCmd->attrList[i++].attrID = BUILD_UINT16( pBuf[0], pBuf[1] );
+      writeRspCmd->attrList[i].attrID = BUILD_UINT16( pBuf[0], pBuf[1] );
       pBuf += 2;
     }
   }
