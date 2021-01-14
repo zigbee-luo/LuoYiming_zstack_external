@@ -40,6 +40,7 @@
 /******************************************************************************
  * INCLUDES
  */
+#include "ti_zstack_config.h"
 #include "zcomdef.h"
 #include "zcl.h"
 #include "zcl_general.h"
@@ -47,12 +48,9 @@
 #include "ota_common.h"
 #include "ti_drivers_config.h"
 
-#if (defined OTA_SERVER) && (OTA_SERVER == TRUE)
-#include "ota_srv_app.h"
-#endif
 
-#if (defined OTA_CLIENT) && (OTA_CLIENT == TRUE)
-#include "ota_client_app.h"
+#if (defined OTA_CLIENT_STANDALONE) || (defined OTA_CLIENT_INTEGRATED)
+#include "ota_client.h"
 #include "flash_interface.h"
 #include "oad_image_header.h"
 #include "ext_flash_layout.h"
@@ -88,7 +86,7 @@
 /******************************************************************************
  * GLOBAL VARIABLES
  */
-#if (defined OTA_CLIENT) && (OTA_CLIENT == TRUE)
+#if (defined OTA_CLIENT_STANDALONE) || (defined OTA_CLIENT_INTEGRATED)
 #if defined __IOCC2538_H__
 const otaCrc_t OTA_CRC @ ".crc" =
 {
@@ -111,29 +109,12 @@ const preamble_t OTA_Preamble @ ".preamble" =
 
 #endif
 
-
-
-
-// Other OTA variables
-uint16_t zclOTA_ImageType;                                // Image type
-uint8_t zclOTA_ImageUpgradeStatus;
-uint8_t zclOTA_UpgradeServerID[Z_EXTADDR_LEN];
-uint16_t zclOTA_MinBlockReqDelay;
-uint16_t zclOTA_clusterRevision = 0x0001;
-uint32_t zclOTA_FileOffset = 0xFFFFFFFF;
-uint32_t zclOTA_CurrentFileVersion = 0xFFFFFFFF;
-uint16_t zclOTA_CurrentZigBeeStackVersion;
-uint32_t zclOTA_DownloadedFileVersion = 0xFFFFFFFF;
-uint16_t zclOTA_DownloadedZigBeeStackVersion = 0xFFFF;
-uint16_t zclOTA_ManufacturerID;
-uint8_t  zclOTA_Permit;
-
 // Used by the client to correlate the Upgrade End Request and received
 // Default Response.
- uint8_t zclOta_OtaUpgradeEndReqTransSeq;
+ uint8_t zclOTA_OtaUpgradeEndReqTransSeq;
 
+ uint8_t  zclOTA_Permit;
  uint8_t currentOtaEndpoint = OTA_UNUSED_ENDPOINT ;
-
 
 //Offset in external flash at which the binary is being written
 uint32_t binaryAddrOffset = 0;
@@ -152,7 +133,7 @@ uint8_t oadPdState = 0;
  */
 
 // Sequence number
-#if ((defined OTA_CLIENT) && (OTA_CLIENT == TRUE)) || ((defined OTA_SERVER) && (OTA_SERVER == TRUE))
+#if (defined OTA_CLIENT_STANDALONE) || (defined OTA_CLIENT_INTEGRATED) || (defined OTA_SERVER)
 static uint8_t zclOTA_SeqNo = 0;
 #endif
 
@@ -165,29 +146,34 @@ static uint8_t zclOTA_SignatureData[OTA_SIGNATURE_LEN];
 static uint8_t zclOTA_Certificate[OTA_CERTIFICATE_LEN];
 #endif // OTA_MMO_SIGN
 
-#if (defined OTA_CLIENT) && (OTA_CLIENT == TRUE)
+#if (defined OTA_CLIENT_STANDALONE) || (defined OTA_CLIENT_INTEGRATED)
 static uint16_t zclOTA_HeaderLen;            // Image header length
 static uint16_t zclOTA_ElementTag;
 static uint32_t zclOTA_ElementLen;
 static uint32_t zclOTA_ElementPos;
+
+// local OTA attribute pointers
+static uint32_t *zclOTA_FileOffset;
+static uint16_t *zclOTA_DownloadedZigBeeStackVersion;
+static uint8_t  *zclOTA_ImageUpgradeStatus;
 
 // OTA Header Magic Number Bytes
 static const uint8_t zclOTA_HdrMagic[] = {0x1E, 0xF1, 0xEE, 0x0B};
 
 imgHdr_t oad_imgHdr = {0};
 uint16_t   oad_imgHdr_pos = 0;
-#endif // (defined OTA_CLIENT) && (OTA_CLIENT == TRUE)
+#endif // (defined OTA_CLIENT_STANDALONE) || (defined OTA_CLIENT_INTEGRATED
 
 /******************************************************************************
  * LOCAL FUNCTIONS
  */
-#if (defined OTA_CLIENT) && (OTA_CLIENT == TRUE)
+#if (defined OTA_CLIENT_STANDALONE) || (defined OTA_CLIENT_INTEGRATED)
 #if defined (ZCL_STANDALONE)
 static uint8_t* buffer_uint32( uint8_t *buf, uint32_t val );
 #endif
 #endif
 
-#if (defined OTA_CLIENT) && (OTA_CLIENT == TRUE)
+#if (defined OTA_CLIENT_STANDALONE) || (defined OTA_CLIENT_INTEGRATED)
 static uint8_t oadEraseExtFlashPages(uint8_t imgStartPage, uint8_t imgPageLen);
 static uint8_t oadCheckDL(uint8_t imagePage);
 #endif
@@ -206,21 +192,7 @@ void zclOTA_PermitOta ( uint8_t permit )
   zclOTA_Permit = permit;
 }
 
-/******************************************************************************
- * @fn          zclOTA_getStatus
- *
- * @brief       Retrieves current ZCL OTA Status
- *
- * @param       none
- *
- * @return      ZCL OTA Status
- */
-uint8_t zclOTA_getStatus ( void )
-{
-  return zclOTA_ImageUpgradeStatus;
-}
-
-#if ((defined OTA_SERVER) && (OTA_SERVER == TRUE))
+#if defined OTA_SERVER
 /*********************************************************************
  * @fn      zclOTA_getSeqNo
  *
@@ -264,57 +236,8 @@ void zclOTA_ProcessUnhandledFoundationZCLMsgs ( zclIncomingMsg_t *pMsg )
   }
 }
 #endif
-/******************************************************************************
- * @fn      zclOTA_ProcessInDefaultRspCmd
- *
- * @brief   Passed along from application.
- *
- * @param   pInMsg - Pointer to Default Response Command
- *
- * @return  void
- */
-void zclOTA_ProcessInDefaultRspCmd( zclIncomingMsg_t *pInMsg )
-{
-  // If the OTA server issued a Default Response, most likely something bad
-  // happened.
 
-  zclDefaultRspCmd_t *defRspCmd = (zclDefaultRspCmd_t*)pInMsg->attrCmd;
-
-  switch ( defRspCmd->statusCode )
-  {
-
-    case ( ZCL_STATUS_ABORT ) :
-
-      switch ( zclOTA_ImageUpgradeStatus )
-      {
-        case ( OTA_STATUS_COMPLETE ) :
-          if ( pInMsg->zclHdr.transSeqNum == zclOta_OtaUpgradeEndReqTransSeq )
-          {
-            // The server has issued an ABORT while we were waiting for the
-            // Upgrade End Response.
-            zclOTA_ImageUpgradeStatus = OTA_STATUS_NORMAL;
-
-            zclOta_OtaUpgradeEndReqTransSeq = 0;
-          }
-          break;
-
-        // Handling for reception of the Default Response with status code ==
-        // ABORT, in other OTA states, can be added here.
-
-        default :
-          break;
-      }
-      break;
-
-    // Handling for other Defautl Response status codes and OTA states can
-    // be added here.
-    default :
-      break;
-  }
-}
-
-
-#if (defined OTA_SERVER) && (OTA_SERVER == TRUE)
+#if defined OTA_SERVER
 /******************************************************************************
  * @fn      zclOTA_SendImageNotify
  *
@@ -358,7 +281,7 @@ ZStatus_t zclOTA_SendImageNotify (uint8_t srcEp, afAddrType_t *dstAddr,
   }
 
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
-                             COMMAND_IMAGE_NOTIFY, TRUE,
+                             COMMAND_OTA_UPGRADE_IMAGE_NOTIFY, TRUE,
                              ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0,
                              zclOTA_SeqNo++, ( uint16_t ) ( pBuf - buf ), buf );
 
@@ -396,7 +319,7 @@ ZStatus_t zclOTA_SendQueryNextImageRsp (uint8_t srcEp, afAddrType_t *dstAddr,
   }
 
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
-                             COMMAND_QUERY_NEXT_IMAGE_RSP, TRUE,
+                             COMMAND_OTA_UPGRADE_QUERY_NEXT_IMAGE_RESPONSE, TRUE,
                              ZCL_FRAME_SERVER_CLIENT_DIR, TRUE, 0,
                              transSeqNum, ( uint16_t ) ( pBuf - buf ), buf );
 
@@ -466,7 +389,7 @@ ZStatus_t zclOTA_SendImageBlockRsp (uint8_t srcEp, afAddrType_t *dstAddr,
   }
 
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
-                             COMMAND_IMAGE_BLOCK_RSP, TRUE,
+                             COMMAND_OTA_UPGRADE_IMAGE_BLOCK_RESPONSE, TRUE,
                              ZCL_FRAME_SERVER_CLIENT_DIR, TRUE, 0,
                              transSeqNum, len, buf );
 
@@ -503,7 +426,7 @@ ZStatus_t zclOTA_SendUpgradeEndRsp (uint8_t srcEp, afAddrType_t *dstAddr,
   pBuf = OsalPort_bufferUint32 ( pBuf, pParams->upgradeTime );
 
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
-                             COMMAND_UPGRADE_END_RSP, TRUE,
+                             COMMAND_OTA_UPGRADE_UPGRADE_END_RESPONSE, TRUE,
                              ZCL_FRAME_SERVER_CLIENT_DIR, TRUE, 0,
                              transSeqNum, PAYLOAD_MAX_LEN_UPGRADE_END_RSP, buf );
 
@@ -541,16 +464,64 @@ ZStatus_t zclOTA_SendQuerySpecificFileRsp (uint8_t srcEp, afAddrType_t *dstAddr,
   }
 
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
-                             COMMAND_QUERY_SPECIFIC_FILE_RSP, TRUE,
+                             COMMAND_OTA_UPGRADE_QUERY_DEVICE_SPECIFIC_FILE_RESPONSE, TRUE,
                              ZCL_FRAME_SERVER_CLIENT_DIR, TRUE, 0,
                              transSeqNum, ( uint16_t ) ( pBuf - buf ), buf );
 
   return status;
 }
-#endif // defined (OTA_SERVER) && (OTA_SERVER == TRUE)
+#endif // defined OTA_SERVER
 
 
-#if (defined OTA_CLIENT) && (OTA_CLIENT == TRUE)
+#if (defined OTA_CLIENT_STANDALONE) || (defined OTA_CLIENT_INTEGRATED)
+/******************************************************************************
+ * @fn      zclOTA_ProcessInDefaultRspCmd
+ *
+ * @brief   Passed along from application.
+ *
+ * @param   pInMsg - Pointer to Default Response Command
+ *
+ * @return  void
+ */
+void zclOTA_ProcessInDefaultRspCmd( zclIncomingMsg_t *pInMsg )
+{
+  // If the OTA server issued a Default Response, most likely something bad
+  // happened.
+
+  zclDefaultRspCmd_t *defRspCmd = (zclDefaultRspCmd_t*)pInMsg->attrCmd;
+
+  switch ( defRspCmd->statusCode )
+  {
+
+    case ( ZCL_STATUS_ABORT ) :
+
+      switch ( *zclOTA_ImageUpgradeStatus )
+      {
+        case ( OTA_STATUS_COMPLETE ) :
+          if ( pInMsg->zclHdr.transSeqNum == zclOTA_OtaUpgradeEndReqTransSeq )
+          {
+            // The server has issued an ABORT while we were waiting for the
+            // Upgrade End Response.
+            *zclOTA_ImageUpgradeStatus = OTA_STATUS_NORMAL;
+
+            zclOTA_OtaUpgradeEndReqTransSeq = 0;
+          }
+          break;
+
+        // Handling for reception of the Default Response with status code ==
+        // ABORT, in other OTA states, can be added here.
+
+        default :
+          break;
+      }
+      break;
+
+    // Handling for other Defautl Response status codes and OTA states can
+    // be added here.
+    default :
+      break;
+  }
+}
 /******************************************************************************
  * @fn      zclOTA_SendQueryNextImageReq
  *
@@ -582,7 +553,7 @@ ZStatus_t zclOTA_SendQueryNextImageReq (uint8_t srcEp, afAddrType_t *dstAddr,
   }
 
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
-                             COMMAND_QUERY_NEXT_IMAGE_REQ, TRUE,
+                             COMMAND_OTA_UPGRADE_QUERY_NEXT_IMAGE_REQUEST, TRUE,
                              ZCL_FRAME_CLIENT_SERVER_DIR, FALSE, 0,
                              zclOTA_SeqNo++, ( uint16_t ) ( pBuf - buf ), buf );
 
@@ -629,7 +600,7 @@ ZStatus_t zclOTA_SendImageBlockReq (uint8_t srcEp, afAddrType_t *dstAddr,
   }
 
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
-                             COMMAND_IMAGE_BLOCK_REQ, TRUE,
+                             COMMAND_OTA_UPGRADE_IMAGE_BLOCK_REQUEST, TRUE,
                              ZCL_FRAME_CLIENT_SERVER_DIR, FALSE, 0,
                              zclOTA_SeqNo++, ( uint16_t ) ( pBuf - buf ), buf );
 
@@ -677,7 +648,7 @@ ZStatus_t zclOTA_SendImagePageReq (uint8_t srcEp, afAddrType_t *dstAddr,
   }
 
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
-                             COMMAND_IMAGE_PAGE_REQ, TRUE,
+                             COMMAND_OTA_UPGRADE_IMAGE_PAGE_REQUEST, TRUE,
                              ZCL_FRAME_CLIENT_SERVER_DIR, FALSE, 0,
                              zclOTA_SeqNo++, ( uint16_t ) ( pBuf - buf ), buf );
 
@@ -718,7 +689,7 @@ ZStatus_t zclOTA_SendQueryDevSpecFileReq (uint8_t srcEp, afAddrType_t *dstAddr,
 
 
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
-                             COMMAND_QUERY_SPECIFIC_FILE_REQ, TRUE,
+                             COMMAND_OTA_UPGRADE_QUERY_DEVICE_SPECIFIC_FILE_REQUEST, TRUE,
                              ZCL_FRAME_CLIENT_SERVER_DIR, FALSE, 0,
                              zclOTA_SeqNo++, ( uint16_t ) ( pBuf - buf ), buf );
 
@@ -775,12 +746,12 @@ ZStatus_t zclOTA_SendUpgradeEndReq (uint8_t srcEp, afAddrType_t *dstAddr,
   *pBuf++ = HI_UINT16 ( pParams->fileId.type );
   pBuf = buffer_uint32 ( pBuf, pParams->fileId.version );
 
-  zclOta_OtaUpgradeEndReqTransSeq = zclOTA_SeqNo++;
+  zclOTA_OtaUpgradeEndReqTransSeq = zclOTA_SeqNo++;
 
   status = zcl_SendCommand ( srcEp, dstAddr, ZCL_CLUSTER_ID_OTA,
-                             COMMAND_UPGRADE_END_REQ, TRUE,
+                             COMMAND_OTA_UPGRADE_UPGRADE_END_REQUEST, TRUE,
                              ZCL_FRAME_CLIENT_SERVER_DIR, FALSE, 0,
-                             zclOta_OtaUpgradeEndReqTransSeq, ( uint16_t ) ( pBuf - buf ), buf );
+                             zclOTA_OtaUpgradeEndReqTransSeq, ( uint16_t ) ( pBuf - buf ), buf );
 
   return status;
 }
@@ -803,15 +774,10 @@ uint8_t zclOTA_ProcessImageData ( uint8_t *pData, uint8_t len )
   uint8_t skipHash = FALSE;
 #endif
 
-  if ( zclOTA_ImageUpgradeStatus != OTA_STATUS_IN_PROGRESS )
+  if ( *zclOTA_ImageUpgradeStatus != OTA_STATUS_IN_PROGRESS )
   {
     return ZCL_STATUS_ABORT;
   }
-
-#if (defined HAL_LED) && (HAL_LED == TRUE)
-  // Toggle an LED to indicate we received a new block
-  HalLedSet ( HAL_LED_2, HAL_LED_MODE_TOGGLE );
-#endif
 
   for ( i=0; i<len; i++ )
   {
@@ -838,7 +804,7 @@ uint8_t zclOTA_ProcessImageData ( uint8_t *pData, uint8_t len )
 
       case ZCL_OTA_PD_HDR_LEN1_STATE:
         // get header length
-        if ( zclOTA_FileOffset == ZCL_OTA_HDR_LEN_OFFSET )
+        if ( *zclOTA_FileOffset == ZCL_OTA_HDR_LEN_OFFSET )
         {
           zclOTA_HeaderLen = pData[i];
           zclOTA_ClientPdState = ZCL_OTA_PD_HDR_LEN2_STATE;
@@ -852,18 +818,18 @@ uint8_t zclOTA_ProcessImageData ( uint8_t *pData, uint8_t len )
 
       case ZCL_OTA_PD_STK_VER1_STATE:
         // get stack version
-        if ( zclOTA_FileOffset == ZCL_OTA_STK_VER_OFFSET )
+        if ( *zclOTA_FileOffset == ZCL_OTA_STK_VER_OFFSET )
         {
-          zclOTA_DownloadedZigBeeStackVersion = pData[i];
+          *zclOTA_DownloadedZigBeeStackVersion = pData[i];
           zclOTA_ClientPdState = ZCL_OTA_PD_STK_VER2_STATE;
         }
         break;
 
       case ZCL_OTA_PD_STK_VER2_STATE:
-        zclOTA_DownloadedZigBeeStackVersion |= ( ( ( uint16_t ) pData[i] ) << 8 ) & 0xFF00;
+        *zclOTA_DownloadedZigBeeStackVersion |= ( ( ( uint16_t ) pData[i] ) << 8 ) & 0xFF00;
         zclOTA_ClientPdState = ZCL_OTA_PD_CONT_HDR_STATE;
 
-        if ( zclOTA_DownloadedZigBeeStackVersion != OTA_HDR_STACK_VERSION )
+        if ( *zclOTA_DownloadedZigBeeStackVersion != OTA_HDR_STACK_VERSION )
         {
           return ZCL_STATUS_INVALID_IMAGE;
         }
@@ -871,7 +837,7 @@ uint8_t zclOTA_ProcessImageData ( uint8_t *pData, uint8_t len )
 
       case ZCL_OTA_PD_CONT_HDR_STATE:
         // Complete the header
-        if ( zclOTA_FileOffset == zclOTA_HeaderLen-1 )
+        if ( *zclOTA_FileOffset == zclOTA_HeaderLen-1 )
         {
           zclOTA_ClientPdState = ZCL_OTA_PD_ELEM_TAG1_STATE;
         }
@@ -908,7 +874,7 @@ uint8_t zclOTA_ProcessImageData ( uint8_t *pData, uint8_t len )
         zclOTA_ClientPdState = ZCL_OTA_PD_ELEMENT_STATE;
 
         // Make sure the length of the element isn't bigger than the image
-        if ( zclOTA_ElementLen > ( zclOTA_DownloadedImageSize - zclOTA_FileOffset ) )
+        if ( zclOTA_ElementLen > ( zclOTA_DownloadedImageSize - *zclOTA_FileOffset ) )
         {
           return ZCL_STATUS_INVALID_IMAGE;
         }
@@ -1043,7 +1009,7 @@ uint8_t zclOTA_ProcessImageData ( uint8_t *pData, uint8_t len )
                         }
 
                         //Erase the header file after the Factory New metadata header
-                        if(eraseFlashPg(EXT_FLASH_PAGE(EFL_ADDR_META_FACT_IMG + EFL_PAGE_SIZE) != FLASH_SUCCESS))
+                        if(eraseFlashPg(EXT_FLASH_PAGE((EFL_ADDR_META_FACT_IMG + EFL_PAGE_SIZE)) != FLASH_SUCCESS))
                         {
                             flash_close();
                             //Something went wrong...
@@ -1062,7 +1028,7 @@ uint8_t zclOTA_ProcessImageData ( uint8_t *pData, uint8_t len )
                             ExtImageInfo.extFlAddr = binaryAddrStart;
                             ExtImageInfo.counter = 0;
 
-                            if(writeFlashPg(EXT_FLASH_PAGE(EFL_ADDR_META + EFL_PAGE_SIZE),0, (uint8_t *)&ExtImageInfo, sizeof(ExtImageInfo_t)) != FLASH_SUCCESS)
+                            if(writeFlashPg(EXT_FLASH_PAGE((EFL_ADDR_META + EFL_PAGE_SIZE)),0, (uint8_t *)&ExtImageInfo, sizeof(ExtImageInfo_t)) != FLASH_SUCCESS)
                             {
                                 flash_close();
                                 //Something went wrong...
@@ -1093,7 +1059,7 @@ uint8_t zclOTA_ProcessImageData ( uint8_t *pData, uint8_t len )
                         //Keep track of OTA element bytes received
                         zclOTA_ElementPos += len - i;
 
-                        zclOTA_FileOffset += len - i - 1;  //Minus 1 due to zclOTA_FileOffset being increased at if ( ++zclOTA_FileOffset >= zclOTA_DownloadedImageSize )
+                        *zclOTA_FileOffset += len - i - 1;  //Minus 1 due to *zclOTA_FileOffset being increased at if ( ++*zclOTA_FileOffset >= zclOTA_DownloadedImageSize )
 
                         //Had copied the whole packet already, so skip this frame.
                         i = len;
@@ -1127,7 +1093,7 @@ uint8_t zclOTA_ProcessImageData ( uint8_t *pData, uint8_t len )
                                 return ZCL_STATUS_ABORT;
                             }
                             binaryAddrOffset += len;
-                            zclOTA_FileOffset += len - 1; //Minus 1 due to zclOTA_FileOffset being increased at if ( ++zclOTA_FileOffset >= zclOTA_DownloadedImageSize )
+                            *zclOTA_FileOffset += len - 1; //Minus 1 due to *zclOTA_FileOffset being increased at if ( ++*zclOTA_FileOffset >= zclOTA_DownloadedImageSize )
                         }
                         else
                         {
@@ -1143,7 +1109,7 @@ uint8_t zclOTA_ProcessImageData ( uint8_t *pData, uint8_t len )
                                 return ZCL_STATUS_ABORT;
                             }
                             binaryAddrOffset += remaining;
-                            zclOTA_FileOffset += remaining - 1; //Minus 1 due to zclOTA_FileOffset being increased at if ( ++zclOTA_FileOffset >= zclOTA_DownloadedImageSize )
+                            *zclOTA_FileOffset += remaining - 1; //Minus 1 due to *zclOTA_FileOffset being increased at if ( ++*zclOTA_FileOffset >= zclOTA_DownloadedImageSize )
 
                             //check the binary copied CRC
                             if(oadCheckDL(EXT_FLASH_PAGE(binaryAddrStart)) == ZSuccess)
@@ -1189,9 +1155,9 @@ uint8_t zclOTA_ProcessImageData ( uint8_t *pData, uint8_t len )
 #endif
 
     // Check if the download is complete
-    if ( ++zclOTA_FileOffset >= zclOTA_DownloadedImageSize )
+    if ( ++*zclOTA_FileOffset >= zclOTA_DownloadedImageSize )
     {
-      zclOTA_ImageUpgradeStatus = OTA_STATUS_COMPLETE;
+      *zclOTA_ImageUpgradeStatus = OTA_STATUS_COMPLETE;
 
 
 #if defined OTA_MMO_SIGN
@@ -1239,9 +1205,6 @@ static uint8_t oadEraseExtFlashPages(uint8_t imgStartPage, uint8_t imgPageLen)
     }
     return status;
 }
-
-
-
 
 /*********************************************************************
  * @fn      oadCheckDL
@@ -1294,4 +1257,60 @@ static uint8_t oadCheckDL(uint8_t imagePage)
     return (status);
 }
 
-#endif // (defined OTA_CLIENT) && (OTA_CLIENT == TRUE)
+/******************************************************************************
+ * @fn          zclOTA_getStatus
+ *
+ * @brief       Retrieves current ZCL OTA Status
+ *
+ * @param       none
+ *
+ * @return      ZCL OTA Status
+ */
+uint8_t zclOTA_getStatus ( void )
+{
+  return *zclOTA_ImageUpgradeStatus;
+}
+
+/*********************************************************************
+ * @fn      zclOTA_setAttributes
+ *
+ * @brief   Sets pointers to attributes used by ZCL OTA module
+ *
+ * @param   *attrs - set of attributes from the application
+ * @param   numAttrs - number of attributes in the list
+ *
+ * @return  void
+ */
+void zclOTA_setAttributes( const zclAttrRec_t *attrs, uint8_t numAttrs )
+{
+  uint8_t i;
+
+  for ( i = 0; i < numAttrs; i++ )
+  {
+    if ( attrs[i].clusterID == ZCL_CLUSTER_ID_OTA )
+    {
+      switch(attrs[i].attr.attrId)
+      {
+        case ATTRID_OTA_UPGRADE_FILE_OFFSET:
+        {
+          zclOTA_FileOffset = attrs[i].attr.dataPtr;
+        }
+        break;
+        case ATTRID_OTA_UPGRADE_DOWNLOADED_ZIG_BEE_STACK_VERSION:
+        {
+          zclOTA_DownloadedZigBeeStackVersion = attrs[i].attr.dataPtr;
+        }
+        break;
+        case ATTRID_OTA_UPGRADE_IMAGE_UPGRADE_STATUS:
+        {
+          zclOTA_ImageUpgradeStatus = attrs[i].attr.dataPtr;
+        }
+        break;
+        default:
+        break;
+      }
+    }
+  }
+}
+
+#endif // (defined OTA_CLIENT_STANDALONE) || (defined OTA_CLIENT_INTEGRATED

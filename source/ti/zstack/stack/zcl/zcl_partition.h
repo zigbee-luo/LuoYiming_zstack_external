@@ -55,7 +55,9 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
+#ifdef ZCL_PARTITION
 
 /******************************************************************************
  * CONSTANTS
@@ -315,6 +317,7 @@ extern ZStatus_t zclPartition_Send_ReadHandshakeParamRsp( uint8_t srcEP, afAddrT
 
 /*********************************************************************
 *********************************************************************/
+#endif // ZCL_PARTITION
 
 #ifdef __cplusplus
 }

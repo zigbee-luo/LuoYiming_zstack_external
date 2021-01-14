@@ -119,7 +119,6 @@ extern uint8_t stackTask_getStackServiceId(void);
  */
 extern Task_Handle* stackTaskGetTaskHndl(void);
 
-
 /*********************************************************************
 *********************************************************************/
 

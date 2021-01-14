@@ -42,7 +42,7 @@ const displayName = "Z-Stack";
 let topModules = [];
 let templates = [];
 
-if(deviceId.match(/CC2652R|CC1352R1|CC1352P1/))
+if(deviceId.match(/CC2652[RP]|CC1352R1|CC1352P1/))
 {
     let name = system.deviceData.deviceId;
     if(system.deviceData.board != null)
@@ -54,7 +54,7 @@ if(deviceId.match(/CC2652R|CC1352R1|CC1352P1/))
         /* Strip off everything after and including the first '.' */
         name = name.replace(/\..*/, "");
     }
-    if ((system.deviceData.board == null) || (system.deviceData.board != null && (!name.includes("P1")))) {
+    if ((system.deviceData.board == null) || (system.deviceData.board != null && (!name.includes("1352P1")))) {
         topModules = [
             {
                 displayName: "RF Stacks",
@@ -70,7 +70,15 @@ if(deviceId.match(/CC2652R|CC1352R1|CC1352P1/))
             {
                 name: "/ti/zstack/templates/gpd/ti_zstack_config.h.xdt",
                 outputPath: "ti_zstack_config.h"
-            }
+            },
+	        {
+	            name: "/ti/zstack/templates/zcl_config.c.xdt",
+	            outputPath: "zcl_config.c"
+	        },
+	        {
+	            name: "/ti/zstack/templates/zcl_config.h.xdt",
+	            outputPath: "zcl_config.h"
+	        },
         ];
     }
 }

@@ -145,63 +145,63 @@ uint8_t  zclSampleLight_ScenesNameSupport = 0;
 CONST zclCommandRec_t zclSampleLight_Cmds[] =
 {
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
-    COMMAND_BASIC_RESET_FACT_DEFAULT,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
+    COMMAND_BASIC_RESET_TO_FACTORY_DEFAULTS,
     CMD_DIR_SERVER_RECEIVED
   },
   {
-    ZCL_CLUSTER_ID_GEN_ON_OFF,
-    COMMAND_OFF,
+    ZCL_CLUSTER_ID_GENERAL_ON_OFF,
+    COMMAND_ON_OFF_OFF,
     CMD_DIR_SERVER_RECEIVED
   },
   {
-    ZCL_CLUSTER_ID_GEN_ON_OFF,
-    COMMAND_ON,
+    ZCL_CLUSTER_ID_GENERAL_ON_OFF,
+    COMMAND_ON_OFF_ON,
     CMD_DIR_SERVER_RECEIVED
   },
   {
-    ZCL_CLUSTER_ID_GEN_ON_OFF,
-    COMMAND_TOGGLE,
+    ZCL_CLUSTER_ID_GENERAL_ON_OFF,
+    COMMAND_ON_OFF_TOGGLE,
     CMD_DIR_SERVER_RECEIVED
   },
 #ifdef ZCL_LEVEL_CONTROL
   ,{
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     COMMAND_LEVEL_MOVE_TO_LEVEL,
     CMD_DIR_SERVER_RECEIVED
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     COMMAND_LEVEL_MOVE,
     CMD_DIR_SERVER_RECEIVED
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     COMMAND_LEVEL_STEP,
     CMD_DIR_SERVER_RECEIVED
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     COMMAND_LEVEL_STOP,
     CMD_DIR_SERVER_RECEIVED
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     COMMAND_LEVEL_MOVE_TO_LEVEL_WITH_ON_OFF,
     CMD_DIR_SERVER_RECEIVED
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     COMMAND_LEVEL_MOVE_WITH_ON_OFF,
     CMD_DIR_SERVER_RECEIVED
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     COMMAND_LEVEL_STEP_WITH_ON_OFF,
     CMD_DIR_SERVER_RECEIVED
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     COMMAND_LEVEL_STOP_WITH_ON_OFF,
     CMD_DIR_SERVER_RECEIVED
   }
@@ -222,7 +222,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
 {
   // *** General Basic Cluster Attributes ***
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_ZCL_VERSION,
       ZCL_DATATYPE_UINT8,
@@ -231,7 +231,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
+    ZCL_CLUSTER_ID_GENERAL_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
     {  // Attribute record
       ATTRID_BASIC_HW_VERSION,            // Attribute ID - Found in Cluster Library header (ie. zcl_general.h)
       ZCL_DATATYPE_UINT8,                 // Data Type - found in zcl.h
@@ -240,7 +240,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_MANUFACTURER_NAME,
       ZCL_DATATYPE_CHAR_STR,
@@ -249,7 +249,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_POWER_SOURCE,
       ZCL_DATATYPE_ENUM8,
@@ -258,16 +258,16 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
-      ATTRID_BASIC_PHYSICAL_ENV,
+      ATTRID_BASIC_PHYSICAL_ENVIRONMENT,
       ZCL_DATATYPE_ENUM8,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclSampleLight_PhysicalEnvironment
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -278,16 +278,16 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
 #ifdef ZCL_IDENTIFY
   // *** Identify Cluster Attribute ***
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     { // Attribute record
-      ATTRID_IDENTIFY_TIME,
+      ATTRID_IDENTIFY_IDENTIFY_TIME,
       ZCL_DATATYPE_UINT16,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclSampleLight_IdentifyTime
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -299,16 +299,16 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
 
   // *** On/Off Cluster Attributes ***
   {
-    ZCL_CLUSTER_ID_GEN_ON_OFF,
+    ZCL_CLUSTER_ID_GENERAL_ON_OFF,
     { // Attribute record
-      ATTRID_ON_OFF,
+      ATTRID_ON_OFF_ON_OFF,
       ZCL_DATATYPE_BOOLEAN,
       ACCESS_CONTROL_READ | ACCESS_REPORTABLE,
       (void*)&zclSampleLight_OnOff
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_ON_OFF,
+    ZCL_CLUSTER_ID_GENERAL_ON_OFF,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -319,7 +319,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
 
 #ifdef ZCL_LEVEL_CTRL
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     { // Attribute record
       ATTRID_LEVEL_CURRENT_LEVEL,
       ZCL_DATATYPE_UINT8,
@@ -328,7 +328,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     { // Attribute record
       ATTRID_LEVEL_REMAINING_TIME,
       ZCL_DATATYPE_UINT16,
@@ -337,7 +337,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     { // Attribute record
       ATTRID_LEVEL_ON_OFF_TRANSITION_TIME,
       ZCL_DATATYPE_UINT16,
@@ -346,7 +346,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     { // Attribute record
       ATTRID_LEVEL_ON_LEVEL,
       ZCL_DATATYPE_UINT8,
@@ -355,7 +355,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     { // Attribute record
       ATTRID_LEVEL_ON_TRANSITION_TIME,
       ZCL_DATATYPE_UINT16,
@@ -364,7 +364,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     { // Attribute record
       ATTRID_LEVEL_OFF_TRANSITION_TIME,
       ZCL_DATATYPE_UINT16,
@@ -373,7 +373,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     { // Attribute record
       ATTRID_LEVEL_DEFAULT_MOVE_RATE,
       ZCL_DATATYPE_UINT16,
@@ -382,7 +382,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+    ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -393,9 +393,9 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
 #endif
 #ifdef ZCL_GROUPS
   {
-    ZCL_CLUSTER_ID_GEN_GROUPS,
+    ZCL_CLUSTER_ID_GENERAL_GROUPS,
     {
-      ATTRID_GROUP_NAME_SUPPORT,
+      ATTRID_GROUPS_NAME_SUPPORT,
       ZCL_DATATYPE_BITMAP8,
       ACCESS_CONTROL_READ,
       (void*)&zclSampleLight_GroupsNameSupport
@@ -403,7 +403,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
   },
 
   {
-    ZCL_CLUSTER_ID_GEN_GROUPS,
+    ZCL_CLUSTER_ID_GENERAL_GROUPS,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -414,16 +414,16 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
 #endif
   // *** Scene Cluster Attributes ***
   {
-    ZCL_CLUSTER_ID_GEN_SCENES,
+    ZCL_CLUSTER_ID_GENERAL_SCENES,
     { // Attribute record
-      ATTRID_SCENES_COUNT,
+      ATTRID_SCENES_SCENE_COUNT,
       ZCL_DATATYPE_UINT8,
       ACCESS_CONTROL_READ,
       NULL // Use application's callback to Read this attribute
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_SCENES,
+    ZCL_CLUSTER_ID_GENERAL_SCENES,
     { // Attribute record
       ATTRID_SCENES_CURRENT_SCENE,
       ZCL_DATATYPE_UINT8,
@@ -432,7 +432,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_SCENES,
+    ZCL_CLUSTER_ID_GENERAL_SCENES,
     { // Attribute record
       ATTRID_SCENES_CURRENT_GROUP,
       ZCL_DATATYPE_UINT16,
@@ -441,7 +441,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_SCENES,
+    ZCL_CLUSTER_ID_GENERAL_SCENES,
     { // Attribute record
       ATTRID_SCENES_SCENE_VALID,
       ZCL_DATATYPE_BOOLEAN,
@@ -450,7 +450,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_SCENES,
+    ZCL_CLUSTER_ID_GENERAL_SCENES,
     { // Attribute record
       ATTRID_SCENES_NAME_SUPPORT,
       ZCL_DATATYPE_BITMAP8,
@@ -459,7 +459,7 @@ CONST zclAttrRec_t zclSampleLight_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_SCENES,
+    ZCL_CLUSTER_ID_GENERAL_SCENES,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -483,13 +483,13 @@ uint8_t CONST zclSampleLight_NumAttributes = ( sizeof(zclSampleLight_Attrs) / si
 // specific cluster IDs.
 const cId_t zclSampleLight_InClusterList[] =
 {
-  ZCL_CLUSTER_ID_GEN_BASIC,
-  ZCL_CLUSTER_ID_GEN_IDENTIFY,
-  ZCL_CLUSTER_ID_GEN_GROUPS,
-  ZCL_CLUSTER_ID_GEN_SCENES,
-  ZCL_CLUSTER_ID_GEN_ON_OFF
+  ZCL_CLUSTER_ID_GENERAL_BASIC,
+  ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
+  ZCL_CLUSTER_ID_GENERAL_GROUPS,
+  ZCL_CLUSTER_ID_GENERAL_SCENES,
+  ZCL_CLUSTER_ID_GENERAL_ON_OFF
 #ifdef ZCL_LEVEL_CTRL
-  , ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL
+  , ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL
 #endif
 };
 
@@ -500,9 +500,9 @@ SimpleDescriptionFormat_t zclSampleLight_SimpleDesc =
   SAMPLELIGHT_ENDPOINT,                  //  int Endpoint;
   ZCL_HA_PROFILE_ID,                     //  uint16_t AppProfId;
 #ifdef ZCL_LEVEL_CTRL
-  ZCL_HA_DEVICEID_DIMMABLE_LIGHT,        //  uint16_t AppDeviceId;
+  ZCL_DEVICEID_DIMMABLE_LIGHT,        //  uint16_t AppDeviceId;
 #else
-  ZCL_HA_DEVICEID_ON_OFF_LIGHT,          //  uint16_t AppDeviceId;
+  ZCL_DEVICEID_ON_OFF_LIGHT,          //  uint16_t AppDeviceId;
 #endif
   SAMPLELIGHT_DEVICE_VERSION,            //  int   AppDevVer:4;
   SAMPLELIGHT_FLAGS,                     //  int   AppFlags:4;
@@ -519,9 +519,9 @@ bdbTLDeviceInfo_t tlSampleLight_DeviceInfo =
   SAMPLELIGHT_ENDPOINT,                  //uint8_t endpoint;
   ZCL_HA_PROFILE_ID,                        //uint16_t profileID;
 #ifdef ZCL_LEVEL_CTRL
-      ZCL_HA_DEVICEID_DIMMABLE_LIGHT,        //  uint16_t AppDeviceId;
+      ZCL_DEVICEID_DIMMABLE_LIGHT,        //  uint16_t AppDeviceId;
 #else
-      ZCL_HA_DEVICEID_ON_OFF_LIGHT,          //  uint16_t AppDeviceId;
+      ZCL_DEVICEID_ON_OFF_LIGHT,          //  uint16_t AppDeviceId;
 #endif
 
   SAMPLELIGHT_DEVICE_VERSION,                    //uint8_t version;
@@ -551,8 +551,8 @@ void zclSampleLight_updateOnOffAttribute(uint8_t OnOff)
 #ifdef BDB_REPORTING
         zstack_bdbRepChangedAttrValueReq_t Req;
 
-        Req.attrID = ATTRID_ON_OFF;
-        Req.cluster = ZCL_CLUSTER_ID_GEN_ON_OFF;
+        Req.attrID = ATTRID_ON_OFF_ON_OFF;
+        Req.cluster = ZCL_CLUSTER_ID_GENERAL_ON_OFF;
         Req.endpoint = SAMPLELIGHT_ENDPOINT;
 
       Zstackapi_bdbRepChangedAttrValueReq(appServiceTaskId,&Req);
@@ -595,7 +595,7 @@ void zclSampleLight_updateCurrentLevelAttribute(uint8_t CurrentLevel)
         zstack_bdbRepChangedAttrValueReq_t Req;
 
         Req.attrID = ATTRID_LEVEL_CURRENT_LEVEL;
-        Req.cluster = ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL;
+        Req.cluster = ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL;
         Req.endpoint = SAMPLELIGHT_ENDPOINT;
 
       Zstackapi_bdbRepChangedAttrValueReq(appServiceTaskId,&Req);

@@ -49,9 +49,6 @@
 #include "hal_mcu.h"
 #endif
 
-// Endpoint for SYS App messages
-#define OTA_SYSAPP_ENDPOINT                 20
-
 #define OTA_APP_MAX_ATTRIBUTES              7
 
 // SYS App message format byte positions

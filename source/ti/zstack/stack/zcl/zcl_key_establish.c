@@ -42,6 +42,7 @@
  * INCLUDES
  */
 
+#include "ti_zstack_config.h"
 #include "hal_types.h"
 #include "zcomdef.h"
 #include "eccapi_163.h"
@@ -97,17 +98,17 @@
 // ZCL_KE_MSG_TYPE
 #define ZCL_KE_START_MSG         1
 #define ZCL_KE_START_DIRECT_MSG  2
-#define ZCL_KE_KEY_GEN_MSG       3
+#define ZCL_KE_KEY_GENERAL_MSG       3
 
 // Poll Rate Bits
 #define ZCL_KE_CLIENT_POLL_RATE_BIT  0x01
 #define ZCL_KE_SERVER_POLL_RATE_BIT  0x02
 
-// Time between stage 1 and stage 2 -- see ZCL_KE_KEY_GEN_STAGES_*
-#define ZCL_KE_KEY_GEN_TIMEOUT  500
+// Time between stage 1 and stage 2 -- see ZCL_KE_KEY_GENERAL_STAGES_*
+#define ZCL_KE_KEY_GENERAL_TIMEOUT  500
 
 // Invalid gen time
-#define ZCL_KE_GEN_INVALID_TIME  0xFF
+#define ZCL_KE_GENERAL_INVALID_TIME  0xFF
 
 // Configured poll rate for end device during key establishment
 #if !defined ( ZCL_KE_POLL_RATE )
@@ -125,21 +126,21 @@
 #endif
 
 // Configure server times for ephemeral and key data generation
-#if !defined ( ZCL_KE_SERVER_EPH_DATA_GEN_TIME )
-#define ZCL_KE_SERVER_EPH_DATA_GEN_TIME 30
+#if !defined ( ZCL_KE_SERVER_EPH_DATA_GENERAL_TIME )
+#define ZCL_KE_SERVER_EPH_DATA_GENERAL_TIME 30
 #endif
 
-#if !defined ( ZCL_KE_SERVER_CFM_KEY_GEN_TIME)
-#define ZCL_KE_SERVER_CFM_KEY_GEN_TIME 30
+#if !defined ( ZCL_KE_SERVER_CFM_KEY_GENERAL_TIME)
+#define ZCL_KE_SERVER_CFM_KEY_GENERAL_TIME 30
 #endif
 
 // Configure client times for ephemeral and key data generation
-#if !defined ( ZCL_KE_CLIENT_EPH_DATA_GEN_TIME )
-#define ZCL_KE_CLIENT_EPH_DATA_GEN_TIME 30
+#if !defined ( ZCL_KE_CLIENT_EPH_DATA_GENERAL_TIME )
+#define ZCL_KE_CLIENT_EPH_DATA_GENERAL_TIME 30
 #endif
 
-#if !defined ( ZCL_KE_CLIENT_CFM_KEY_GEN_TIME )
-#define ZCL_KE_CLIENT_CFM_KEY_GEN_TIME 30
+#if !defined ( ZCL_KE_CLIENT_CFM_KEY_GENERAL_TIME )
+#define ZCL_KE_CLIENT_CFM_KEY_GENERAL_TIME 30
 #endif
 
 // Configure the Trust Center's max server connections -- saved in NV "ZCD_NV_KE_MAX_DEVICES"
@@ -150,8 +151,8 @@
 // ZCL_KE_SERVER_CONN_STATE
 #define ZCL_KE_SERVER_CONN_INIT                   0
 #define ZCL_KE_SERVER_CONN_EPH_DATA_REQ_WAIT      1
-#define ZCL_KE_SERVER_CONN_KEY_GEN_WAIT           2
-#define ZCL_KE_SERVER_CONN_KEY_GEN_QUEUED         3
+#define ZCL_KE_SERVER_CONN_KEY_GENERAL_WAIT           2
+#define ZCL_KE_SERVER_CONN_KEY_GENERAL_QUEUED         3
 #define ZCL_KE_SERVER_CONN_CFM_KEY_DATA_REQ_WAIT  4
 
 // ZCL_KE_CLIENT_CONN_STATE
@@ -160,8 +161,8 @@
 #define ZCL_KE_CLIENT_CONN_READ_RSP_WAIT          2
 #define ZCL_KE_CLIENT_CONN_INIT_RSP_WAIT          5
 #define ZCL_KE_CLIENT_CONN_EPH_DATA_RSP_WAIT      6
-#define ZCL_KE_CLIENT_CONN_KEY_GEN_WAIT           7
-#define ZCL_KE_CLIENT_CONN_KEY_GEN_QUEUED         8
+#define ZCL_KE_CLIENT_CONN_KEY_GENERAL_WAIT           7
+#define ZCL_KE_CLIENT_CONN_KEY_GENERAL_QUEUED         8
 #define ZCL_KE_CLIENT_CONN_CFM_KEY_DATA_RSP_WAIT  9
 
 // Certificate fields
@@ -223,7 +224,7 @@ typedef struct
   uint16_t suite;
 } zclKE_StartDirectMsg_t;
 
-// ZCL_KE_KEY_GEN_MSG payload
+// ZCL_KE_KEY_GENERAL_MSG payload
 typedef struct
 {
   OsalPort_EventHdr hdr;
@@ -1184,8 +1185,8 @@ static uint8_t zclKE_InitiateCmdCheckGenTimes( zclKE_ConnCtxt_t *pCtxt,
 {
   uint8_t success;
 
-  if ( ( pCmd->ephDataGenTime < ZCL_KE_GEN_INVALID_TIME ) &&
-       ( pCmd->cfmKeyGenTime < ZCL_KE_GEN_INVALID_TIME  )    )
+  if ( ( pCmd->ephDataGenTime < ZCL_KE_GENERAL_INVALID_TIME ) &&
+       ( pCmd->cfmKeyGenTime < ZCL_KE_GENERAL_INVALID_TIME  )    )
   {
     success = TRUE;
   }
@@ -1586,8 +1587,8 @@ static ZStatus_t zclKE_SendInitiateCmd( zclKE_Conn_t *pConn, uint8_t cmdID, uint
   pBuf = pCmdBuf;
   *pBuf++ = LO_UINT16( pConn->suite );
   *pBuf++ = HI_UINT16( pConn->suite );
-  *pBuf++ = ZCL_KE_SERVER_EPH_DATA_GEN_TIME;
-  *pBuf++ = ZCL_KE_SERVER_CFM_KEY_GEN_TIME;
+  *pBuf++ = ZCL_KE_SERVER_EPH_DATA_GENERAL_TIME;
+  *pBuf++ = ZCL_KE_SERVER_CFM_KEY_GENERAL_TIME;
 
   // Get the certificate based on suite
   status = osal_nv_read( zclKE_GetField( pConn->suite, ZCL_KE_CERT_NV_ID ),
@@ -2108,7 +2109,7 @@ static void zclKE_ServerConnTerminate( zclKE_ConnCtxt_t *pCtxt )
 
   cmd.status = pCtxt->error;
   cmd.suites = zclKE_SupportedSuites;
-  cmd.waitTime = 2 * ( ZCL_KE_SERVER_EPH_DATA_GEN_TIME + ZCL_KE_SERVER_CFM_KEY_GEN_TIME );
+  cmd.waitTime = 2 * ( ZCL_KE_SERVER_EPH_DATA_GENERAL_TIME + ZCL_KE_SERVER_CFM_KEY_GENERAL_TIME );
 
   if ( pCtxt->pConn )
   {
@@ -2133,7 +2134,7 @@ static void zclKE_ServerConnTerminate( zclKE_ConnCtxt_t *pCtxt )
 /**************************************************************************************************
  * @fn      zclKE_ServerConnKeyGenTimeout
  *
- * @brief   Timeout triggers send of ZCL_KE_KEY_GEN_MSG(see ZCL_KE_KEY_GEN_STAGES_SERVER).
+ * @brief   Timeout triggers send of ZCL_KE_KEY_GENERAL_MSG(see ZCL_KE_KEY_GENERAL_STAGES_SERVER).
  *
  * @param   pConn - connection
  *
@@ -2149,14 +2150,14 @@ static void zclKE_ServerConnKeyGenTimeout( zclKE_Conn_t *pConn )
   if (pMsg)
   {
     // Send key generate message
-    pMsg->hdr.event = ZCL_KE_KEY_GEN_MSG;
+    pMsg->hdr.event = ZCL_KE_KEY_GENERAL_MSG;
     pMsg->hdr.status = 0;
     pMsg->server = TRUE;
     pMsg->partnerAddr = pConn->partner.addr.shortAddr;
     OsalPort_msgSend( zclKE_TaskID, (uint8_t *)pMsg ) ;
 
     // Change state
-    pConn->state = ZCL_KE_SERVER_CONN_KEY_GEN_QUEUED;
+    pConn->state = ZCL_KE_SERVER_CONN_KEY_GENERAL_QUEUED;
   }
   else
   {
@@ -2185,7 +2186,7 @@ static void zclKE_ServerConnTimeout( zclKE_Conn_t *pConn )
 
   switch ( pConn->state )
   {
-    case ZCL_KE_SERVER_CONN_KEY_GEN_WAIT:
+    case ZCL_KE_SERVER_CONN_KEY_GENERAL_WAIT:
       zclKE_ServerConnKeyGenTimeout( pConn );
       break;
 
@@ -2278,7 +2279,7 @@ static void zclKE_ServerProcessEphDataReq( zclKE_ConnCtxt_t *pCtxt,
   OsalPort_memcpy( pConn->pRmtEPublicKey, pCmd->pEphData, len );
 
   /*===============================================================================================
-  * ZCL_KE_KEY_GEN_STAGES_SERVER:
+  * ZCL_KE_KEY_GENERAL_STAGES_SERVER:
   *
   * Server key generation is broken into two stages in order to break up the calculation times,
   * which can starve processing time for other tasks.
@@ -2303,16 +2304,16 @@ static void zclKE_ServerProcessEphDataReq( zclKE_ConnCtxt_t *pCtxt,
   }
 
   // Set state to wait for key generation
-  pConn->state = ZCL_KE_SERVER_CONN_KEY_GEN_WAIT;
+  pConn->state = ZCL_KE_SERVER_CONN_KEY_GENERAL_WAIT;
 
   // Set key generation timeout
-  zclKE_ConnSetTimeout( pConn, ZCL_KE_KEY_GEN_TIMEOUT );
+  zclKE_ConnSetTimeout( pConn, ZCL_KE_KEY_GENERAL_TIMEOUT );
 }
 
 /**************************************************************************************************
  * @fn      zclKE_ServerProcessKeyGen
  *
- * @brief   Process ZCL_KE_KEY_GEN_MSG.
+ * @brief   Process ZCL_KE_KEY_GENERAL_MSG.
  *
  * @param   pCtxt - connection context
  *
@@ -2322,7 +2323,7 @@ static void zclKE_ServerProcessKeyGen( zclKE_ConnCtxt_t *pCtxt )
 {
   zclKE_Conn_t *pConn = pCtxt->pConn;
 
-  // Handle server connection key generation stage 2 -- see ZCL_KE_KEY_GEN_STAGES_SERVER
+  // Handle server connection key generation stage 2 -- see ZCL_KE_KEY_GENERAL_STAGES_SERVER
   if ( !zclKE_GenKeys( pCtxt ) )
   {
     // pCtxt->error set in "zclKE_GenKeys"
@@ -2634,7 +2635,7 @@ static ZStatus_t zclKE_ServerHdlSpecificCmd( zclIncoming_t *pInMsg )
 /**************************************************************************************************
  * @fn      zclKE_ServerKeyGenMsg
  *
- * @brief   Process server ZCL_KE_KEY_GEN_MSG.
+ * @brief   Process server ZCL_KE_KEY_GENERAL_MSG.
  *
  * @param   pMsg - incoming message to process
  *
@@ -2648,7 +2649,7 @@ static void zclKE_ServerKeyGenMsg( zclKE_KeyGenMsg_t *pMsg )
   pConn = zclKE_ServerConnFind( pMsg->partnerAddr );
 
   // Check for connection and state
-  if ( pConn && ( pConn->state == ZCL_KE_SERVER_CONN_KEY_GEN_QUEUED ) )
+  if ( pConn && ( pConn->state == ZCL_KE_SERVER_CONN_KEY_GENERAL_QUEUED ) )
   {
     zclKE_ConnCtxt_t ctxt;
 
@@ -2944,7 +2945,7 @@ static void zclKE_ClientConnTerminate( zclKE_ConnCtxt_t *pCtxt )
 
   cmd.status = pCtxt->error;
   cmd.suites = zclKE_SupportedSuites;
-  cmd.waitTime = 2 * ( ZCL_KE_CLIENT_EPH_DATA_GEN_TIME + ZCL_KE_CLIENT_CFM_KEY_GEN_TIME );
+  cmd.waitTime = 2 * ( ZCL_KE_CLIENT_EPH_DATA_GENERAL_TIME + ZCL_KE_CLIENT_CFM_KEY_GENERAL_TIME );
 
   if ( pCtxt->pConn )
   {
@@ -2969,7 +2970,7 @@ static void zclKE_ClientConnTerminate( zclKE_ConnCtxt_t *pCtxt )
 /**************************************************************************************************
  * @fn      zclKE_ClientConnKeyGenTimeout
  *
- * @brief   Timeout triggers send of ZCL_KE_KEY_GEN_MSG(see ZCL_KE_KEY_GEN_STAGES_CLIENT).
+ * @brief   Timeout triggers send of ZCL_KE_KEY_GENERAL_MSG(see ZCL_KE_KEY_GENERAL_STAGES_CLIENT).
  *
  * @param   pConn - connection
  *
@@ -2985,14 +2986,14 @@ static void zclKE_ClientConnKeyGenTimeout( zclKE_Conn_t *pConn )
   if (pMsg)
   {
     // Send key generate message
-    pMsg->hdr.event = ZCL_KE_KEY_GEN_MSG;
+    pMsg->hdr.event = ZCL_KE_KEY_GENERAL_MSG;
     pMsg->hdr.status = 0;
     pMsg->server = FALSE;
     pMsg->partnerAddr = pConn->partner.addr.shortAddr;
     OsalPort_msgSend( zclKE_TaskID, (uint8_t *)pMsg ) ;
 
     // Change state
-    pConn->state = ZCL_KE_CLIENT_CONN_KEY_GEN_QUEUED;
+    pConn->state = ZCL_KE_CLIENT_CONN_KEY_GENERAL_QUEUED;
   }
   else
   {
@@ -3021,7 +3022,7 @@ static void zclKE_ClientConnTimeout( zclKE_Conn_t *pConn )
 
   switch ( pConn->state )
   {
-    case ZCL_KE_CLIENT_CONN_KEY_GEN_WAIT:
+    case ZCL_KE_CLIENT_CONN_KEY_GENERAL_WAIT:
       zclKE_ClientConnKeyGenTimeout( pConn );
       break;
 
@@ -3234,7 +3235,7 @@ static void zclKE_ClientProcessEphDataRsp( zclKE_ConnCtxt_t *pCtxt,
   OsalPort_memcpy( pConn->pRmtEPublicKey, pCmd->pEphData, len );
 
   /*===============================================================================================
-  * ZCL_KE_KEY_GEN_STAGES_CLIENT:
+  * ZCL_KE_KEY_GENERAL_STAGES_CLIENT:
   *
   * Client key generation is broken into two stages in order to break up the calculation times,
   * which can starve processing time for other tasks.
@@ -3252,16 +3253,16 @@ static void zclKE_ClientProcessEphDataRsp( zclKE_ConnCtxt_t *pCtxt,
   ===============================================================================================*/
 
   // Set state to wait for key generation
-  pConn->state = ZCL_KE_CLIENT_CONN_KEY_GEN_WAIT;
+  pConn->state = ZCL_KE_CLIENT_CONN_KEY_GENERAL_WAIT;
 
   // Set key generation timeout
-  zclKE_ConnSetTimeout( pConn, ZCL_KE_KEY_GEN_TIMEOUT );
+  zclKE_ConnSetTimeout( pConn, ZCL_KE_KEY_GENERAL_TIMEOUT );
 }
 
 /**************************************************************************************************
  * @fn      zclKE_ClientProcessKeyGen
  *
- * @brief   Process ZCL_KE_KEY_GEN_MSG.
+ * @brief   Process ZCL_KE_KEY_GENERAL_MSG.
  *
  * @param   pCtxt - connection context
  *
@@ -3272,7 +3273,7 @@ static void zclKE_ClientProcessKeyGen( zclKE_ConnCtxt_t *pCtxt )
   uint8_t MAC[ZCL_KE_MAC_LEN];
   zclKE_Conn_t *pConn = pCtxt->pConn;
 
-  // Handle server connection key generation stage 2 -- see ZCL_KE_KEY_GEN_STAGES_CLIENT
+  // Handle server connection key generation stage 2 -- see ZCL_KE_KEY_GENERAL_STAGES_CLIENT
   if ( !zclKE_GenKeys( pCtxt ) )
   {
     // pCtxt->error set in "zclKE_GenKeys"
@@ -3583,7 +3584,7 @@ static ZStatus_t zclKE_ClientHdlSpecificCmd( zclIncoming_t *pInMsg )
 /**************************************************************************************************
  * @fn      zclKE_ClientKeyGenMsg
  *
- * @brief   Process client ZCL_KE_KEY_GEN_MSG.
+ * @brief   Process client ZCL_KE_KEY_GENERAL_MSG.
  *
  * @param   pMsg - incoming message to process
  *
@@ -3597,7 +3598,7 @@ static void zclKE_ClientKeyGenMsg( zclKE_KeyGenMsg_t *pMsg )
   pConn = zclKE_ClientConnFind( pMsg->partnerAddr );
 
   // Check for connection and state
-  if ( pConn && ( pConn->state == ZCL_KE_CLIENT_CONN_KEY_GEN_QUEUED ) )
+  if ( pConn && ( pConn->state == ZCL_KE_CLIENT_CONN_KEY_GENERAL_QUEUED ) )
   {
     zclKE_ConnCtxt_t ctxt;
 
@@ -3779,7 +3780,7 @@ static ZStatus_t zclKE_HdlIncoming( zclIncoming_t *pInMsg )
 /**************************************************************************************************
  * @fn      zclKE_ProcessKeyGenMsg
  *
- * @brief   Process ZCL_KE_KEY_GEN_MSG.
+ * @brief   Process ZCL_KE_KEY_GENERAL_MSG.
  *
  * @param   pMsg - incoming message to process
  *
@@ -4318,7 +4319,7 @@ uint16_t zclKE_ProcessEvent( uint8_t taskID, uint16_t events )
           zclKE_ProcessStartDirectMsg( (zclKE_StartDirectMsg_t *)pMsg );
           break;
 
-        case ZCL_KE_KEY_GEN_MSG:
+        case ZCL_KE_KEY_GENERAL_MSG:
           zclKE_ProcessKeyGenMsg( (zclKE_KeyGenMsg_t *)pMsg );
           break;
 

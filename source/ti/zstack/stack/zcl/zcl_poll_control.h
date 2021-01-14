@@ -49,8 +49,9 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
-
+#ifdef ZCL_POLL_CONTROL
 /******************************************************************************
  * CONSTANTS
  */
@@ -265,6 +266,7 @@ ZStatus_t zclPollControl_Send_SetShortPollInterval( uint8_t srcEP, afAddrType_t 
 
 /*********************************************************************
 *********************************************************************/
+#endif // ZCL_POLL_CONTROL
 
 #ifdef __cplusplus
 }

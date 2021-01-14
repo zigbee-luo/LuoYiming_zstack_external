@@ -178,7 +178,7 @@ Cllc_statistics_t Cllc_statistics;
  * Variable to start the assignment of short addresses by the coordinator
  * to each the device that associates to it
  */
-uint16_t Cllc_devShortAddr = 0x0001;
+uint16_t Cllc_devShortAddr = CLLC_ASSOC_DEVICE_STARTING_NUMBER;
 uint8_t CONST Cllc_keySource[] = CLLC_DEFAULT_KEY_SOURCE;
 
 /******************************************************************************
@@ -430,8 +430,8 @@ void Cllc_init(ApiMac_callbacks_t *pMacCbs, Cllc_callbacks_t *pCllcCbs)
     /* setup short address */
     ApiMac_mlmeSetReqUint16(ApiMac_attribute_shortAddress,
                             coordInfoBlock.shortAddr);
-#if defined( POWER_MEAS ) || defined (TIMAC_AGAMA_FPGA)
-    /* Always set association permit to 1*/
+#if defined( POWER_MEAS )
+    /* Always set association permit to 1 */
     ApiMac_mlmeSetReqBool(ApiMac_attribute_associatePermit, true);
 #endif
 
@@ -462,6 +462,9 @@ void Cllc_init(ApiMac_callbacks_t *pMacCbs, Cllc_callbacks_t *pCllcCbs)
         ApiMac_mlmeSetFhReqUint8(ApiMac_FHAttribute_broadcastDwellInterval,
                                  FH_BROADCAST_DWELL_TIME);
 
+        /* Stack broadcast interval is set to half the application broadcast 
+         * message generation rate. This prevents the transmit queue from
+         * overflowing by transmitting faster than the queue can fill. */
         ApiMac_mlmeSetFhReqUint32(ApiMac_FHAttribute_BCInterval,
                                   (FH_BROADCAST_INTERVAL >> 1));
 
@@ -826,6 +829,12 @@ void Cllc_restoreNetwork(Llc_netInfo_t *pNetworkInfo, uint16_t numDevices,
             /* Add to association table */
             maintainAssocTable(&pDevList->devInfo, &pDevList->capInfo, 1, 0,
                                (false));
+
+            /* Get the address for assigning to new devices */
+            if( pDevList->devInfo.shortAddress >= Cllc_devShortAddr)
+            {
+                Cllc_devShortAddr = pDevList->devInfo.shortAddress + 1;
+            }
         }
     }
     else
@@ -845,6 +854,13 @@ void Cllc_restoreNetwork(Llc_netInfo_t *pNetworkInfo, uint16_t numDevices,
             /* Add to association table */
             maintainAssocTable(&item.devInfo, &item.capInfo, 1, 0,
                                (false));
+
+            /* Get the address for assigning to new devices */
+            if( item.devInfo.shortAddress >= Cllc_devShortAddr)
+            {
+                Cllc_devShortAddr = item.devInfo.shortAddress + 1;
+            }
+
 #ifdef FEATURE_SECURE_COMMISSIONING
             {
                 /* Mark the devices that need to be re-commissioned */
@@ -1173,17 +1189,21 @@ static void processState(Cllc_coord_states_t state)
             break;
 
         case Cllc_coordStates_scanEdCnf:
-
-            if(!CONFIG_FH_ENABLE)
+            /* Do not re-send start request for ED Scan if network has started */
+            if(coordInfoBlock.currentCllcState < Cllc_states_started)
             {
-                /* check for duplicate PAN ID */
-                configureStartParam(coordInfoBlock.channel);
+                if(!CONFIG_FH_ENABLE)
+                {
+                    /* check for duplicate PAN ID */
+                    configureStartParam(coordInfoBlock.channel);
 
-                /* setup short address */
-                ApiMac_mlmeSetReqUint16(ApiMac_attribute_shortAddress,
-                                        coordInfoBlock.shortAddr);
+                    /* setup short address */
+                    ApiMac_mlmeSetReqUint16(ApiMac_attribute_shortAddress,
+                                            coordInfoBlock.shortAddr);
+                }
+
+                sendStartReq(CONFIG_FH_ENABLE);
             }
-            sendStartReq(CONFIG_FH_ENABLE);
             break;
 
         case Cllc_coordStates_startCnf:
@@ -1297,8 +1317,13 @@ static void scanCnfCb(ApiMac_mlmeScanCnf_t *pData)
         }
         else if(pData->scanType == ApiMac_scantype_energyDetect)
         {
-            coordInfoBlock.channel
+            /* Do not update coordinator channel if network has already started */
+            if(coordInfoBlock.currentCllcState < Cllc_states_started)
+            {
+                  coordInfoBlock.channel
                   = findBestChannel(pData->result.pEnergyDetect);
+            }
+
             switchState(Cllc_coordStates_scanEdCnf);
         }
     }
@@ -1517,7 +1542,9 @@ static void assocIndCb(ApiMac_mlmeAssociateInd_t *pData)
     {
         /* New device, make a new short address */
         assocRsp.status = ApiMac_assocStatus_panAccessDenied;
-        devInfo.shortAddress = Cllc_numOfDevices + CLLC_ASSOC_DEVICE_STARTING_NUMBER;
+
+        devInfo.shortAddress = Cllc_devShortAddr;
+        Cllc_devShortAddr++;
 
         if(pCllcCallbacksCopy && pCllcCallbacksCopy->pDeviceJoiningCb)
         {
@@ -1788,7 +1815,7 @@ static void commStatusIndCb(ApiMac_mlmeCommStatusInd_t *pCommStatusInd)
 {
 #ifdef FEATURE_SECURE_COMMISSIONING
     /* Association response also received by sensor - start CM is not already in progress */
-    if((pCommStatusInd->reason == ApiMac_commStatusReason_assocRsp))
+    if(pCommStatusInd->reason == ApiMac_commStatusReason_assocRsp)
     {
         if((pCommStatusInd->status == ApiMac_status_success) &&(SM_Current_State != SM_CM_InProgress))
         {

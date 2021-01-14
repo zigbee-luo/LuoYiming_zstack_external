@@ -41,6 +41,7 @@
  * INCLUDES
  */
 #include "zcomdef.h"
+#include "ti_zstack_config.h"
 #include "zcl.h"
 #include "zcl_general.h"
 #include "zcl_partition.h"
@@ -116,8 +117,8 @@ ZStatus_t zclPartition_RegisterCmdCallbacks( uint8_t endpoint, zclPartition_AppC
   // Register as a ZCL Plugin
   if ( zclPartitionPluginRegisted == FALSE )
   {
-    zcl_registerPlugin( ZCL_CLUSTER_ID_GEN_PARTITION,
-                        ZCL_CLUSTER_ID_GEN_PARTITION,
+    zcl_registerPlugin( ZCL_CLUSTER_ID_GENERAL_PARTITION,
+                        ZCL_CLUSTER_ID_GENERAL_PARTITION,
                         zclPartition_HdlIncoming );
     zclPartitionPluginRegisted = TRUE;
   }
@@ -197,7 +198,7 @@ ZStatus_t zclPartition_Send_TransferPartitionedFrame( uint8_t srcEP, afAddrType_
   offset += pCmd->frameLen;
 
   // send, with payload
-  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_PARTITION,
+  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_PARTITION,
                             COMMAND_PARTITION_TRANSFER_PARTITIONED_FRAME, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                             disableDefaultRsp, 0, seqNum, offset, buf );
 
@@ -252,7 +253,7 @@ ZStatus_t zclPartition_Send_ReadHandshakeParam( uint8_t srcEP, afAddrType_t *dst
   }
 
   // send, with payload
-  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_PARTITION,
+  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_PARTITION,
                             COMMAND_PARTITION_READ_HANDSHAKE_PARAM, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                             disableDefaultRsp, 0, seqNum, buflen, buf);
 
@@ -316,7 +317,7 @@ ZStatus_t zclPartition_Send_WriteHandshakeParam( uint8_t srcEP, afAddrType_t *ds
   }
 
   // send, with payload
-  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_PARTITION,
+  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_PARTITION,
                             COMMAND_PARTITION_WRITE_HANDSHAKE_PARAM, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                             disableDefaultRsp, 0, seqNum, offset, buf);
 
@@ -388,7 +389,7 @@ ZStatus_t zclPartition_Send_MultipleAck( uint8_t srcEP, afAddrType_t *dstAddr,
   }
 
   // send, with payload
-  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_PARTITION,
+  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_PARTITION,
                             COMMAND_PARTITION_MULTIPLE_ACK, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                             disableDefaultRsp, 0, seqNum, offset, buf);
 
@@ -453,7 +454,7 @@ ZStatus_t zclPartition_Send_ReadHandshakeParamRsp( uint8_t srcEP, afAddrType_t *
   buflen = offset;
 
   // send, with payload
-  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_PARTITION,
+  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_PARTITION,
                             COMMAND_PARTITION_READ_HANDSHAKE_PARAM_RSP, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                             disableDefaultRsp, 0, seqNum, buflen, buf);
 

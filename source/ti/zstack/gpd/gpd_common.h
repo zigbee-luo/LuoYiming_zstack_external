@@ -71,36 +71,36 @@ extern "C"
 #define Z_EXATDDR_LEN              8
 
 // General Clusters
-#define ZCL_CLUSTER_ID_GEN_BASIC                             0x0000
-#define ZCL_CLUSTER_ID_GEN_POWER_CFG                         0x0001
-#define ZCL_CLUSTER_ID_GEN_DEVICE_TEMP_CONFIG                0x0002
-#define ZCL_CLUSTER_ID_GEN_IDENTIFY                          0x0003
-#define ZCL_CLUSTER_ID_GEN_GROUPS                            0x0004
-#define ZCL_CLUSTER_ID_GEN_SCENES                            0x0005
-#define ZCL_CLUSTER_ID_GEN_ON_OFF                            0x0006
-#define ZCL_CLUSTER_ID_GEN_ON_OFF_SWITCH_CONFIG              0x0007
-#define ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL                     0x0008
-#define ZCL_CLUSTER_ID_GEN_ALARMS                            0x0009
-#define ZCL_CLUSTER_ID_GEN_TIME                              0x000A
-#define ZCL_CLUSTER_ID_GEN_LOCATION                          0x000B
-#define ZCL_CLUSTER_ID_GEN_ANALOG_INPUT_BASIC                0x000C
-#define ZCL_CLUSTER_ID_GEN_ANALOG_OUTPUT_BASIC               0x000D
-#define ZCL_CLUSTER_ID_GEN_ANALOG_VALUE_BASIC                0x000E
-#define ZCL_CLUSTER_ID_GEN_BINARY_INPUT_BASIC                0x000F
-#define ZCL_CLUSTER_ID_GEN_BINARY_OUTPUT_BASIC               0x0010
-#define ZCL_CLUSTER_ID_GEN_BINARY_VALUE_BASIC                0x0011
-#define ZCL_CLUSTER_ID_GEN_MULTISTATE_INPUT_BASIC            0x0012
-#define ZCL_CLUSTER_ID_GEN_MULTISTATE_OUTPUT_BASIC           0x0013
-#define ZCL_CLUSTER_ID_GEN_MULTISTATE_VALUE_BASIC            0x0014
-#define ZCL_CLUSTER_ID_GEN_COMMISSIONING                     0x0015
-#define ZCL_CLUSTER_ID_GEN_PARTITION                         0x0016
+#define ZCL_CLUSTER_ID_GENERAL_BASIC                             0x0000
+#define ZCL_CLUSTER_ID_GENERAL_POWER_CFG                         0x0001
+#define ZCL_CLUSTER_ID_GENERAL_DEVICE_TEMP_CONFIG                0x0002
+#define ZCL_CLUSTER_ID_GENERAL_IDENTIFY                          0x0003
+#define ZCL_CLUSTER_ID_GENERAL_GROUPS                            0x0004
+#define ZCL_CLUSTER_ID_GENERAL_SCENES                            0x0005
+#define ZCL_CLUSTER_ID_GENERAL_ON_OFF                            0x0006
+#define ZCL_CLUSTER_ID_GENERAL_ON_OFF_SWITCH_CONFIG              0x0007
+#define ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL                     0x0008
+#define ZCL_CLUSTER_ID_GENERAL_ALARMS                            0x0009
+#define ZCL_CLUSTER_ID_GENERAL_TIME                              0x000A
+#define ZCL_CLUSTER_ID_GENERAL_LOCATION                          0x000B
+#define ZCL_CLUSTER_ID_GENERAL_ANALOG_INPUT_BASIC                0x000C
+#define ZCL_CLUSTER_ID_GENERAL_ANALOG_OUTPUT_BASIC               0x000D
+#define ZCL_CLUSTER_ID_GENERAL_ANALOG_VALUE_BASIC                0x000E
+#define ZCL_CLUSTER_ID_GENERAL_BINARY_INPUT_BASIC                0x000F
+#define ZCL_CLUSTER_ID_GENERAL_BINARY_OUTPUT_BASIC               0x0010
+#define ZCL_CLUSTER_ID_GENERAL_BINARY_VALUE_BASIC                0x0011
+#define ZCL_CLUSTER_ID_GENERAL_MULTISTATE_INPUT_BASIC            0x0012
+#define ZCL_CLUSTER_ID_GENERAL_MULTISTATE_OUTPUT_BASIC           0x0013
+#define ZCL_CLUSTER_ID_GENERAL_MULTISTATE_VALUE_BASIC            0x0014
+#define ZCL_CLUSTER_ID_GENERAL_COMMISSIONING                     0x0015
+#define ZCL_CLUSTER_ID_GENERAL_PARTITION                         0x0016
 
 #define ZCL_CLUSTER_ID_OTA                                   0x0019
 
-#define ZCL_CLUSTER_ID_GEN_POWER_PROFILE                     0x001A
-#define ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL                 0x001B
+#define ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE                     0x001A
+#define ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL                 0x001B
 
-#define ZCL_CLUSTER_ID_GEN_POLL_CONTROL                      0x0020
+#define ZCL_CLUSTER_ID_GENERAL_POLL_CONTROL                      0x0020
 
 #define ZCL_CLUSTER_ID_GREEN_POWER                           0x0021
 
@@ -267,7 +267,7 @@ extern "C"
 
 enum
 {
-  GP_COMMAND_IDENTIFY,
+  GP_COMMAND_IDENTIFY_IDENTIFY,
   GP_COMMAND_RECALL_SCENE0 = 0x10,
   GP_COMMAND_RECALL_SCENE1,
   GP_COMMAND_RECALL_SCENE2,

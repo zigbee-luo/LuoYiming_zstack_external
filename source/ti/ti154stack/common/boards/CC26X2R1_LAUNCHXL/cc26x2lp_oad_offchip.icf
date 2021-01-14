@@ -93,7 +93,7 @@ place at address mem:FLASH_START { readonly section .intvec };
 keep { section .intvec};
 
 /* Place the CCA area at the end of flash */
-"AGAMA_CCFG_AREA":
+"CCFG_AREA":
 place noload in FLASH_LAST_region { readonly section .ccfg };
 
 //place in FLASH_region { readonly section .const object mac_user_config.o };

@@ -90,7 +90,7 @@
 #include <ti/drivers/apps/Button.h>
 #include <ti/drivers/apps/LED.h>
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 #include "zcl_sampleapps_ui.h"
 #include "zcl_sample_app_def.h"
 #endif
@@ -101,7 +101,9 @@
 #include "zstackmsg.h"
 #include "zcl_port.h"
 
+#include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Task.h>
 #include "zstackapi.h"
 #include "util_timer.h"
 #include "addr_mgr.h"
@@ -151,7 +153,7 @@ static Clock_Struct AutoEnrollReqClkStruct;
 // Passed in function pointers to the NV driver
 static NVINTF_nvFuncts_t *pfnZdlNV = NULL;
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 static uint16_t zclSampleZone_BdbCommissioningModes;
 #endif
 
@@ -160,9 +162,8 @@ afAddrType_t zclSampleZone_DstAddr;
 //Temporal variable to store the CIE endpoint
 static uint8_t tempCIEsrcEndpoint = 0;
 
+#ifndef CUI_DISABLE
 static LED_Handle gRedLedHandle;
-
-#ifdef USE_ZCL_SAMPLEAPP_UI
 CONST char zclSampleZone_appStr[] = APP_TITLE_STR;
 CUI_clientHandle_t gCuiHandle;
 static uint32_t gSampleZoneInfoLine1;
@@ -190,16 +191,16 @@ static void zclSampleZone_processEndDeviceRejoinTimeoutCallback(UArg a0);
 #endif
 static void zclSampleZone_processAutoEnrollReqTimeoutCallback(UArg a0);
 
-static void zclSampleZone_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleZone_Init( void );
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
+static void zclSampleZone_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleZone_InitializeStatusLine(CUI_clientHandle_t gCuiHandle);
 static void zclSampleZone_UpdateStatusLine(void);
+static void zclSampleZone_RemoveAppNvmData(void);
 #endif
 
 static void zclSampleZone_BasicResetCB( void );
-static void zclSampleZone_RemoveAppNvmData(void);
 
 static void zclSampleZone_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *bdbCommissioningModeMsg);
 
@@ -220,10 +221,12 @@ static uint8_t zclSampleZone_ProcessInDiscAttrsExtRspCmd( zclIncoming_t *pInMsg 
 
 #ifdef ZCL_ZONE
 static void zclSampleZone_SendEnrollReqToCIE(void);
-static void zclSampleZone_SendChangeNotification(void);
 static ZStatus_t zclSampleZone_EnrollResponseCB(zclZoneEnrollRsp_t *rsp);
 static uint8_t zclSampleZone_AuthenticateCIE(afAddrType_t *srcAddr, zclAttrRec_t *pAttr, uint8_t oper);
+#ifndef CUI_DISABLE
+static void zclSampleZone_SendChangeNotification(void);
 static void ArrayToString (uint8_t * buf, char * str, uint8_t num_of_digists, bool big_endian);
+#endif
 #endif
 
 
@@ -259,6 +262,7 @@ static zclGeneral_AppCallbacks_t zclSampleZone_CmdCallbacks =
   NULL,                                   // Level Control Move command
   NULL,                                   // Level Control Step command
   NULL,                                   // Level Control Stop command
+  NULL,                                   // Level Control Move to Closest Frequency command
 #endif
 #ifdef ZCL_GROUPS
   NULL,                                   // Group Response commands
@@ -408,7 +412,7 @@ static void zclSampleZone_Init( void )
   zcl_registerAttrList( SAMPLEFIREDETECTOR_ENDPOINT, zclSampleZone_NumAttributes, zclSampleZone_Attrs );
 
   // Register the Application to receive the unprocessed Foundation command/response messages
-  zclport_registerZclHandleExternal(zclSampleZone_ProcessIncomingMsg);
+  zclport_registerZclHandleExternal(SAMPLEFIREDETECTOR_ENDPOINT, zclSampleZone_ProcessIncomingMsg);
 
   zcl_registerReadWriteCB( SAMPLEFIREDETECTOR_ENDPOINT, NULL, zclSampleZone_AuthenticateCIE );
 
@@ -427,7 +431,7 @@ static void zclSampleZone_Init( void )
                        SAMPLEAPP_PROCESS_GP_EXPIRE_DUPLICATE_EVT, SAMPLEAPP_PROCESS_GP_TEMP_MASTER_EVT);
 #endif
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   // set up default application BDB commissioning modes based on build type
   if(ZG_BUILD_COORDINATOR_TYPE && ZG_DEVICE_COORDINATOR_TYPE)
   {
@@ -482,7 +486,7 @@ static void zclSampleZone_Init( void )
   Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
 }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 /*********************************************************************
  * @fn          zclSampleZone_RemoveAppNvmData
  *
@@ -542,7 +546,7 @@ static void zclSampleZone_initializeClocks(void)
 {
 #if ZG_BUILD_ENDDEVICE_TYPE
     // Initialize the timers needed for this application
-    EndDeviceRejoinClkHandle = Timer_construct(
+    EndDeviceRejoinClkHandle = UtilTimer_construct(
     &EndDeviceRejoinClkStruct,
     zclSampleZone_processEndDeviceRejoinTimeoutCallback,
     SAMPLEAPP_END_DEVICE_REJOIN_DELAY,
@@ -550,7 +554,7 @@ static void zclSampleZone_initializeClocks(void)
 #endif
 
     // Initialize the timers needed for this application
-    AutoEnrollReqClkHandle = Timer_construct(
+    AutoEnrollReqClkHandle = UtilTimer_construct(
     &AutoEnrollReqClkStruct,
     zclSampleZone_processAutoEnrollReqTimeoutCallback,
     SAMPLEAPP_AUTO_ENROLL_REQ_DELAY,
@@ -657,7 +661,7 @@ static void zclSampleZone_process_loop(void)
                 OsalPort_msgDeallocate((uint8_t*)pMsg);
             }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             //Process the events that the UI may have
             zclsampleApp_ui_event_loop();
 #endif
@@ -674,7 +678,9 @@ static void zclSampleZone_process_loop(void)
                 zstack_zdoSetBindUnbindAuthAddr.ClusterId = ZCL_CLUSTER_ID_SS_IAS_ZONE;
                 Zstackapi_ZdoSetBindUnbindAuthAddrReq(appServiceTaskId, &zstack_zdoSetBindUnbindAuthAddr);
 
+#ifndef CUI_DISABLE
                 zclSampleZone_UpdateStatusLine();
+#endif
 
                 //save in nv the CIE Address
                 zclport_writeNV(IAS_ZONE_NV_ID, IAS_ZONE_CIE_ADDRESS_NV_SUBID, sizeof(zclSampleZone_CIE_Address),zclSampleZone_CIE_Address);
@@ -726,7 +732,7 @@ static void zclSampleZone_process_loop(void)
                 appServiceTaskEvents &= ~SAMPLEAPP_AUTO_ENROLL_REQ_EVT;
             }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   //Update status line
   zclSampleZone_UpdateStatusLine();
 #endif
@@ -761,7 +767,7 @@ static void zclSampleZone_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
           case zstackmsg_CmdIDs_BDB_IDENTIFY_TIME_CB:
               {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbIdentifyTimeoutInd_t *pInd;
                 pInd = (zstackmsg_bdbIdentifyTimeoutInd_t*) pMsg;
                 uiProcessIdentifyTimeChange(&(pInd->EndPoint));
@@ -771,7 +777,7 @@ static void zclSampleZone_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
           case zstackmsg_CmdIDs_BDB_BIND_NOTIFICATION_CB:
               {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbBindNotificationInd_t *pInd;
                 pInd = (zstackmsg_bdbBindNotificationInd_t*) pMsg;
                 uiProcessBindNotification(&(pInd->Req));
@@ -815,7 +821,7 @@ static void zclSampleZone_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 #endif
           case zstackmsg_CmdIDs_DEV_STATE_CHANGE_IND:
           {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             // The ZStack Thread is indicating a State change
             zstackmsg_devStateChangeInd_t *pInd =
                 (zstackmsg_devStateChangeInd_t *)pMsg;
@@ -860,7 +866,7 @@ static void zclSampleZone_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
           case zstackmsg_CmdIDs_GP_COMMISSIONING_MODE_IND:
           {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             zstackmsg_gpCommissioningModeInd_t *pInd;
             pInd = (zstackmsg_gpCommissioningModeInd_t*)pMsg;
             UI_SetGPPCommissioningMode( &(pInd->Req) );
@@ -1048,14 +1054,14 @@ static void zclSampleZone_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *
       else
       {
         //Parent not found, attempt to rejoin again after a fixed delay
-        Timer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
-        Timer_start(&EndDeviceRejoinClkStruct);
+        UtilTimer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
+        UtilTimer_start(&EndDeviceRejoinClkStruct);
       }
     break;
 #endif
   }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   UI_UpdateBdbStatusLine(bdbCommissioningModeMsg);
 #endif
 }
@@ -1079,7 +1085,7 @@ static void zclSampleZone_BasicResetCB( void )
   zclport_writeNV(IAS_ZONE_NV_ID, IAS_ZONE_ZONE_ID_NV_SUBID, sizeof(zclSampleZone_ZoneId),&zclSampleZone_ZoneId);
   zclport_writeNV(IAS_ZONE_NV_ID, IAS_ZONE_ZONE_STATE_NV_SUBID, sizeof(zclSampleZone_ZoneState),&zclSampleZone_ZoneState);
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   zclSampleZone_UpdateStatusLine();
 #endif
 }
@@ -1318,7 +1324,7 @@ static uint8_t zclSampleZone_ProcessInDiscAttrsExtRspCmd( zclIncoming_t *pInMsg 
 /****************************************************************************
 ****************************************************************************/
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 /*********************************************************************
  * @fn      zclSampleZone_processKey
  *
@@ -1494,53 +1500,12 @@ static ZStatus_t zclSampleZone_EnrollResponseCB(zclZoneEnrollRsp_t *rsp)
         break;
     }
 
+#ifndef CUI_DISABLE
     zclSampleZone_UpdateStatusLine();
+#endif
 
     return (ZStatus_t)(0)  ;
 }
-
-
-/*******************************************************************************
-* @fn      zclSampleZone_SendChangeNotification
-*
-* @brief
-*
-* @param
-*
-* @return  none
-*/
-static void zclSampleZone_SendChangeNotification(void)
-{
-  uint8_t extendedStatus = 0;
-  uint16_t delay = 0;
-
-  zstack_getZCLFrameCounterRsp_t Rsp;
-  uint8_t disableDefaultRsp = TRUE;
-
-  // Using this as the "Alarm Switch"
-  //Toggle the zone status attrib with button press
-  zclSampleZone_ZoneStatus ^= SS_IAS_ZONE_STATUS_ALARM1_ALARMED;
-
-  //get the appropiate sequence number
-  Zstackapi_getZCLFrameCounterReq(appServiceTaskId, &Rsp);
-
-  //generates a Zone Status Change Notification Command
-  zclSS_IAS_Send_ZoneStatusChangeNotificationCmd(SAMPLEFIREDETECTOR_ENDPOINT,
-                                                 &zclSampleZone_DstAddr,
-                                                 zclSampleZone_ZoneStatus, extendedStatus, zclSampleZone_ZoneId,delay,
-                                                 disableDefaultRsp, Rsp.zclFrameCounter );
-
-  if(zclSampleZone_ZoneStatus == SS_IAS_ZONE_STATUS_ALARM1_ALARMED)
-  {
-    LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
-  }
-  else
-  {
-    LED_stopBlinking(gRedLedHandle);
-    LED_setOff(gRedLedHandle);
-  }
-}
-
 
 /*******************************************************************************
 * @fn      zclSampleZone_SendEnrollReqToCIE
@@ -1671,8 +1636,8 @@ static uint8_t zclSampleZone_AuthenticateCIE( afAddrType_t *srcAddr, zclAttrRec_
             if(zclSampleZone_enrollmentMode == AUTO_ENROLL_REQUEST)
             {
               //Start the timer to send auto enroll request
-              Timer_setTimeout( AutoEnrollReqClkHandle, SAMPLEAPP_AUTO_ENROLL_REQ_DELAY );
-              Timer_start(&AutoEnrollReqClkStruct);
+              UtilTimer_setTimeout( AutoEnrollReqClkHandle, SAMPLEAPP_AUTO_ENROLL_REQ_DELAY );
+              UtilTimer_start(&AutoEnrollReqClkStruct);
             }
 
             //Set and event which will be process after write operation takes place.
@@ -1686,6 +1651,48 @@ static uint8_t zclSampleZone_AuthenticateCIE( afAddrType_t *srcAddr, zclAttrRec_
    return ZCL_STATUS_SUCCESS;
 }
 
+#ifndef CUI_DISABLE
+
+/*******************************************************************************
+* @fn      zclSampleZone_SendChangeNotification
+*
+* @brief
+*
+* @param
+*
+* @return  none
+*/
+static void zclSampleZone_SendChangeNotification(void)
+{
+  uint8_t extendedStatus = 0;
+  uint16_t delay = 0;
+
+  zstack_getZCLFrameCounterRsp_t Rsp;
+  uint8_t disableDefaultRsp = TRUE;
+
+  // Using this as the "Alarm Switch"
+  //Toggle the zone status attrib with button press
+  zclSampleZone_ZoneStatus ^= SS_IAS_ZONE_STATUS_ALARM1_ALARMED;
+
+  //get the appropiate sequence number
+  Zstackapi_getZCLFrameCounterReq(appServiceTaskId, &Rsp);
+
+  //generates a Zone Status Change Notification Command
+  zclSS_IAS_Send_ZoneStatusChangeNotificationCmd(SAMPLEFIREDETECTOR_ENDPOINT,
+                                                 &zclSampleZone_DstAddr,
+                                                 zclSampleZone_ZoneStatus, extendedStatus, zclSampleZone_ZoneId,delay,
+                                                 disableDefaultRsp, Rsp.zclFrameCounter );
+
+  if(zclSampleZone_ZoneStatus == SS_IAS_ZONE_STATUS_ALARM1_ALARMED)
+  {
+    LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
+  }
+  else
+  {
+    LED_stopBlinking(gRedLedHandle);
+    LED_setOff(gRedLedHandle);
+  }
+}
 
 void zclSampleZone_UiActionSendEnroll(const int32_t _itemEntry)
 {
@@ -1744,13 +1751,18 @@ void zclSampleZone_UiActionChangeEnrollmentMode(const char _input, char* _pLines
       case TRIP_TO_PAIR:
       {
         strncpy(_pLines[1], "TRIP-TO-PAIR", MAX_MENU_LINE_LEN);
+        break;
       }
-      break;
       case AUTO_ENROLL_REQUEST:
       {
         strncpy(_pLines[1], "AUTO ENROLL REQ", MAX_MENU_LINE_LEN);
+        break;
       }
-      break;
+      case ENROLLMENT_MODE_ENUM_LENGTH:
+      default:
+      {
+        break;
+      }
     }
 
     if (_input != CUI_ITEM_PREVIEW) {
@@ -1879,7 +1891,7 @@ void zclSampleZone_UiActionZoneDiscoverable(const int32_t _itemEntry)
 
     zclGeneral_SendIdentify(SAMPLEFIREDETECTOR_ENDPOINT, &dstAddr,60, TRUE, zclCounterRsp.zclFrameCounter);
 }
-
+#endif //CUI_DISABLE
 
 
 #endif //ZCL_ZONE

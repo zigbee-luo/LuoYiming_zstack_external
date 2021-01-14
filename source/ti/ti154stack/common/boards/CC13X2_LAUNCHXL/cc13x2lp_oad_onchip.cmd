@@ -72,11 +72,11 @@
 
 
 
-#define FLASH_BASE              0x00000000
-#define FLASH_SIZE              0x00058000
+#define FLASH_BASE                 0x00000000
+#define FLASH_SIZE                 0x00058000
 
-#define RAM_BASE                0x20000000
-#define RAM_SIZE                0x14000
+#define RAM_BASE                   0x20000000
+#define RAM_SIZE                   0x14000
 
 #define PAGE_SIZE                  0x2000
 
@@ -84,14 +84,15 @@
 #define NUM_RESERVED_FLASH_PAGES   1
 #define RESERVED_FLASH_SIZE        (NUM_RESERVED_FLASH_PAGES * PAGE_SIZE)
 
+#define IMG_A_FLASH_START          0x0002A000
+
 #ifdef OAD_IMG_A
   #define ENTRY_SIZE               0x40
   #define ENTRY_END                (FLASH_BASE + FLASH_SIZE - RESERVED_FLASH_SIZE - 1)
   #define ENTRY_START              (ENTRY_END - ENTRY_SIZE +1)
   #define FLASH_END                (ENTRY_START - 1)
-  #define FLASH_LAST_PAGE_START    (ENTRY_END + 1)
-  
-  #define FLASH_START              0x2A000
+
+  #define FLASH_START              IMG_A_FLASH_START
 #else
   #define  OAD_HDR_SIZE            0xA8
   #define  OAD_HDR_START           0
@@ -102,8 +103,8 @@
   #define ENTRY_END                (ENTRY_START + ENTRY_SIZE - 1)
 
   #define FLASH_START              (ENTRY_END + 1)
-  #define FLASH_END                (FLASH_BASE + FLASH_SIZE - RESERVED_FLASH_SIZE - 1)
-  #define FLASH_LAST_PAGE_START    (FLASH_END + 1)
+  // Allow for two additional pages to be shared between IMG_A and IMG_B starting at IMG_A_FLASH_START
+  #define FLASH_END                (FLASH_BASE + IMG_A_FLASH_START + PAGE_SIZE + PAGE_SIZE - 1)
 #endif
 
 /* System memory map */
@@ -119,10 +120,6 @@ MEMORY
 
     /* Application stored in and executes from internal flash */
     FLASH (RX) : origin = FLASH_START, length = (FLASH_END - FLASH_START + 1)
-    //FLASH (RX) : origin = FLASH_START, length = (0x56000 - FLASH_START)
-
-    /* CCFG Page, contains .ccfg code section and some application code. */
-    FLASH_LAST (RX) : origin = FLASH_LAST_PAGE_START, length = RESERVED_FLASH_SIZE
 
     /* Application uses internal RAM for data */
     SRAM (RWX) : origin = RAM_BASE, length = RAM_SIZE
@@ -170,7 +167,6 @@ SECTIONS
   {
     .text
     .const
-    config_const { mac_user_config.obj(.const) }
     .constdata
     .rodata
     .emb_text
@@ -180,12 +176,11 @@ SECTIONS
   }
 #endif // OAD_IMG_A
 
-    .ccfg           :   type=NOLOAD > FLASH_LAST (HIGH)
-
     GROUP > SRAM
     {
         .data LOAD_START(ramStartHere)
         .bss
+        .noinit
         .vtable
         .vtable_ram
          vtable_ram

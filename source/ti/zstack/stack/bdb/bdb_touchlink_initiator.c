@@ -42,6 +42,7 @@
  * INCLUDES
  */
 #include "zcomdef.h"
+#include "ti_zstack_config.h"
 #include "rom_jt_154.h"
 #include "osal_nv.h"
 #include "af.h"
@@ -191,7 +192,6 @@ static ZStatus_t initiatorSendNwkUpdateReq( bdbTLScanRsp_t *pRsp );
 ZStatus_t touchLinkInitiator_StartDevDisc( void )
 {
   OsalPort_clearEvent( ZDAppTaskID, ZDO_NETWORK_INIT ); // in case orphaned rejoin was called
-  ZDApp_StopJoiningCycle();
 
   //abort any touchlink in progress and start the new dev discovery.
   touchLinkInitiator_AbortTL();
@@ -837,8 +837,6 @@ uint32_t touchLinkInitiator_event_loop( uint8_t task_id, uint32_t events )
 
   if(events & TOUCHLINK_W4_REJOIN_EVT)
   {
-    // Stop joining cycle
-    ZDApp_StopJoiningCycle();
 
     // return unprocessed events
     return(events ^ TOUCHLINK_W4_REJOIN_EVT);

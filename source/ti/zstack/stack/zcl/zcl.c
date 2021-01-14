@@ -41,6 +41,7 @@
  * INCLUDES
  */
 #include "zcomdef.h"
+#include "ti_zstack_config.h"
 #include "af.h"
 
 #include "zcl.h"
@@ -1178,13 +1179,13 @@ static uint8_t zcl_DeviceOperational( uint8_t srcEP, uint16_t clusterID,
     return ( TRUE );
   }
 
-  if ( clusterID == ZCL_CLUSTER_ID_GEN_IDENTIFY )
+  if ( clusterID == ZCL_CLUSTER_ID_GENERAL_IDENTIFY )
   {
     return ( TRUE );
   }
 
   // Is device enabled?
-  if ( zclFindAttrRec( srcEP, ZCL_CLUSTER_ID_GEN_BASIC,
+  if ( zclFindAttrRec( srcEP, ZCL_CLUSTER_ID_GENERAL_BASIC,
                        ATTRID_BASIC_DEVICE_ENABLED, &attrRec ) )
   {
 #ifdef ZCL_READ
@@ -4901,7 +4902,7 @@ static uint8_t zclProcessInWriteCmd( zclIncoming_t *pInMsg )
         if ( attrRec.attr.dataPtr != NULL )
         {
           //Handle special case for Identify
-          if((pInMsg->msg->clusterId == ZCL_CLUSTER_ID_GEN_IDENTIFY) && (statusRec->attrID == ATTRID_IDENTIFY_TIME))
+          if((pInMsg->msg->clusterId == ZCL_CLUSTER_ID_GENERAL_IDENTIFY) && (statusRec->attrID == ATTRID_IDENTIFY_IDENTIFY_TIME))
           {
 #if (BDB_FINDING_BINDING_CAPABILITY_ENABLED == 1)
             uint16_t identifyTime;
@@ -5420,8 +5421,7 @@ static uint8_t zclProcessInDiscCmd( zclIncoming_t *pInMsg )
   // Allocate space for the response command
   cmdRsp = (zclDiscoverCmdsCmdRsp_t *)zcl_mem_alloc( sizeof(zclDiscoverCmdsCmdRsp_t)
                                                    + sizeof( uint8_t ) * i );
-
-  if ( cmdRsp->pCmdID == NULL )
+  if ( NULL == cmdRsp)
   {
     return FALSE; // EMBEDDED RETURN
   }

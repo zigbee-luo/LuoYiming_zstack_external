@@ -47,12 +47,12 @@
 #include "npi_data.h"
 #include "mt_util.h"
 #include "mt_sys.h"
-
-#if !defined( NONWK )
 #include "mt_zdo.h"
 #include "mt_af.h"
-#endif  /* NONWK */
 
+#if defined( MT_ZNP_FUNC )
+#include "mt_znp.h"
+#endif  /* MT_ZNP_FUNC */
 
 /***************************************************************************************************
  * LOCAL FUNCTIONS
@@ -176,10 +176,10 @@ uint32_t MT_ProcessEvent(uint8_t task_id, uint32_t events)
   }
 #endif
 #if defined MT_ZNP_FUNC
-  else if (events & ZNP_BASIC_RSP_EVENT)
+  else if (events & MT_ZNP_BASIC_RSP_EVENT)
   {
     MT_ZnpBasicRsp();
-    events ^= ZNP_BASIC_RSP_EVENT;
+    events ^= MT_ZNP_BASIC_RSP_EVENT;
   }
 #endif
 #ifdef MT_SRNG
@@ -295,25 +295,8 @@ static void MT_ProcessIncomingCommand( mtOSALSerialData_t *msg )
       break;
 #endif  // NONWK
 
-#if defined (MT_UTIL_FUNC)
-#if defined ZCL_KEY_ESTABLISH
-    case ZCL_KEY_ESTABLISH_IND:
-      MT_UtilKeyEstablishInd((zclKE_StatusInd_t *)msg);
-      break;
-#endif
-#endif
-
     case AF_INCOMING_MSG_CMD:
-#if defined ZCL_KEY_ESTABLISH
-      if (ZCL_KE_ENDPOINT == (((afIncomingMSGPacket_t *)msg)->endPoint))
-      {
-        zcl_ProcessMessageMSG((afIncomingMSGPacket_t *)msg);
-      }
-      else
-#endif
-      {
-        MT_AfIncomingMsg((afIncomingMSGPacket_t *)msg);
-      }
+      MT_AfIncomingMsg((afIncomingMSGPacket_t *)msg);
       break;
 
 #ifdef MT_ZDO_FUNC

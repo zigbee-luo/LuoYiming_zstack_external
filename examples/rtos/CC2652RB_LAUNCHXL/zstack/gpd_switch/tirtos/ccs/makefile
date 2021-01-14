@@ -1,6 +1,6 @@
 PROJECT_LOC = $(abspath ../../)
 PROJECT_ROOT = $(PROJECT_LOC)
-COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR ?= $(abspath ../../../../../../../..)
+COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR ?= $(abspath ../../../../../../..)
 
 include $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/imports.mak
 
@@ -42,7 +42,7 @@ CFLAGS = -I../.. \
     --plain_char=unsigned \
     -DTIMAC_ROM_IMAGE_BUILD \
     -DTIMAC_ROM_PATCH \
-    -DUSE_ZCL_SAMPLEAPP_UI \
+    -DxCUI_DISABLE \
     -DZSTACK_SECURITY \
     -DOSAL_PORT2TIRTOS \
     -DOSAL_PORT2TIRTOS_OSALMAP \
@@ -106,9 +106,9 @@ CFLAGS = -I../.. \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/devices/cc13x2_cc26x2" \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/devices/cc13x2_cc26x2/inc" \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/devices/cc13x2_cc26x2/driverlib" \
+    "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/common/time" \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/apps/gpd_switch" \
     -DDEVICE_FAMILY=cc26x0 \
-    -DCC2652RB_LAUNCHXL \
     -DDeviceFamily_CC26X2 \
     "-I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/boards" \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source" \
@@ -124,13 +124,9 @@ LFLAGS = --diag_wrap=off \
     "--xml_link_info=${ProjName}_linkInfo.xml" \
     -x \
     "--library=${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/library/tirtos/ccs/timac_rom_PG2_0_rom_api_linker.cmd" \
-    "-l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/lib/ccs/libZStack_gpd_sec_ccs.a" \
-    "-l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/display/lib/display.aem4f" \
-    "-l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/grlib/lib/ccs/m4f/grlib.a" \
-    "-l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/drivers/rf/lib/rf_multiMode_cc26x2.aem4f" \
-    "-l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/drivers/lib/drivers_cc26x2.aem4f" \
-    "-l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/library/tirtos/ccs/bin/maclib_nosecure_cc26x2_2_4g.a" \
-    "-l$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/kernel/tirtos/packages/ti/dpl/lib/dpl_cc26x2.aem4f" \
+    "-l${PROJECT_BUILD_DIR}/syscfg/ti_utils_build_linker.cmd.genlibs" \
+    "-i$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source" \
+    "-i$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/kernel/tirtos/packages" \
     "-l$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/devices/cc13x2_cc26x2/driverlib/bin/ccs/driverlib.lib" \
     "$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/zstack/boards/CC2652RB_LAUNCHXL/cc26x2lp.cmd" \
     "-m$(NAME).map" \
@@ -156,7 +152,7 @@ ti_drivers_config.c ti_drivers_config.h ti_zstack_config.h ti_devices_config.c t
 
 syscfg: ../../gpd_switch.syscfg
 	@ echo Generating configuration files...
-	@ $(SYSCONFIG_TOOL) --product $(SYSCONFIG_PRODUCT) --output $(@D) $<
+	@ $(SYSCONFIG_TOOL) --product $(SYSCONFIG_PRODUCT) --compiler ccs --output $(@D) $<
 
 ti_drivers_config.obj: ti_drivers_config.c $(CONFIGPKG)/compiler.opt
 	@ echo Building $@
@@ -218,11 +214,11 @@ gpd_memory.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/zstac
 	@ echo Building $@
 	@ $(CC) $(CFLAGS) $< --cmd_file=$(CONFIGPKG)/compiler.opt --output_file=$@
 
-macTask.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/common/osal_port/macTask.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
+macTask.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/common/osal_port/osal_port_tirtos/macTask.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
 	@ echo Building $@
 	@ $(CC) $(CFLAGS) $< --cmd_file=$(CONFIGPKG)/compiler.opt --output_file=$@
 
-api_mac.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/common/osal_port/api_mac.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
+api_mac.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/common/osal_port/osal_port_tirtos/api_mac.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
 	@ echo Building $@
 	@ $(CC) $(CFLAGS) $< --cmd_file=$(CONFIGPKG)/compiler.opt --output_file=$@
 

@@ -41,6 +41,7 @@
  * INCLUDES
  */
 
+#include "ti_zstack_config.h"
 #include "bdb.h"
 #include "zd_app.h"
 #include "rom_jt_154.h"
@@ -86,6 +87,7 @@
 #endif
 
 #include "zstacktask.h"
+#include "ti_zstack_config.h"
 
 
  /*********************************************************************
@@ -338,8 +340,8 @@ void bdb_ZclIdentifyCmdInd( uint16_t identifyTime, uint8_t endpoint )
 {
   zclAttrRec_t identifyAttrRec;
 
-  if ( zclFindAttrRec( endpoint, ZCL_CLUSTER_ID_GEN_IDENTIFY,
-                      ATTRID_IDENTIFY_TIME, &identifyAttrRec ) )
+  if ( zclFindAttrRec( endpoint, ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
+                      ATTRID_IDENTIFY_IDENTIFY_TIME, &identifyAttrRec ) )
   {
     //If we are processing an actual change
     if(*(uint16_t*)identifyAttrRec.attr.dataPtr != identifyTime)
@@ -2529,8 +2531,8 @@ void bdb_startResumeCommissioningProcess(void)
 
       if( bdb_CurrEpDescriptorList->epDesc->epType & BDB_FINDING_AND_BINDING_TARGET)  //F&B as Target
       {
-        if (zclFindAttrRec( bdb_CurrEpDescriptor->endPoint, ZCL_CLUSTER_ID_GEN_IDENTIFY,
-                  ATTRID_IDENTIFY_TIME, &attrRec ) )
+        if (zclFindAttrRec( bdb_CurrEpDescriptor->endPoint, ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
+                  ATTRID_IDENTIFY_IDENTIFY_TIME, &attrRec ) )
         {
           //Set it to at less 180
           if ( *((uint16_t*)attrRec.attr.dataPtr) <= BDBC_MIN_COMMISSIONING_TIME )
@@ -2825,12 +2827,13 @@ uint32_t bdb_event_loop(byte task_id, uint32_t events)
         continue;
       }
 
-      if ( zclFindAttrRec( bdb_EpDescriptor->endPoint, ZCL_CLUSTER_ID_GEN_IDENTIFY,
-                        ATTRID_IDENTIFY_TIME, &identifyAttrRec ) )
+      if ( zclFindAttrRec( bdb_EpDescriptor->endPoint, ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
+                        ATTRID_IDENTIFY_IDENTIFY_TIME, &identifyAttrRec ) )
       {
-        if(*((uint16_t*)identifyAttrRec.attr.dataPtr) > 0)
+        uint16_t *data = (uint16_t*)(identifyAttrRec.attr.dataPtr);
+        if ( (*data) > 0)
         {
-          (uint16_t)(*((uint16_t*)identifyAttrRec.attr.dataPtr))--;
+          (*data)--;
           KeepIdentifyTimerRunning = TRUE;
         }
         else

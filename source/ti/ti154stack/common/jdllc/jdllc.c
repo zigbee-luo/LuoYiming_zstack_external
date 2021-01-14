@@ -2348,6 +2348,7 @@ static void sendScanReq(ApiMac_scantype_t type)
     /* set scan channels from channel mask*/
     memcpy(scanReq.scanChannels, defaultChannelMask,
            APIMAC_154G_CHANNEL_BITMAP_SIZ);
+
     scanReq.scanType = type;
     if(CONFIG_MAC_BEACON_ORDER == JDLLC_BEACON_ORDER_NON_BEACON)
     {

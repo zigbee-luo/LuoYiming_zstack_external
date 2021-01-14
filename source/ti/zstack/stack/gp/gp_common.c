@@ -494,8 +494,8 @@ void zcl_gpSendNotification(void)
   gp_NotificationMsgClean(gp_GetPHeadNotification( ));
   if(gp_GetHeadNotificationMsg( ) != NULL)
   {
-    Timer_setTimeout(gpAppDataSendClkHandle, GP_QUEUE_DATA_SEND_INTERVAL);
-    Timer_start(&gpAppDataSendClk);
+    UtilTimer_setTimeout(gpAppDataSendClkHandle, GP_QUEUE_DATA_SEND_INTERVAL);
+    UtilTimer_start(&gpAppDataSendClk);
   }
 }
 
@@ -860,8 +860,8 @@ void gp_expireDuplicateFiltering(void)
     if((timeout > 0) && (gp_DataIndList != NULL))
     {
 #if (defined (USE_ICALL) || defined (OSAL_PORT2TIRTOS))
-        Timer_setTimeout(gpAppExpireDuplicateClkHandle, timeout );
-        Timer_start(&gpAppExpireDuplicateClk);
+        UtilTimer_setTimeout(gpAppExpireDuplicateClkHandle, timeout );
+        UtilTimer_start(&gpAppExpireDuplicateClk);
 #else
         OsalPortTimers_startTimer(gp_TaskID, GP_DUPLICATE_FILTERING_TIMEOUT_EVENT, timeout);
 #endif
@@ -1617,7 +1617,7 @@ static void zclSampleAppsGp_ProcessTempMasterTimeoutCallback(UArg a0)
 static void zclGreenPower_initializeClocks(void)
 {
     // Construct the timer used to send the data indication queue
-    gpAppDataSendClkHandle = Timer_construct(
+    gpAppDataSendClkHandle = UtilTimer_construct(
     &gpAppDataSendClk,
     zclSampleAppsGp_ProcessDataSendTimeoutCallback,
     GP_QUEUE_DATA_SEND_INTERVAL,
@@ -1625,7 +1625,7 @@ static void zclGreenPower_initializeClocks(void)
     false,
     0);
 
-    gpAppExpireDuplicateClkHandle = Timer_construct(
+    gpAppExpireDuplicateClkHandle = UtilTimer_construct(
     &gpAppExpireDuplicateClk,
     zclSampleAppsGp_ProcessExpireDuplicateTimeoutCallback,
     gpDuplicateTimeout,
@@ -1633,7 +1633,7 @@ static void zclGreenPower_initializeClocks(void)
     false,
     0);
 
-    gpAppTempMasterTimeoutClkHandle = Timer_construct(
+    gpAppTempMasterTimeoutClkHandle = UtilTimer_construct(
     &gpAppTempMasterTimeoutClk,
     zclSampleAppsGp_ProcessTempMasterTimeoutCallback,
     gpBirectionalCommissioningChangeChannelTimeout,

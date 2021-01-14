@@ -46,7 +46,7 @@
             --plain_char=unsigned
             -DTIMAC_ROM_IMAGE_BUILD
             -DTIMAC_ROM_PATCH
-            -DUSE_ZCL_SAMPLEAPP_UI
+            -DxCUI_DISABLE
             -DZSTACK_SECURITY
             -DOSAL_PORT2TIRTOS
             -DOSAL_PORT2TIRTOS_OSALMAP
@@ -110,9 +110,9 @@
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/devices/cc13x2_cc26x2
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/devices/cc13x2_cc26x2/inc
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/devices/cc13x2_cc26x2/driverlib
+            -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/common/time
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/apps/gpd_temperaturesensor
             -DDEVICE_FAMILY=cc26x0
-            -DCC2652RB_LAUNCHXL
             -DDeviceFamily_CC26X2
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/boards
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/posix/ccs
@@ -127,13 +127,9 @@
              --xml_link_info=${ProjName}_linkInfo.xml
              -x
              --library=${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/library/tirtos/ccs/timac_rom_PG2_0_rom_api_linker.cmd
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/lib/ccs/libZStack_gpd_sec_ccs.a
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/display/lib/display.aem4f
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/grlib/lib/ccs/m4f/grlib.a
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/drivers/rf/lib/rf_multiMode_cc26x2.aem4f
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/drivers/lib/drivers_cc26x2.aem4f
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/library/tirtos/ccs/bin/maclib_nosecure_cc26x2_2_4g.a
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/kernel/tirtos/packages/ti/dpl/lib/dpl_cc26x2.aem4f
+             -l${PROJECT_BUILD_DIR}/syscfg/ti_utils_build_linker.cmd.genlibs
+             -i${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source
+             -i${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/kernel/tirtos/packages
              -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/devices/cc13x2_cc26x2/driverlib/bin/ccs/driverlib.lib
              --warn_sections
              --display_error_number
@@ -147,11 +143,11 @@
             ${CG_TOOL_HEX} -order MS --memwidth=8 --romwidth=8 --intel -o ${ProjName}.hex ${ProjName};
         "
         enableSysConfigTool="true"
-        sysConfigBuildOptions="--product ${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/.metadata/product.json"
+        sysConfigBuildOptions="--product ${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/.metadata/product.json --compiler ccs"
         description="">
 
         <property name="type" value="rtsc"/>
-        <property name="xdcToolsVersion" value="3_61_01_25_core"/>
+        <property name="xdcToolsVersion" value="3_61_02_27_core"/>
         <property name="target" value="ti.targets.arm.elf.M4F"/>
         <property name="platform" value="ti.platforms.simplelink:CC2652RB1F"/>
         <property name="buildProfile" value="release"/>
@@ -222,11 +218,11 @@
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/gpd/gpd_config.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Common/gpd">
         </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/osal_port/macTask.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application">
+        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/osal_port/osal_port_tirtos/macTask.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application">
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/osal_port/macTask.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application">
         </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/osal_port/api_mac.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application">
+        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/osal_port/osal_port_tirtos/api_mac.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application">
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/osal_port/api_mac.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application">
         </file>

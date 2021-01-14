@@ -49,7 +49,9 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
+#ifdef ZCL_CC
 /*********************************************************************
  * MACROS
  */
@@ -350,8 +352,11 @@ ZStatus_t zclCC_Send_ServerParamsRsp( uint8_t srcEP, afAddrType_t *dstAddr,
                                       zclCCServerParamsRsp_t *pCmd, uint8_t cmdId,
                                       uint8_t disableDefaultRsp, uint8_t seqNum );
 
+#endif // ZCL_CC
+
 #ifdef __cplusplus
 }
 #endif
+
 
 #endif /* ZCL_CC_H */

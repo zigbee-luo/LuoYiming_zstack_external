@@ -1,6 +1,6 @@
 /******************************************************************************
 
- @file oad_switch_agama.c
+ @file oad_switch.c
 
  @brief Over the Air Download for use with the BLE OAD example
 

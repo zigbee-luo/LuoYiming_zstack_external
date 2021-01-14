@@ -41,6 +41,7 @@
 /*********************************************************************
  * INCLUDES
  */
+#include "ti_zstack_config.h"
 #include "zcl.h"
 #include "zcl_general.h"
 #include "zcl_closures.h"
@@ -610,102 +611,102 @@ static ZStatus_t zclClosures_ProcessInDoorLockCmds( zclIncoming_t *pInMsg,
   {
     switch(pInMsg->hdr.commandID)
     {
-      case COMMAND_CLOSURES_LOCK_DOOR:
-      case COMMAND_CLOSURES_UNLOCK_DOOR:
-      case COMMAND_CLOSURES_TOGGLE_DOOR:
+      case COMMAND_DOOR_LOCK_LOCK_DOOR:
+      case COMMAND_DOOR_LOCK_UNLOCK_DOOR:
+      case COMMAND_DOOR_LOCK_TOGGLE:
         stat = zclClosures_ProcessInDoorLock( pInMsg, pCBs );
         break;
 
 #ifdef ZCL_DOORLOCK_EXT
-      case COMMAND_CLOSURES_UNLOCK_WITH_TIMEOUT:
+      case COMMAND_DOOR_LOCK_UNLOCK_WITH_TIMEOUT:
         stat = zclClosures_ProcessInDoorLockUnlockWithTimeout( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_LOG_RECORD:
+      case COMMAND_DOOR_LOCK_GET_LOG_RECORD:
         stat = zclClosures_ProcessInDoorLockGetLogRecord( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_PIN_CODE:
+      case COMMAND_DOOR_LOCK_SET_PIN_CODE:
         stat = zclClosures_ProcessInDoorLockSetPINCode( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_PIN_CODE:
+      case COMMAND_DOOR_LOCK_GET_PIN_CODE:
         stat = zclClosures_ProcessInDoorLockGetPINCode( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_PIN_CODE:
+      case COMMAND_DOOR_LOCK_CLEAR_PIN_CODE:
         stat = zclClosures_ProcessInDoorLockClearPINCode( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_ALL_PIN_CODES:
+      case COMMAND_DOOR_LOCK_CLEAR_ALL_PIN_CODES:
         stat = zclClosures_ProcessInDoorLockClearAllPINCodes( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_USER_STATUS:
+      case COMMAND_DOOR_LOCK_SET_USER_STATUS:
         stat = zclClosures_ProcessInDoorLockSetUserStatus( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_USER_STATUS:
+      case COMMAND_DOOR_LOCK_GET_USER_STATUS:
         stat = zclClosures_ProcessInDoorLockGetUserStatus( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_WEEK_DAY_SCHEDULE:
+      case COMMAND_DOOR_LOCK_SET_WEEKDAY_SCHEDULE:
         stat = zclClosures_ProcessInDoorLockSetWeekDaySchedule( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_WEEK_DAY_SCHEDULE:
+      case COMMAND_DOOR_LOCK_GET_WEEKDAY_SCHEDULE:
         stat = zclClosures_ProcessInDoorLockGetWeekDaySchedule( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_WEEK_DAY_SCHEDULE:
+      case COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE:
         stat = zclClosures_ProcessInDoorLockClearWeekDaySchedule( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_YEAR_DAY_SCHEDULE:
+      case COMMAND_DOOR_LOCK_SET_YEAR_DAY_SCHEDULE:
         stat = zclClosures_ProcessInDoorLockSetYearDaySchedule( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_YEAR_DAY_SCHEDULE:
+      case COMMAND_DOOR_LOCK_GET_YEAR_DAY_SCHEDULE:
         stat = zclClosures_ProcessInDoorLockGetYearDaySchedule( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_YEAR_DAY_SCHEDULE:
+      case COMMAND_DOOR_LOCK_CLEAR_YEAR_DAY_SCHEDULE:
         stat = zclClosures_ProcessInDoorLockClearYearDaySchedule( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_HOLIDAY_SCHEDULE:
+      case COMMAND_DOOR_LOCK_SET_HOLIDAY_SCHEDULE:
         stat = zclClosures_ProcessInDoorLockSetHolidaySchedule( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_HOLIDAY_SCHEDULE:
+      case COMMAND_DOOR_LOCK_GET_HOLIDAY_SCHEDULE:
         stat = zclClosures_ProcessInDoorLockGetHolidaySchedule( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_HOLIDAY_SCHEDULE:
+      case COMMAND_DOOR_LOCK_CLEAR_HOLIDAY_SCHEDULE:
         stat = zclClosures_ProcessInDoorLockClearHolidaySchedule( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_USER_TYPE:
+      case COMMAND_DOOR_LOCK_SET_USER_TYPE:
         stat = zclClosures_ProcessInDoorLockSetUserType( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_USER_TYPE:
+      case COMMAND_DOOR_LOCK_GET_USER_TYPE:
         stat = zclClosures_ProcessInDoorLockGetUserType( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_RFID_CODE:
+      case COMMAND_DOOR_LOCK_SET_RFID_CODE:
         stat = zclClosures_ProcessInDoorLockSetRFIDCode( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_RFID_CODE:
+      case COMMAND_DOOR_LOCK_GET_RFID_CODE:
         stat = zclClosures_ProcessInDoorLockGetRFIDCode( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_RFID_CODE:
+      case COMMAND_DOOR_LOCK_CLEAR_RFID_CODE:
         stat = zclClosures_ProcessInDoorLockClearRFIDCode( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_ALL_RFID_CODES:
+      case COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES:
         stat = zclClosures_ProcessInDoorLockClearAllRFIDCodes( pInMsg, pCBs );
         break;
 #endif
@@ -720,111 +721,111 @@ static ZStatus_t zclClosures_ProcessInDoorLockCmds( zclIncoming_t *pInMsg,
   {
     switch(pInMsg->hdr.commandID)
     {
-      case COMMAND_CLOSURES_LOCK_DOOR_RSP:
-      case COMMAND_CLOSURES_UNLOCK_DOOR_RSP:
-      case COMMAND_CLOSURES_TOGGLE_DOOR_RSP:
+      case COMMAND_DOOR_LOCK_LOCK_DOOR_RESPONSE:
+      case COMMAND_DOOR_LOCK_UNLOCK_DOOR_RESPONSE:
+      case COMMAND_DOOR_LOCK_TOGGLE_RESPONSE:
         stat = zclClosures_ProcessInDoorLock( pInMsg, pCBs );
         break;
 
 #ifdef ZCL_DOORLOCK_EXT
 
-      case COMMAND_CLOSURES_UNLOCK_WITH_TIMEOUT_RSP:
+      case COMMAND_DOOR_LOCK_UNLOCK_WITH_TIMEOUT_RESPONSE:
         stat = zclClosures_ProcessInDoorLockUnlockWithTimeoutRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_LOG_RECORD_RSP:
+      case COMMAND_DOOR_LOCK_GET_LOG_RECORD_RESPONSE:
         stat = zclClosures_ProcessInDoorLockGetLogRecordRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_PIN_CODE_RSP:
+      case COMMAND_DOOR_LOCK_SET_PIN_CODE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockSetPINCodeRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_PIN_CODE_RSP:
+      case COMMAND_DOOR_LOCK_GET_PIN_CODE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockGetPINCodeRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_PIN_CODE_RSP:
+      case COMMAND_DOOR_LOCK_CLEAR_PIN_CODE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockClearPINCodeRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_ALL_PIN_CODES_RSP:
+      case COMMAND_DOOR_LOCK_CLEAR_ALL_PIN_CODES_RESPONSE:
         stat = zclClosures_ProcessInDoorLockClearAllPINCodesRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_USER_STATUS_RSP:
+      case COMMAND_DOOR_LOCK_SET_USER_STATUS_RESPONSE:
         stat = zclClosures_ProcessInDoorLockSetUserStatusRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_USER_STATUS_RSP:
+      case COMMAND_DOOR_LOCK_GET_USER_STATUS_RESPONSE:
         stat = zclClosures_ProcessInDoorLockGetUserStatusRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_WEEK_DAY_SCHEDULE_RSP:
+      case COMMAND_DOOR_LOCK_SET_WEEKDAY_SCHEDULE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockSetWeekDayScheduleRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_WEEK_DAY_SCHEDULE_RSP:
+      case COMMAND_DOOR_LOCK_GET_WEEKDAY_SCHEDULE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockGetWeekDayScheduleRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_WEEK_DAY_SCHEDULE_RSP:
+      case COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockClearWeekDayScheduleRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_YEAR_DAY_SCHEDULE_RSP:
+      case COMMAND_DOOR_LOCK_SET_YEAR_DAY_SCHEDULE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockSetYearDayScheduleRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_YEAR_DAY_SCHEDULE_RSP:
+      case COMMAND_DOOR_LOCK_GET_YEAR_DAY_SCHEDULE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockGetYearDayScheduleRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_YEAR_DAY_SCHEDULE_RSP:
+      case COMMAND_DOOR_LOCK_CLEAR_YEAR_DAY_SCHEDULE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockClearYearDayScheduleRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_HOLIDAY_SCHEDULE_RSP:
+      case COMMAND_DOOR_LOCK_SET_HOLIDAY_SCHEDULE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockSetHolidayScheduleRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_HOLIDAY_SCHEDULE_RSP:
+      case COMMAND_DOOR_LOCK_GET_HOLIDAY_SCHEDULE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockGetHolidayScheduleRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_HOLIDAY_SCHEDULE_RSP:
+      case COMMAND_DOOR_LOCK_CLEAR_HOLIDAY_SCHEDULE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockClearHolidayScheduleRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_USER_TYPE_RSP:
+      case COMMAND_DOOR_LOCK_SET_USER_TYPE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockSetUserTypeRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_USER_TYPE_RSP:
+      case COMMAND_DOOR_LOCK_GET_USER_TYPE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockGetUserTypeRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_SET_RFID_CODE_RSP:
+      case COMMAND_DOOR_LOCK_SET_RFID_CODE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockSetRFIDCodeRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_GET_RFID_CODE_RSP:
+      case COMMAND_DOOR_LOCK_GET_RFID_CODE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockGetRFIDCodeRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_RFID_CODE_RSP:
+      case COMMAND_DOOR_LOCK_CLEAR_RFID_CODE_RESPONSE:
         stat = zclClosures_ProcessInDoorLockClearRFIDCodeRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_CLEAR_ALL_RFID_CODES_RSP:
+      case COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES_RESPONSE:
         stat = zclClosures_ProcessInDoorLockClearAllRFIDCodesRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_OPERATION_EVENT_NOTIFICATION:
+      case COMMAND_DOOR_LOCK_OPERATING_EVENT_NOTIFICATION:
         stat = zclClosures_ProcessInDoorLockOperationEventNotification( pInMsg, pCBs );
         break;
 
-      case COMMAND_CLOSURES_PROGRAMMING_EVENT_NOTIFICATION:
+      case COMMAND_DOOR_LOCK_PROGRAMMING_EVENT_NOTIFICATION:
         stat = zclClosures_ProcessInDoorLockProgrammingEventNotification( pInMsg, pCBs );
         break;
 
@@ -860,9 +861,9 @@ static ZStatus_t zclClosures_ProcessInDoorLock( zclIncoming_t *pInMsg,
   {
     switch(pInMsg->hdr.commandID)
     {
-      case COMMAND_CLOSURES_LOCK_DOOR:
-      case COMMAND_CLOSURES_UNLOCK_DOOR:
-      case COMMAND_CLOSURES_TOGGLE_DOOR:
+      case COMMAND_DOOR_LOCK_LOCK_DOOR:
+      case COMMAND_DOOR_LOCK_UNLOCK_DOOR:
+      case COMMAND_DOOR_LOCK_TOGGLE:
         if ( pCBs->pfnDoorLock )
         {
           uint8_t i;
@@ -901,9 +902,9 @@ static ZStatus_t zclClosures_ProcessInDoorLock( zclIncoming_t *pInMsg,
   {
     switch(pInMsg->hdr.commandID)
     {
-      case COMMAND_CLOSURES_LOCK_DOOR_RSP:
-      case COMMAND_CLOSURES_UNLOCK_DOOR_RSP:
-      case COMMAND_CLOSURES_TOGGLE_DOOR_RSP:
+      case COMMAND_DOOR_LOCK_LOCK_DOOR_RESPONSE:
+      case COMMAND_DOOR_LOCK_UNLOCK_DOOR_RESPONSE:
+      case COMMAND_DOOR_LOCK_TOGGLE_RESPONSE:
         if ( pCBs->pfnDoorLockRsp )
         {
           return ( pCBs->pfnDoorLockRsp( pInMsg, pInMsg->pData[0] ) );
@@ -2295,7 +2296,7 @@ static ZStatus_t zclClosures_ProcessInDoorLockProgrammingEventNotification( zclI
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - COMMAND_CLOSURES_LOCK_DOOR, COMMAND_CLOSURES_UNLOCK_DOOR, COMMAND_CLOSURES_TOGGLE_DOOR
+ * @param   cmd - COMMAND_DOOR_LOCK_LOCK_DOOR, COMMAND_DOOR_LOCK_UNLOCK_DOOR, COMMAND_DOOR_LOCK_TOGGLE
  * @param   pPayload:
  *           aPinRfidCode - PIN/RFID code in ZCL Octet String Format
  * @param   disableDefaultRsp - decides default response is necessary or not
@@ -2382,7 +2383,7 @@ ZStatus_t zclClosures_SendDoorLockUnlockTimeoutRequest( uint8_t srcEP, afAddrTyp
   }
 
   status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                            COMMAND_CLOSURES_UNLOCK_WITH_TIMEOUT, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+                            COMMAND_DOOR_LOCK_UNLOCK_WITH_TIMEOUT, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                             disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
   zcl_mem_free( pBuf );
   return status;
@@ -2410,7 +2411,7 @@ ZStatus_t zclClosures_SendDoorLockGetLogRecordRequest( uint8_t srcEP, afAddrType
   payload[1] = HI_UINT16( logIndex );
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                          COMMAND_CLOSURES_GET_LOG_RECORD, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+                          COMMAND_DOOR_LOCK_GET_LOG_RECORD, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, PAYLOAD_LEN_GET_LOG_RECORD, payload );
 }
 
@@ -2467,7 +2468,7 @@ ZStatus_t zclClosures_SendDoorLockSetPINCodeRequest( uint8_t srcEP, afAddrType_t
 
 
   status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                            COMMAND_CLOSURES_SET_PIN_CODE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+                            COMMAND_DOOR_LOCK_SET_PIN_CODE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                             disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
   zcl_mem_free( pBuf );
   return status;
@@ -2480,9 +2481,9 @@ ZStatus_t zclClosures_SendDoorLockSetPINCodeRequest( uint8_t srcEP, afAddrType_t
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - COMMAND_CLOSURES_GET_PIN_CODE, COMMAND_CLOSURES_CLEAR_PIN_CODE,
- *                COMMAND_CLOSURES_GET_USER_STATUS, COMMAND_CLOSURES_GET_USER_TYPE,
- *                COMMAND_CLOSURES_GET_RFID_CODE, COMMAND_CLOSURES_CLEAR_RFID_CODE
+ * @param   cmd - COMMAND_DOOR_LOCK_GET_PIN_CODE, COMMAND_DOOR_LOCK_CLEAR_PIN_CODE,
+ *                COMMAND_DOOR_LOCK_GET_USER_STATUS, COMMAND_DOOR_LOCK_GET_USER_TYPE,
+ *                COMMAND_DOOR_LOCK_GET_RFID_CODE, COMMAND_DOOR_LOCK_CLEAR_RFID_CODE
  * @param   userID - User ID is between 0 - [# PINs User supported attribute]
  * @param   disableDefaultRsp - decides default response is necessary or not
  * @param   seqNum - sequence number of the command packet
@@ -2509,7 +2510,7 @@ ZStatus_t zclClosures_SendDoorLockUserIDRequest( uint8_t srcEP, afAddrType_t *ds
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - COMMAND_CLOSURES_CLEAR_ALL_PIN_CODES, COMMAND_CLOSURES_CLEAR_ALL_RFID_CODES
+ * @param   cmd - COMMAND_DOOR_LOCK_CLEAR_ALL_PIN_CODES, COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES
  * @param   disableDefaultRsp - decides default response is necessary or not
  * @param   seqNum - sequence number of the command packet
  *
@@ -2550,7 +2551,7 @@ ZStatus_t zclClosures_SendDoorLockSetUserStatusRequest( uint8_t srcEP, afAddrTyp
   payload[2] = userStatus;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                          COMMAND_CLOSURES_SET_USER_STATUS, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+                          COMMAND_DOOR_LOCK_SET_USER_STATUS, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, PAYLOAD_LEN_SET_USER_STATUS, payload );
 }
 
@@ -2591,7 +2592,7 @@ ZStatus_t zclClosures_SendDoorLockSetWeekDayScheduleRequest( uint8_t srcEP, afAd
   payload[7] = endMinute;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                          COMMAND_CLOSURES_SET_WEEK_DAY_SCHEDULE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+                          COMMAND_DOOR_LOCK_SET_WEEKDAY_SCHEDULE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, PAYLOAD_LEN_SET_WEEK_DAY_SCHEDULE, payload );
 }
 
@@ -2602,8 +2603,8 @@ ZStatus_t zclClosures_SendDoorLockSetWeekDayScheduleRequest( uint8_t srcEP, afAd
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - COMMAND_CLOSURES_GET_WEEK_DAY_SCHEDULE, COMMAND_CLOSURES_CLEAR_WEEK_DAY_SCHEDULE,
- *                COMMAND_CLOSURES_GET_YEAR_DAY_SCHEDULE, COMMAND_CLOSURES_CLEAR_YEAR_DAY_SCHEDULE
+ * @param   cmd - COMMAND_DOOR_LOCK_GET_WEEKDAY_SCHEDULE, COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE,
+ *                COMMAND_DOOR_LOCK_GET_YEAR_DAY_SCHEDULE, COMMAND_DOOR_LOCK_CLEAR_YEAR_DAY_SCHEDULE
  * @param   scheduleID - The Schedule ID # is between 0 - [# Schedule IDs per user attribute]
  * @param   userID - User ID is between 0 - [# PINs User supported attribute]
  * @param   disableDefaultRsp - decides default response is necessary or not
@@ -2663,7 +2664,7 @@ ZStatus_t zclClosures_SendDoorLockSetYearDayScheduleRequest( uint8_t srcEP, afAd
   payload[10] = BREAK_UINT32(zigBeeLocalEndTime, 3);
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                          COMMAND_CLOSURES_SET_YEAR_DAY_SCHEDULE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+                          COMMAND_DOOR_LOCK_SET_YEAR_DAY_SCHEDULE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, PAYLOAD_LEN_SET_YEAR_DAY_SCHEDULE, payload );
 }
 
@@ -2704,7 +2705,7 @@ ZStatus_t zclClosures_SendDoorLockSetHolidayScheduleRequest( uint8_t srcEP, afAd
   payload[9] = operatingModeDuringHoliday;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                          COMMAND_CLOSURES_SET_HOLIDAY_SCHEDULE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+                          COMMAND_DOOR_LOCK_SET_HOLIDAY_SCHEDULE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, PAYLOAD_LEN_SET_HOLIDAY_SCHEDULE, payload );
 }
 
@@ -2715,7 +2716,7 @@ ZStatus_t zclClosures_SendDoorLockSetHolidayScheduleRequest( uint8_t srcEP, afAd
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - COMMAND_CLOSURES_GET_HOLIDAY_SCHEDULE, COMMAND_CLOSURES_CLEAR_HOLIDAY_SCHEDULE
+ * @param   cmd - COMMAND_DOOR_LOCK_GET_HOLIDAY_SCHEDULE, COMMAND_DOOR_LOCK_CLEAR_HOLIDAY_SCHEDULE
  * @param   holidayScheduleID - A unique ID for given Holiday Schedule (0 to 254)
  * @param   disableDefaultRsp - decides default response is necessary or not
  * @param   seqNum - sequence number of the command packet
@@ -2760,7 +2761,7 @@ ZStatus_t zclClosures_SendDoorLockSetUserTypeRequest( uint8_t srcEP, afAddrType_
   payload[2] = userType;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                          COMMAND_CLOSURES_SET_USER_TYPE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+                          COMMAND_DOOR_LOCK_SET_USER_TYPE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, PAYLOAD_LEN_SET_USER_TYPE, payload );
 }
 
@@ -2816,7 +2817,7 @@ ZStatus_t zclClosures_SendDoorLockSetRFIDCodeRequest( uint8_t srcEP, afAddrType_
   }
 
   status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                            COMMAND_CLOSURES_SET_RFID_CODE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+                            COMMAND_DOOR_LOCK_SET_RFID_CODE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                             disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
   zcl_mem_free( pBuf );
   return status;
@@ -2829,15 +2830,15 @@ ZStatus_t zclClosures_SendDoorLockSetRFIDCodeRequest( uint8_t srcEP, afAddrType_
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - COMMAND_CLOSURES_LOCK_DOOR_RSP, COMMAND_CLOSURES_UNLOCK_DOOR_RSP
- *                COMMAND_CLOSURES_TOGGLE_RSP, COMMAND_CLOSURES_UNLOCK_WITH_TIMEOUT_RSP,
- *                COMMAND_CLOSURES_SET_PIN_CODE_RSP, COMMAND_CLOSURES_CLEAR_PIN_CODE_RSP,
- *                COMMAND_CLOSURES_CLEAR_ALL_PIN_CODES_RSP, COMMAND_CLOSURES_SET_USER_STATUS_RSP,
- *                COMMAND_CLOSURES_SET_WEEK_DAY_SCHEDULE_RSP, COMMAND_CLOSURES_CLEAR_WEEK_DAY_SCHEDULE_RSP,
- *                COMMAND_CLOSURES_SET_YEAR_DAY_SCHEDULE_RSP, COMMAND_CLOSURES_CLEAR_YEAR_DAY_SCHEDULE_RSP,
- *                COMMAND_CLOSURES_SET_HOLIDAY_SCHEDULE_RSP, COMMAND_CLOSURES_CLEAR_HOLIDAY_SCHEDULE_RSP,
- *                COMMAND_CLOSURES_SET_USER_TYPE_RSP, COMMAND_CLOSURES_SET_RFID_CODE_RSP,
- *                COMMAND_CLOSURES_CLEAR_RFID_CODE_RSP, COMMAND_CLOSURES_CLEAR_ALL_RFID_CODES_RSP
+ * @param   cmd - COMMAND_DOOR_LOCK_LOCK_DOOR_RESPONSE, COMMAND_DOOR_LOCK_UNLOCK_DOOR_RESPONSE
+ *                COMMAND_DOOR_LOCK_TOGGLE_RSP, COMMAND_DOOR_LOCK_UNLOCK_WITH_TIMEOUT_RESPONSE,
+ *                COMMAND_DOOR_LOCK_SET_PIN_CODE_RESPONSE, COMMAND_DOOR_LOCK_CLEAR_PIN_CODE_RESPONSE,
+ *                COMMAND_DOOR_LOCK_CLEAR_ALL_PIN_CODES_RESPONSE, COMMAND_DOOR_LOCK_SET_USER_STATUS_RESPONSE,
+ *                COMMAND_DOOR_LOCK_SET_WEEKDAY_SCHEDULE_RESPONSE, COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE_RESPONSE,
+ *                COMMAND_DOOR_LOCK_SET_YEAR_DAY_SCHEDULE_RESPONSE, COMMAND_DOOR_LOCK_CLEAR_YEAR_DAY_SCHEDULE_RESPONSE,
+ *                COMMAND_DOOR_LOCK_SET_HOLIDAY_SCHEDULE_RESPONSE, COMMAND_DOOR_LOCK_CLEAR_HOLIDAY_SCHEDULE_RESPONSE,
+ *                COMMAND_DOOR_LOCK_SET_USER_TYPE_RESPONSE, COMMAND_DOOR_LOCK_SET_RFID_CODE_RESPONSE,
+ *                COMMAND_DOOR_LOCK_CLEAR_RFID_CODE_RESPONSE, COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES_RESPONSE
  * @param   status - Returns the state due to the requesting command
  * @param   disableDefaultRsp - decides default response is necessary or not
  * @param   seqNum - sequence number of the command packet
@@ -2918,7 +2919,7 @@ ZStatus_t zclClosures_SendDoorLockGetLogRecordResponse( uint8_t srcEP, afAddrTyp
   }
 
   status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                            COMMAND_CLOSURES_GET_LOG_RECORD_RSP, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+                            COMMAND_DOOR_LOCK_GET_LOG_RECORD_RESPONSE, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                             disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
   zcl_mem_free( pBuf );
   return status;
@@ -2976,7 +2977,7 @@ ZStatus_t zclClosures_SendDoorLockGetPINCodeResponse( uint8_t srcEP, afAddrType_
   }
 
   status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                            COMMAND_CLOSURES_GET_PIN_CODE_RSP, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+                            COMMAND_DOOR_LOCK_GET_PIN_CODE_RESPONSE, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                             disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
   zcl_mem_free( pBuf );
   return status;
@@ -3007,7 +3008,7 @@ ZStatus_t zclClosures_SendDoorLockGetUserStatusResponse( uint8_t srcEP, afAddrTy
   payload[2] = userStatus;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                          COMMAND_CLOSURES_GET_USER_STATUS_RSP, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+                          COMMAND_DOOR_LOCK_GET_USER_STATUS_RESPONSE, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum, PAYLOAD_LEN_GET_USER_STATUS_RSP, payload );
 }
 
@@ -3058,7 +3059,7 @@ ZStatus_t zclClosures_SendDoorLockGetWeekDayScheduleResponse( uint8_t srcEP, afA
   }
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                          COMMAND_CLOSURES_GET_WEEK_DAY_SCHEDULE_RSP, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+                          COMMAND_DOOR_LOCK_GET_WEEKDAY_SCHEDULE_RESPONSE, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum, payloadLen, payload );
 }
 
@@ -3109,7 +3110,7 @@ ZStatus_t zclClosures_SendDoorLockGetYearDayScheduleResponse( uint8_t srcEP, afA
   }
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                          COMMAND_CLOSURES_GET_YEAR_DAY_SCHEDULE_RSP, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+                          COMMAND_DOOR_LOCK_GET_YEAR_DAY_SCHEDULE_RESPONSE, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum, payloadLen, payload );
 }
 
@@ -3159,7 +3160,7 @@ ZStatus_t zclClosures_SendDoorLockGetHolidayScheduleResponse( uint8_t srcEP, afA
   }
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                          COMMAND_CLOSURES_GET_HOLIDAY_SCHEDULE_RSP, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+                          COMMAND_DOOR_LOCK_GET_HOLIDAY_SCHEDULE_RESPONSE, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum, payloadLen, payload );
 }
 
@@ -3188,7 +3189,7 @@ ZStatus_t zclClosures_SendDoorLockGetUserTypeResponse( uint8_t srcEP, afAddrType
   payload[2] = userType;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                          COMMAND_CLOSURES_GET_USER_TYPE_RSP, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+                          COMMAND_DOOR_LOCK_GET_USER_TYPE_RESPONSE, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum, PAYLOAD_LEN_GET_USER_TYPE_RSP, payload );
 }
 
@@ -3244,7 +3245,7 @@ ZStatus_t zclClosures_SendDoorLockGetRFIDCodeResponse( uint8_t srcEP, afAddrType
   }
 
   status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                            COMMAND_CLOSURES_GET_RFID_CODE_RSP, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+                            COMMAND_DOOR_LOCK_GET_RFID_CODE_RESPONSE, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                             disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
   zcl_mem_free( pBuf );
   return status;
@@ -3309,7 +3310,7 @@ ZStatus_t zclClosures_SendDoorLockOperationEventNotification( uint8_t srcEP, afA
   }
 
   status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                            COMMAND_CLOSURES_OPERATION_EVENT_NOTIFICATION, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+                            COMMAND_DOOR_LOCK_OPERATING_EVENT_NOTIFICATION, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                             disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
   zcl_mem_free( pBuf );
   return status;
@@ -3379,7 +3380,7 @@ ZStatus_t zclClosures_SendDoorLockProgrammingEventNotification( uint8_t srcEP, a
   }
 
   status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK,
-                            COMMAND_CLOSURES_PROGRAMMING_EVENT_NOTIFICATION, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+                            COMMAND_DOOR_LOCK_PROGRAMMING_EVENT_NOTIFICATION, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                             disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
   zcl_mem_free( pBuf );
   return status;
@@ -3407,28 +3408,28 @@ static ZStatus_t zclClosures_ProcessInWindowCovering( zclIncoming_t *pInMsg,
   {
     switch ( pInMsg->hdr.commandID )
     {
-    case COMMAND_CLOSURES_UP_OPEN:
+    case COMMAND_WINDOW_COVERING_UP_OR_OPEN:
       if ( pCBs->pfnWindowCoveringUpOpen )
       {
         pCBs->pfnWindowCoveringUpOpen();
       }
       break;
 
-    case COMMAND_CLOSURES_DOWN_CLOSE:
+    case COMMAND_WINDOW_COVERING_DOWN_OR_CLOSE:
       if ( pCBs->pfnWindowCoveringDownClose )
       {
         pCBs->pfnWindowCoveringDownClose();
       }
       break;
 
-    case COMMAND_CLOSURES_STOP:
+    case COMMAND_WINDOW_COVERING_STOP:
       if ( pCBs->pfnWindowCoveringStop )
       {
         pCBs->pfnWindowCoveringStop();
       }
       break;
 
-    case COMMAND_CLOSURES_GO_TO_LIFT_VALUE:
+    case COMMAND_WINDOW_COVERING_GO_TO_LIFT_VALUE:
       if ( pCBs->pfnWindowCoveringGotoLiftValue )
       {
         if ( pCBs->pfnWindowCoveringGotoLiftValue( BUILD_UINT16( pData[0], pData[1] ) ) == FALSE )
@@ -3438,7 +3439,7 @@ static ZStatus_t zclClosures_ProcessInWindowCovering( zclIncoming_t *pInMsg,
       }
       break;
 
-    case COMMAND_CLOSURES_GO_TO_LIFT_PERCENTAGE:
+    case COMMAND_WINDOW_COVERING_GO_TO_LIFT_PERCENTAGE:
       if ( pCBs->pfnWindowCoveringGotoLiftPercentage )
       {
         if ( pCBs->pfnWindowCoveringGotoLiftPercentage( pData[0] ) == FALSE )
@@ -3448,7 +3449,7 @@ static ZStatus_t zclClosures_ProcessInWindowCovering( zclIncoming_t *pInMsg,
       }
       break;
 
-    case COMMAND_CLOSURES_GO_TO_TILT_VALUE:
+    case COMMAND_WINDOW_COVERING_GO_TO_TILT_VALUE:
       if ( pCBs->pfnWindowCoveringGotoTiltValue )
       {
         if ( pCBs->pfnWindowCoveringGotoTiltValue( BUILD_UINT16( pData[0], pData[1] ) ) == FALSE )
@@ -3458,7 +3459,7 @@ static ZStatus_t zclClosures_ProcessInWindowCovering( zclIncoming_t *pInMsg,
       }
       break;
 
-    case COMMAND_CLOSURES_GO_TO_TILT_PERCENTAGE:
+    case COMMAND_WINDOW_COVERING_GO_TO_TILT_PERCENTAGE:
       if ( pCBs->pfnWindowCoveringGotoTiltPercentage )
       {
         if ( pCBs->pfnWindowCoveringGotoTiltPercentage( pData[0] ) == FALSE )
@@ -3506,7 +3507,7 @@ ZStatus_t zclClosures_WindowCoveringSimpleReq( uint8_t srcEP, afAddrType_t *dstA
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - Command ID for COMMAND_CLOSURES_GO_TO_LIFT_VALUE
+ * @param   cmd - Command ID for COMMAND_WINDOW_COVERING_GO_TO_LIFT_VALUE
  * @param   liftValue - payload
  * @param   disableDefaultRsp - decides default response is necessary or not
  * @param   seqNum - sequence number of the command packet
@@ -3535,7 +3536,7 @@ ZStatus_t zclClosures_WindowCoveringSendGoToValueReq( uint8_t srcEP, afAddrType_
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - Command ID e.g. COMMAND_CLOSURES_GO_TO_LIFT_PERCENTAGE
+ * @param   cmd - Command ID e.g. COMMAND_WINDOW_COVERING_GO_TO_LIFT_PERCENTAGE
  * @param   percentageLiftValue - payload
  * @param   disableDefaultRsp - decides default response is necessary or not
  * @param   seqNum - sequence number of the command packet

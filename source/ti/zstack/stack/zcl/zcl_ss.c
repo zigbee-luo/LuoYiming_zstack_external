@@ -41,6 +41,7 @@
  * INCLUDES
  */
 #include "zcomdef.h"
+#include "ti_zstack_config.h"
 #include "zcl.h"
 #include "zcl_general.h"
 #include "zcl_ss.h"
@@ -279,7 +280,7 @@ ZStatus_t zclSS_IAS_Send_ZoneStatusChangeNotificationCmd( uint8_t srcEP, afAddrT
   buf[5] = HI_UINT16( delay );
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ZONE,
-                          COMMAND_SS_IAS_ZONE_STATUS_CHANGE_NOTIFICATION, TRUE,
+                          COMMAND_IAS_ZONE_ZONE_STATUS_CHANGE_NOTIFICATION, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0,
                           seqNum, PAYLOAD_LEN_ZONE_STATUS_CHANGE_NOTIFICATION, buf );
 }
@@ -310,7 +311,7 @@ ZStatus_t zclSS_IAS_Send_ZoneStatusEnrollRequestCmd( uint8_t srcEP, afAddrType_t
   buf[3] = HI_UINT16( manufacturerCode );
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ZONE,
-                          COMMAND_SS_IAS_ZONE_STATUS_ENROLL_REQUEST, TRUE,
+                          COMMAND_IAS_ZONE_ZONE_ENROLL_REQUEST, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0,
                           seqNum, PAYLOAD_LEN_ZONE_ENROLL_REQUEST, buf );
 }
@@ -339,7 +340,7 @@ ZStatus_t zclSS_IAS_Send_ZoneStatusEnrollResponseCmd( uint8_t srcEP, afAddrType_
   buf[1] = zoneID;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ZONE,
-                          COMMAND_SS_IAS_ZONE_STATUS_ENROLL_RESPONSE, TRUE,
+                          COMMAND_IAS_ZONE_ZONE_ENROLL_RESPONSE, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0,
                           seqNum, PAYLOAD_LEN_ZONE_STATUS_ENROLL_RSP, buf );
 }
@@ -367,7 +368,7 @@ ZStatus_t zclSS_IAS_Send_ZoneStatusInitTestModeCmd( uint8_t srcEP, afAddrType_t 
   buf[1] = pCmd->currZoneSensitivityLevel;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ZONE,
-                          COMMAND_SS_IAS_ZONE_STATUS_INIT_TEST_MODE, TRUE,
+                          COMMAND_IAS_ZONE_INITIATE_TEST_MODE, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0,
                           seqNum, PAYLOAD_LEN_ZONE_STATUS_INIT_TEST_MODE, buf );
 }
@@ -415,7 +416,7 @@ ZStatus_t zclSS_Send_IAS_ACE_ArmCmd( uint8_t srcEP, afAddrType_t *dstAddr,
     *pOutBuf++ = pCmd->zoneID;
 
     stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                            COMMAND_SS_IAS_ACE_ARM, TRUE,
+                            COMMAND_IASACE_ARM, TRUE,
                             ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, len, pBuf );
 
     zcl_mem_free( pBuf );
@@ -468,7 +469,7 @@ ZStatus_t zclSS_Send_IAS_ACE_BypassCmd( uint8_t srcEP, afAddrType_t *dstAddr,
     }
 
     stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                            COMMAND_SS_IAS_ACE_BYPASS, TRUE,
+                            COMMAND_IASACE_BYPASS, TRUE,
                             ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, len, buf );
     zcl_mem_free( buf );
   }
@@ -501,7 +502,7 @@ ZStatus_t zclSS_Send_IAS_ACE_GetZoneInformationCmd( uint8_t srcEP, afAddrType_t 
   buf[0] = zoneID;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                          COMMAND_SS_IAS_ACE_GET_ZONE_INFORMATION, TRUE,
+                          COMMAND_IASACE_GET_ZONE_INFORMATION, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, 1, buf );
 }
 
@@ -531,7 +532,7 @@ ZStatus_t zclSS_Send_IAS_ACE_GetZoneStatusCmd( uint8_t srcEP, afAddrType_t *dstA
   buf[4] = HI_UINT16( pCmd->zoneStatusMask );
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                          COMMAND_SS_IAS_ACE_GET_ZONE_STATUS, TRUE,
+                          COMMAND_IASACE_GET_ZONE_STATUS, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0,
                           seqNum, PAYLOAD_LEN_GET_ZONE_STATUS, buf );
 }
@@ -557,7 +558,7 @@ ZStatus_t zclSS_Send_IAS_ACE_ArmResponse( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[0] = armNotification;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                          COMMAND_SS_IAS_ACE_ARM_RESPONSE, TRUE,
+                          COMMAND_IASACE_ARM_RESPONSE, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, 1, buf );
 }
 
@@ -595,7 +596,7 @@ ZStatus_t zclSS_Send_IAS_ACE_GetZoneIDMapResponseCmd( uint8_t srcEP, afAddrType_
     }
 
     stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                            COMMAND_SS_IAS_ACE_GET_ZONE_ID_MAP_RESPONSE, TRUE,
+                            COMMAND_IASACE_GET_ZONE_ID_MAP_RESPONSE, TRUE,
                             ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, len, buf );
     zcl_mem_free( buf );
   }
@@ -649,7 +650,7 @@ ZStatus_t zclSS_Send_IAS_ACE_GetZoneInformationResponseCmd( uint8_t srcEP, afAdd
     }
 
     stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                            COMMAND_SS_IAS_ACE_GET_ZONE_INFORMATION_RESPONSE, TRUE,
+                            COMMAND_IASACE_GET_ZONE_INFORMATION_RESPONSE, TRUE,
                             ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, len, buf );
     zcl_mem_free( buf );
   }
@@ -704,7 +705,7 @@ ZStatus_t zclSS_Send_IAS_ACE_ZoneStatusChangedCmd( uint8_t srcEP, afAddrType_t *
     }
 
     stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                            COMMAND_SS_IAS_ACE_ZONE_STATUS_CHANGED, TRUE,
+                            COMMAND_IASACE_ZONE_STATUS_CHANGED, TRUE,
                             ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, len, pBuf );
 
     zcl_mem_free( pBuf );
@@ -742,7 +743,7 @@ ZStatus_t zclSS_Send_IAS_ACE_PanelStatusChangedCmd( uint8_t srcEP, afAddrType_t 
   buf[3] = pCmd->alarmStatus;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                          COMMAND_SS_IAS_ACE_PANEL_STATUS_CHANGED, TRUE,
+                          COMMAND_IASACE_PANEL_STATUS_CHANGED, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0,
                           seqNum, PAYLOAD_LEN_PANEL_STATUS_CHANGED, buf );
 }
@@ -772,7 +773,7 @@ ZStatus_t zclSS_Send_IAS_ACE_GetPanelStatusResponseCmd( uint8_t srcEP, afAddrTyp
   buf[3] = pCmd->alarmStatus;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                          COMMAND_SS_IAS_ACE_GET_PANEL_STATUS_RESPONSE, TRUE,
+                          COMMAND_IASACE_GET_PANEL_STATUS_RESPONSE, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0,
                           seqNum, PAYLOAD_LEN_GET_PANEL_STATUS_RESPONSE, buf );
 }
@@ -808,7 +809,7 @@ ZStatus_t zclSS_Send_IAS_ACE_SetBypassedZoneListCmd( uint8_t srcEP, afAddrType_t
     zcl_memcpy( pBuf, pCmd->zoneID, pCmd->numberOfZones );
 
     stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                            COMMAND_SS_IAS_ACE_SET_BYPASSED_ZONE_LIST, TRUE,
+                            COMMAND_IASACE_SET_BYPASSED_ZONE_LIST, TRUE,
                             ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, len, buf );
     zcl_mem_free( buf );
   }
@@ -851,7 +852,7 @@ ZStatus_t zclSS_Send_IAS_ACE_BypassResponseCmd( uint8_t srcEP, afAddrType_t *dst
     zcl_memcpy( pBuf, pCmd->bypassResult, pCmd->numberOfZones );
 
     stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                            COMMAND_SS_IAS_ACE_BYPASS_RESPONSE, TRUE,
+                            COMMAND_IASACE_BYPASS_RESPONSE, TRUE,
                             ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, len, buf );
     zcl_mem_free( buf );
   }
@@ -897,7 +898,7 @@ ZStatus_t zclSS_Send_IAS_ACE_GetZoneStatusResponseCmd( uint8_t srcEP, afAddrType
     zcl_memcpy( pBuf, pCmd->zoneInfo, pCmd->numberOfZones * sizeof( zclACEZoneStatus_t ) );
 
     stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_ACE,
-                            COMMAND_SS_IAS_ACE_GET_ZONE_STATUS_RESPONSE, TRUE,
+                            COMMAND_IASACE_GET_ZONE_STATUS_RESPONSE, TRUE,
                             ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, len, buf );
     zcl_mem_free( buf );
   }
@@ -938,7 +939,7 @@ ZStatus_t zclSS_Send_IAS_WD_StartWarningCmd( uint8_t srcEP, afAddrType_t *dstAdd
   buf[4] = pWarning->strobeLevel;
 
   stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_WD,
-                          COMMAND_SS_IAS_WD_START_WARNING, TRUE,
+                          COMMAND_IASWD_START_WARNING, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, 5, buf );
 
   return( stat );
@@ -965,7 +966,7 @@ ZStatus_t zclSS_Send_IAS_WD_SquawkCmd( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[0] = squawk->squawkbyte;
 
   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SS_IAS_WD,
-                          COMMAND_SS_IAS_WD_SQUAWK, TRUE,
+                          COMMAND_IASWD_SQUAWK, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, 1, buf);
 }
 #endif // ZCL_WD
@@ -1149,15 +1150,15 @@ static ZStatus_t zclSS_ProcessInZoneStatusCmdsServer( zclIncoming_t *pInMsg,
 
   switch ( pInMsg->hdr.commandID )
   {
-    case COMMAND_SS_IAS_ZONE_STATUS_ENROLL_RESPONSE:
+    case COMMAND_IAS_ZONE_ZONE_ENROLL_RESPONSE:
       stat = zclSS_ProcessInCmd_ZoneStatus_EnrollResponse( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ZONE_STATUS_INIT_NORMAL_OP_MODE:
+    case COMMAND_IAS_ZONE_INITIATE_NORMAL_OPERATION_MODE:
       stat = zclSS_ProcessInCmd_ZoneStatus_InitNormalOperationMode( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ZONE_STATUS_INIT_TEST_MODE:
+    case COMMAND_IAS_ZONE_INITIATE_TEST_MODE:
       stat = zclSS_ProcessInCmd_ZoneStatus_InitTestMode( pInMsg, pCBs );
       break;
 
@@ -1187,11 +1188,11 @@ static ZStatus_t zclSS_ProcessInZoneStatusCmdsClient( zclIncoming_t *pInMsg,
 
   switch ( pInMsg->hdr.commandID )
   {
-    case COMMAND_SS_IAS_ZONE_STATUS_CHANGE_NOTIFICATION:
+    case COMMAND_IAS_ZONE_ZONE_STATUS_CHANGE_NOTIFICATION:
       stat = zclSS_ProcessInCmd_ZoneStatus_ChangeNotification( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ZONE_STATUS_ENROLL_REQUEST:
+    case COMMAND_IAS_ZONE_ZONE_ENROLL_REQUEST:
       stat = zclSS_ProcessInCmd_ZoneStatus_EnrollRequest( pInMsg, pCBs );
       break;
 
@@ -1223,43 +1224,43 @@ static ZStatus_t zclSS_ProcessInACECmdsServer( zclIncoming_t *pInMsg,
 
   switch ( pInMsg->hdr.commandID )
   {
-    case COMMAND_SS_IAS_ACE_ARM:
+    case COMMAND_IASACE_ARM:
       stat = zclSS_ProcessInCmd_ACE_Arm( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_BYPASS:
+    case COMMAND_IASACE_BYPASS:
       stat = zclSS_ProcessInCmd_ACE_Bypass( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_EMERGENCY:
+    case COMMAND_IASACE_EMERGENCY:
       stat = zclSS_ProcessInCmd_ACE_Emergency( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_FIRE:
+    case COMMAND_IASACE_FIRE:
       stat = zclSS_ProcessInCmd_ACE_Fire( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_PANIC:
+    case COMMAND_IASACE_PANIC:
       stat = zclSS_ProcessInCmd_ACE_Panic( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_GET_ZONE_ID_MAP:
+    case COMMAND_IASACE_GET_ZONE_ID_MAP:
       stat = zclSS_ProcessInCmd_ACE_GetZoneIDMap( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_GET_ZONE_INFORMATION:
+    case COMMAND_IASACE_GET_ZONE_INFORMATION:
       stat = zclSS_ProcessInCmd_ACE_GetZoneInformation( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_GET_PANEL_STATUS:
+    case COMMAND_IASACE_GET_PANEL_STATUS:
       stat = zclSS_ProcessInCmd_ACE_GetPanelStatus( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_GET_BYPASSED_ZONE_LIST:
+    case COMMAND_IASACE_GET_BYPASSED_ZONE_LIST:
       stat = zclSS_ProcessInCmd_ACE_GetBypassedZoneList( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_GET_ZONE_STATUS:
+    case COMMAND_IASACE_GET_ZONE_STATUS:
       stat = zclSS_ProcessInCmd_ACE_GetZoneStatus( pInMsg, pCBs );
       break;
 
@@ -1289,39 +1290,39 @@ static ZStatus_t zclSS_ProcessInACECmdsClient( zclIncoming_t *pInMsg,
 
   switch ( pInMsg->hdr.commandID )
   {
-    case COMMAND_SS_IAS_ACE_ARM_RESPONSE:
+    case COMMAND_IASACE_ARM_RESPONSE:
       stat = zclSS_ProcessInCmd_ACE_ArmResponse( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_GET_ZONE_ID_MAP_RESPONSE:
+    case COMMAND_IASACE_GET_ZONE_ID_MAP_RESPONSE:
       stat = zclSS_ProcessInCmd_ACE_GetZoneIDMapResponse( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_GET_ZONE_INFORMATION_RESPONSE:
+    case COMMAND_IASACE_GET_ZONE_INFORMATION_RESPONSE:
       stat = zclSS_ProcessInCmd_ACE_GetZoneInformationResponse( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_ZONE_STATUS_CHANGED:
+    case COMMAND_IASACE_ZONE_STATUS_CHANGED:
       stat = zclSS_ProcessInCmd_ACE_ZoneStatusChanged( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_PANEL_STATUS_CHANGED:
+    case COMMAND_IASACE_PANEL_STATUS_CHANGED:
       stat = zclSS_ProcessInCmd_ACE_PanelStatusChanged( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_GET_PANEL_STATUS_RESPONSE:
+    case COMMAND_IASACE_GET_PANEL_STATUS_RESPONSE:
       stat = zclSS_ProcessInCmd_ACE_GetPanelStatusResponse( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_SET_BYPASSED_ZONE_LIST:
+    case COMMAND_IASACE_SET_BYPASSED_ZONE_LIST:
       stat = zclSS_ProcessInCmd_ACE_SetBypassedZoneList( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_BYPASS_RESPONSE:
+    case COMMAND_IASACE_BYPASS_RESPONSE:
       stat = zclSS_ProcessInCmd_ACE_BypassResponse( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_ACE_GET_ZONE_STATUS_RESPONSE:
+    case COMMAND_IASACE_GET_ZONE_STATUS_RESPONSE:
       stat = zclSS_ProcessInCmd_ACE_GetZoneStatusResponse( pInMsg, pCBs );
       break;
 
@@ -2489,11 +2490,11 @@ static ZStatus_t zclSS_ProcessInWDCmds( zclIncoming_t *pInMsg,
 
   switch ( pInMsg->hdr.commandID )
   {
-    case COMMAND_SS_IAS_WD_START_WARNING:
+    case COMMAND_IASWD_START_WARNING:
       stat = zclSS_ProcessInCmd_WD_StartWarning( pInMsg, pCBs );
       break;
 
-    case COMMAND_SS_IAS_WD_SQUAWK:
+    case COMMAND_IASWD_SQUAWK:
       stat = zclSS_ProcessInCmd_WD_Squawk( pInMsg, pCBs );
       break;
 

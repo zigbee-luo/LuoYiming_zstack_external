@@ -58,11 +58,6 @@ extern "C"
 #include <stdlib.h>
 #include <string.h>
 
-#include <ti/sysbios/knl/Clock.h>
-#include <ti/sysbios/knl/Semaphore.h>
-#include <ti/sysbios/knl/Task.h>
-#include <ti/sysbios/BIOS.h>
-
 /*********************************************************************
  * MACROS
  */
@@ -147,14 +142,13 @@ typedef void * OsalPort_MsgQ;
  *    processing a received message.
  *
  *
- * @param   uint8_t             *pMsg - pointer to new message buffer
- * @param   Semaphore_Handle    taskSem - taskSemaphore
- * @param   uint32_t* -         pEvent - pointer to event flag
+ * @param   void*     taskHndl - pointer to new message buffer
+ * @param   void*     taskSem  - taskSemaphore
+ * @param   uint32_t* pEvent - pointer to event flag
  *
  * @return  Task ID
  */
-uint8_t OsalPort_registerTask(Task_Handle taskHndl, Semaphore_Handle taskSem, uint32_t * pEvent);
-
+uint8_t OsalPort_registerTask(void* taskHndl, void* taskSem, uint32_t * pEvent);
 /*********************************************************************
  * @fn      OsalPort_getTaskId
  *
@@ -167,7 +161,7 @@ uint8_t OsalPort_registerTask(Task_Handle taskHndl, Semaphore_Handle taskSem, ui
  *
  * @return  Task ID
  */
-uint8_t OsalPort_getTaskId(Task_Handle taskHndl);
+uint8_t OsalPort_getTaskId(void* taskHndl);
 
 /*********************************************************************
  * @fn      OsalPort_msgAllocate
@@ -301,7 +295,7 @@ uint32_t OsalPort_waitEvent(uint8_t taskId);
  *
  * @return  none
  */
-void OsalPort_blockOnEvent(Task_Handle taskHndl);
+void OsalPort_blockOnEvent(void* taskHndl);
 
 /*********************************************************************
  * @fn      OsalPort_clearEvent

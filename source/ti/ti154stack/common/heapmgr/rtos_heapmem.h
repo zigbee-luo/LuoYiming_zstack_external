@@ -54,11 +54,11 @@
 #include <stdint.h>
 #include <xdc/std.h>
 #include <xdc/runtime/Types.h>
-#include <ti/sysbios/knl/Task.h>
-#include <ti/sysbios/hal/Hwi.h>
 #include <ti/sysbios/heaps/HeapMem.h>
 #include <xdc/runtime/System.h>
 #include <xdc/runtime/Memory.h>
+
+#include <ti/drivers/dpl/HwiP.h>
 
 // This include file will bring HEAPMGR_SIZE and stackHeap is properly setup in the ti-rtos
 // config file.
@@ -192,7 +192,7 @@ void HEAPMGR_INIT(void)
 void *HEAPMGR_MALLOC(uint32_t size)
 {
   Header_Custom *tmp;
-  uint_least16_t hwikey;
+  uintptr_t hwikey;
 
   // return NULL if size is 0
   if (size == 0)
@@ -204,7 +204,7 @@ void *HEAPMGR_MALLOC(uint32_t size)
   size += sizeof(Header_Custom);
 
   /* Protect since HeapMem_allocUnprotected does not */
-  hwikey = (uint_least16_t)Hwi_disable();
+  hwikey = HwiP_disable();
 
   /* Using the default system heap for this example */
   tmp = HeapMem_allocUnprotected(stackHeap, size, FORCED_ALIGNEMENT);
@@ -239,7 +239,7 @@ void *HEAPMGR_MALLOC(uint32_t size)
 #endif // HEAPMGR_METRICS
 
   /* restore the hwi mutex */
-  Hwi_restore(hwikey);
+  HwiP_restore(hwikey);
 
   if (tmp == NULL)
   {
@@ -261,7 +261,7 @@ void *HEAPMGR_MALLOC(uint32_t size)
 void HEAPMGR_FREE(void *ptr)
 {
   void  *tmp;
-  uint_least16_t  hwikey;
+  uintptr_t hwikey;
 
   if (ptr != NULL)
   {
@@ -269,7 +269,7 @@ void HEAPMGR_FREE(void *ptr)
     tmp = (Header_Custom *)((uint8_t *)ptr - sizeof(Header_Custom));
 
     /* Protect since HeapMem_freeNoGate does not */
-    hwikey = (uint_least16_t) Hwi_disable();
+    hwikey = HwiP_disable();
 
 #ifdef HEAPMGR_METRICS
     HEAPMGR_MEMALO -= ((Header_Custom*)tmp)->size;
@@ -280,7 +280,7 @@ void HEAPMGR_FREE(void *ptr)
     HeapMem_freeUnprotected(stackHeap, (Ptr)tmp, ((Header_Custom*)tmp)->size);
 
     /* restore the Key */
-    Hwi_restore(hwikey);
+    HwiP_restore(hwikey);
   }
 }
 

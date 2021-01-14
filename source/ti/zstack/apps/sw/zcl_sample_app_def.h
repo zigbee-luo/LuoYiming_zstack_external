@@ -40,7 +40,7 @@
 #ifndef APPLICATION_UI_ZCL_SAMPLE_APP_DEF_H_
 #define APPLICATION_UI_ZCL_SAMPLE_APP_DEF_H_
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 
 #define SAMPLE_APP_MENUS   2
 
@@ -50,6 +50,6 @@
 
 #define APP_TITLE_STR "TI Sample Switch"
 
-#endif //#ifdef USE_ZCL_SAMPLEAPP_UI
+#endif //#ifndef CUI_DISABLE
 
 #endif /* APPLICATION_UI_ZCL_SAMPLEAPPDEF_H_ */

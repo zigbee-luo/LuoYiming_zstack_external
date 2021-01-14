@@ -53,8 +53,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <ti/sysbios/knl/Task.h>
-
 #ifndef LIBRARY
 #include "ti_154stack_features.h"
 #endif
@@ -1620,6 +1618,18 @@ typedef struct _apimac_mcpsdatareq
     /*! Transmit Window for Green Power */
     uint8_t  gpDuration;
 } ApiMac_mcpsDataReq_t;
+
+
+/*! MCPS data request type */
+typedef struct _apimac_msduAddrMap
+{
+    /*! The address of the destination device */
+    ApiMac_sAddr_t dstAddr;
+    /*! Application-defined handle value associated with this data request */
+    uint8_t msduHandle;
+
+} ApiMac_msduAddrMap_t;
+
 
 /*! Structure a Payload information Item */
 typedef struct _apimac_payloadieitem

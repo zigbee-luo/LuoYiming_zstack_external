@@ -43,11 +43,11 @@
  */
 #include "zcomdef.h"
 #include "rom_jt_154.h"
+#include "ti_zstack_config.h"
 #include "mt.h"
 #include "mt_af.h"
 #include "mt_zdo.h"
 #include "nwk.h"
-
 
 #if defined ( INTER_PAN ) || defined ( BDB_TL_INITIATOR ) || defined ( BDB_TL_TARGET )
 #include "stub_aps.h"

@@ -128,7 +128,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
 {
   // *** General Basic Cluster Attributes ***
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_ZCL_VERSION,
       ZCL_DATATYPE_UINT8,
@@ -137,7 +137,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
+    ZCL_CLUSTER_ID_GENERAL_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
     {  // Attribute record
       ATTRID_BASIC_HW_VERSION,            // Attribute ID - Found in Cluster Library header (ie. zcl_general.h)
       ZCL_DATATYPE_UINT8,                 // Data Type - found in zcl.h
@@ -146,7 +146,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_MANUFACTURER_NAME,
       ZCL_DATATYPE_CHAR_STR,
@@ -155,7 +155,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_POWER_SOURCE,
       ZCL_DATATYPE_ENUM8,
@@ -164,16 +164,16 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
-      ATTRID_BASIC_PHYSICAL_ENV,
+      ATTRID_BASIC_PHYSICAL_ENVIRONMENT,
       ZCL_DATATYPE_ENUM8,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclSampleThermostat_PhysicalEnvironment
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -183,16 +183,16 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
   },
   // *** Identify Cluster Attribute ***
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     { // Attribute record
-      ATTRID_IDENTIFY_TIME,
+      ATTRID_IDENTIFY_IDENTIFY_TIME,
       ZCL_DATATYPE_UINT16,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclSampleThermostat_IdentifyTime
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -215,7 +215,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
   {
     ZCL_CLUSTER_ID_HVAC_THERMOSTAT,
     { // Attribute record
-      ATTRID_HVAC_THERMOSTAT_LOCAL_TEMPERATURE,
+      ATTRID_THERMOSTAT_LOCAL_TEMPERATURE,
       ZCL_DATATYPE_INT16,
       ACCESS_CONTROL_READ | ACCESS_REPORTABLE,
       (void *)&zclSampleThermostat_LocalTemperature
@@ -224,7 +224,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
   {
     ZCL_CLUSTER_ID_HVAC_THERMOSTAT,
     { // Attribute record
-      ATTRID_HVAC_THERMOSTAT_OCCUPIED_COOLING_SETPOINT,
+      ATTRID_THERMOSTAT_OCCUPIED_COOLING_SETPOINT,
       ZCL_DATATYPE_INT16,
       ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE,
       (void *)&zclSampleThermostat_OccupiedCoolingSetpoint
@@ -233,7 +233,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
   {
     ZCL_CLUSTER_ID_HVAC_THERMOSTAT,
     { // Attribute record
-      ATTRID_HVAC_THERMOSTAT_OCCUPIED_HEATING_SETPOINT,
+      ATTRID_THERMOSTAT_OCCUPIED_HEATING_SETPOINT,
       ZCL_DATATYPE_INT16,
       ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE,
       (void *)&zclSampleThermostat_OccupiedHeatingSetpoint
@@ -242,7 +242,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
   {
     ZCL_CLUSTER_ID_HVAC_THERMOSTAT,
     { // Attribute record
-      ATTRID_HVAC_THERMOSTAT_ABS_MIN_HEAT_SETPOINT_LIMIT,
+      ATTRID_THERMOSTAT_ABS_MIN_HEAT_SETPOINT_LIMIT,
       ZCL_DATATYPE_INT16,
       ACCESS_CONTROL_READ ,
       (void *)&zclSampleThermostat_AbsMinHeatSetpointLimit
@@ -251,7 +251,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
   {
     ZCL_CLUSTER_ID_HVAC_THERMOSTAT,
     { // Attribute record
-      ATTRID_HVAC_THERMOSTAT_ABS_MAX_HEAT_SETPOINT_LIMIT,
+      ATTRID_THERMOSTAT_ABS_MAX_HEAT_SETPOINT_LIMIT,
       ZCL_DATATYPE_INT16,
       ACCESS_CONTROL_READ ,
       (void *)&zclSampleThermostat_AbsMaxHeatSetpointLimit
@@ -260,7 +260,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
   {
     ZCL_CLUSTER_ID_HVAC_THERMOSTAT,
     { // Attribute record
-      ATTRID_HVAC_THERMOSTAT_ABS_MIN_COOL_SETPOINT_LIMIT,
+      ATTRID_THERMOSTAT_ABS_MIN_COOL_SETPOINT_LIMIT,
       ZCL_DATATYPE_INT16,
       ACCESS_CONTROL_READ ,
       (void *)&zclSampleThermostat_AbsMinCoolSetpointLimit
@@ -269,7 +269,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
   {
     ZCL_CLUSTER_ID_HVAC_THERMOSTAT,
     { // Attribute record
-      ATTRID_HVAC_THERMOSTAT_ABS_MAX_COOL_SETPOINT_LIMIT,
+      ATTRID_THERMOSTAT_ABS_MAX_COOL_SETPOINT_LIMIT,
       ZCL_DATATYPE_INT16,
       ACCESS_CONTROL_READ ,
       (void *)&zclSampleThermostat_AbsMaxCoolSetpointLimit
@@ -279,7 +279,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
   {
     ZCL_CLUSTER_ID_HVAC_THERMOSTAT,
     { // Attribute record
-      ATTRID_HVAC_THERMOSTAT_CTRL_SEQ_OF_OPER,
+      ATTRID_THERMOSTAT_CONTROL_SEQUENCE_OF_OPERATION,
       ZCL_DATATYPE_ENUM8,
       ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE,
       (void *)&zclSampleThermostat_ControlSequenceOfOperation
@@ -288,7 +288,7 @@ CONST zclAttrRec_t zclSampleThermostat_Attrs[] =
   {
     ZCL_CLUSTER_ID_HVAC_THERMOSTAT,
     { // Attribute record
-      ATTRID_HVAC_THERMOSTAT_SYSTEM_MODE,
+      ATTRID_THERMOSTAT_SYSTEM_MODE,
       ZCL_DATATYPE_ENUM8,
       ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE,
       (void *)&zclSampleThermostat_SystemMode
@@ -315,15 +315,15 @@ uint8_t CONST zclSampleThermostat_NumAttributes = ( sizeof(zclSampleThermostat_A
 #define ZCLSAMPLETHERMOSTAT_MAX_INCLUSTERS       3
 const cId_t zclSampleThermostat_InClusterList[ZCLSAMPLETHERMOSTAT_MAX_INCLUSTERS] =
 {
-  ZCL_CLUSTER_ID_GEN_BASIC,
-  ZCL_CLUSTER_ID_GEN_IDENTIFY,
+  ZCL_CLUSTER_ID_GENERAL_BASIC,
+  ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
   ZCL_CLUSTER_ID_HVAC_THERMOSTAT
 };
 
 #define ZCLSAMPLETHERMOSTAT_MAX_OUTCLUSTERS       2
 const cId_t zclSampleThermostat_OutClusterList[ZCLSAMPLETHERMOSTAT_MAX_OUTCLUSTERS] =
 {
-  ZCL_CLUSTER_ID_GEN_IDENTIFY,
+  ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
   ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT
 };
 
@@ -331,7 +331,7 @@ SimpleDescriptionFormat_t zclSampleThermostat_SimpleDesc =
 {
   SAMPLETHERMOSTAT_ENDPOINT,                  //  int Endpoint;
   ZCL_HA_PROFILE_ID,                          //  uint16_t AppProfId[2];
-  ZCL_HA_DEVICEID_THERMOSTAT,                 //  uint16_t AppDeviceId[2];
+  ZCL_DEVICEID_THERMOSTAT,                 //  uint16_t AppDeviceId[2];
   SAMPLETHERMOSTAT_DEVICE_VERSION,            //  int   AppDevVer:4;
   SAMPLETHERMOSTAT_FLAGS,                     //  int   AppFlags:4;
   ZCLSAMPLETHERMOSTAT_MAX_INCLUSTERS,         //  byte  AppNumInClusters;

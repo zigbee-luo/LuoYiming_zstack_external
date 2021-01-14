@@ -66,6 +66,8 @@
 
 #include "zglobals.h"
 
+#include "ti_zstack_config.h"
+
 /*********************************************************************
  * MACROS
  */
@@ -98,7 +100,6 @@ typedef struct zclGenSceneNVItem
 }zclGenSceneNVItem_t;
 #endif
 
-// multiple endpoint for ZCL handler external, added by luoyiming 2020-02-08
 typedef struct
 {
     void *next;
@@ -151,14 +152,13 @@ static uint8_t lastFindSceneEndpoint = 0xFF;
 #endif
 
 // Function pointer for applications to ZCL Handle External
-// added multiple endpoint processing by luoyiming at 2020-02-08
-zclHandleExternalList_t *zclHandleExternalList = NULL;
+static zclHandleExternalList_t *zclHandleExternalList = NULL;
 
 /*********************************************************************
  * LOCAL FUNCTIONS
  */
 static void convertTxOptions(zstack_TransOptions_t *pOptions, uint8_t options);
-endPointDesc_t *zcl_afFindEndPointDesc(uint8_t EndPoint); // fixed by luoyiming 2020-02-08
+endPointDesc_t *zcl_afFindEndPointDesc(uint8_t EndPoint);
 uint8_t zclPortFindEntity(uint8_t EndPoint);
 /*********************************************************************
 * PUBLIC FUNCTIONS
@@ -176,42 +176,40 @@ uint8_t zclPortFindEntity(uint8_t EndPoint);
  */
 bool zclport_registerEndpoint(uint8_t entity, endPointDesc_t *pEpDesc)
 {
-    int x;
+    uint8_t x;
 
-    // don't register same endpoint repeatedly, fixed by luoyiming 2020-02-08
-    if ( zcl_afFindEndPointDesc( pEpDesc->endPoint ) )
+    // Register endpoint that does not exist already
+    if( zcl_afFindEndPointDesc(pEpDesc->endPoint) == NULL )
     {
-        return(false);
-    }
-
-    for(x = 0; x < MAX_SUPPORTED_ENDPOINTS; x++)
-    {
-        if(entityEPDescs[x].pEpDesc == NULL)
+        for(x = 0; x < MAX_SUPPORTED_ENDPOINTS; x++)
         {
-            zstack_afRegisterReq_t regReq = {0};
-            zstack_SimpleDescriptor_t simpleDesc;
+            if(entityEPDescs[x].pEpDesc == NULL)
+            {
+                zstack_afRegisterReq_t regReq = {0};
+                zstack_SimpleDescriptor_t simpleDesc;
 
-            // Save information to local table
-            entityEPDescs[x].entity = entity;
-            entityEPDescs[x].pEpDesc = pEpDesc;
+                // Save information to local table
+                entityEPDescs[x].entity = entity;
+                entityEPDescs[x].pEpDesc = pEpDesc;
 
-            // Register an endpoint with the stack thread
-            simpleDesc.endpoint = pEpDesc->endPoint;
-            simpleDesc.profileID = pEpDesc->simpleDesc->AppProfId;
-            simpleDesc.deviceID = pEpDesc->simpleDesc->AppDeviceId;
-            simpleDesc.deviceVer = pEpDesc->simpleDesc->AppDevVer;
-            simpleDesc.n_inputClusters = pEpDesc->simpleDesc->AppNumInClusters;
-            simpleDesc.pInputClusters = pEpDesc->simpleDesc->pAppInClusterList;
-            simpleDesc.n_outputClusters =
-                pEpDesc->simpleDesc->AppNumOutClusters;
-            simpleDesc.pOutputClusters =
-                pEpDesc->simpleDesc->pAppOutClusterList;
-            regReq.endpoint = pEpDesc->endPoint;
-            regReq.pSimpleDesc = &simpleDesc;
-            regReq.latencyReq = zstack_NetworkLatency_NO_LATENCY_REQS;
-            (void)Zstackapi_AfRegisterReq(entity, &regReq);
+                // Register an endpoint with the stack thread
+                simpleDesc.endpoint = pEpDesc->endPoint;
+                simpleDesc.profileID = pEpDesc->simpleDesc->AppProfId;
+                simpleDesc.deviceID = pEpDesc->simpleDesc->AppDeviceId;
+                simpleDesc.deviceVer = pEpDesc->simpleDesc->AppDevVer;
+                simpleDesc.n_inputClusters = pEpDesc->simpleDesc->AppNumInClusters;
+                simpleDesc.pInputClusters = pEpDesc->simpleDesc->pAppInClusterList;
+                simpleDesc.n_outputClusters =
+                    pEpDesc->simpleDesc->AppNumOutClusters;
+                simpleDesc.pOutputClusters =
+                    pEpDesc->simpleDesc->pAppOutClusterList;
+                regReq.endpoint = pEpDesc->endPoint;
+                regReq.pSimpleDesc = &simpleDesc;
+                regReq.latencyReq = zstack_NetworkLatency_NO_LATENCY_REQS;
+                (void)Zstackapi_AfRegisterReq(entity, &regReq);
 
-            return(true);
+                return(true);
+            }
         }
     }
 
@@ -233,51 +231,47 @@ void zclport_registerNV(NVINTF_nvFuncts_t *pfnNV, uint16_t sceneNVID)
 
 /**
  * Call to register a function pointer to handle zcl_HandleExternal() messages.
- * Added multiple endpoint processing by luoyiming at 2020-02-08.
  *
  * Public function defined in zcl_port.h
  */
-bool zclport_registerZclHandleExternal( uint8_t endpoint, zclport_pFnZclHandleExternal pfn )
+bool zclport_registerZclHandleExternal( uint8_t endpoint, zclport_pFnZclHandleExternal pfn)
 {
     zclHandleExternalList_t *find = zclHandleExternalList;
     zclHandleExternalList_t *tail = NULL;
-    // If endpoint is valid, added by luoyiming 2020-02-08
-    if ( zcl_afFindEndPointDesc( endpoint ) == NULL )
+    if( zcl_afFindEndPointDesc(endpoint) != NULL )
     {
-        return false;
-    }
-
-    // match if there be same endpoint and find tail item, fixed by luoyiming 2020-02-08
-    while ( find )
-    {
-        if ( find->endpoint == endpoint )
+        // Find matching endpoint or tail
+        while( find != NULL )
         {
-            find->pfn = pfn;
+            if( find->endpoint == endpoint)
+            {
+                find->pfn = pfn;
+                return true;
+            }
+            if( find->next == NULL )
+            {
+                tail = find;
+            }
+            find = find->next;
+        }
+
+        // Add new item
+        zclHandleExternalList_t *newItem = zcl_mem_alloc( sizeof(zclHandleExternalList_t) );
+        if(newItem)
+        {
+            newItem->next = NULL;
+            newItem->endpoint = endpoint;
+            newItem->pfn = pfn;
+            if( zclHandleExternalList == NULL )
+            {
+                zclHandleExternalList = newItem;
+            }
+            else
+            {
+                tail->next = newItem;
+            }
             return true;
         }
-        if ( find->next == NULL )
-        {
-            tail = find;
-        }
-        find = find->next;
-    }
-
-    // add new item,  fixed by luoyiming 2020-02-08
-    zclHandleExternalList_t *newItem = zcl_mem_alloc( sizeof(zclHandleExternalList_t) );
-    if ( newItem )
-    {
-        newItem->next = NULL;
-        newItem->endpoint = endpoint;
-        newItem->pfn = pfn;
-        if ( zclHandleExternalList == NULL )
-        {
-            zclHandleExternalList = newItem;
-        }
-        else
-        {
-            tail->next = newItem;
-        }
-        return true;
     }
     return false;
 }
@@ -525,15 +519,15 @@ uint8_t zcl_HandleExternal(zclIncoming_t *pInMsg)
 
 #endif
 
-    // zclHandleExternal for multiple endpoint, fixed by luoyiming 2020-02-08
-    zclHandleExternalList_t *find = zclHandleExternalList;
     // Did the application register to handle this message
-    while ( find )
+    zclHandleExternalList_t *find = zclHandleExternalList;
+    while( find )
     {
-        if ( ( find->endpoint == pInMsg->msg->endPoint ) && ( find->pfn ) )
+        // Find matching endpoint with defined handle
+        if( ( find->endpoint == pInMsg->msg->endPoint ) && ( find->pfn ) )
         {
             // Let the application handle it
-            return (find->pfn( pInMsg ));
+            return(find->pfn(pInMsg));
         }
         find = find->next;
     }
@@ -722,7 +716,7 @@ uint32_t zcl_build_uint32(uint8_t *swapped, uint8_t len)
  */
 zclPort_entityEPDesc_t *zclPortFind(uint8_t EndPoint)
 {
-    int x;
+    uint8_t x;
 
     for(x = 0; x < MAX_SUPPORTED_ENDPOINTS; x++)
     {
@@ -747,7 +741,7 @@ zclPort_entityEPDesc_t *zclPortFind(uint8_t EndPoint)
  */
 uint8_t zclPortFindEntity(uint8_t EndPoint)
 {
-    int x;
+    uint8_t x;
 
     for(x = 0; x < MAX_SUPPORTED_ENDPOINTS; x++)
     {
@@ -758,7 +752,7 @@ uint8_t zclPortFindEntity(uint8_t EndPoint)
         }
     }
 
-    return( (uint8_t)NULL );
+    return 0U;
 }
 
 /*********************************************************************
@@ -772,7 +766,7 @@ uint8_t zclPortFindEntity(uint8_t EndPoint)
  */
 endPointDesc_t *zcl_afFindEndPointDesc(uint8_t EndPoint)
 {
-    int x;
+    uint8_t x;
 
     for(x = 0; x < MAX_SUPPORTED_ENDPOINTS; x++)
     {
@@ -787,7 +781,7 @@ endPointDesc_t *zcl_afFindEndPointDesc(uint8_t EndPoint)
 }
 
 /*********************************************************************
- * @fn      zcl_AF_DataRequestExt
+ * @fn      zcl_AF_DataRequest
  *
  * @brief   Common functionality for invoking APSDE_DataReq() for both
  *          SendMulti and MSG-Send.
@@ -1116,7 +1110,7 @@ void zclGeneral_ScenesInit(void)
     zclGenSceneNVItem_t temp;
 
     memset(&temp, 0xFF, sizeof(zclGenSceneNVItem_t));
-    for(x = 0; x < ZCL_GEN_MAX_SCENES; x++)
+    for(x = 0; x < ZCL_GENERAL_MAX_SCENES; x++)
     {
         zclport_initializeNVItem(zclSceneNVID, x,
                                  sizeof(zclGenSceneNVItem_t), &temp);
@@ -1136,7 +1130,7 @@ void zclGeneral_RemoveAllScenes(uint8_t endpoint, uint16_t groupID)
     uint16_t x;
     zclGenSceneNVItem_t nvItem;
 
-    for(x = 0; x < ZCL_GEN_MAX_SCENES; x++)
+    for(x = 0; x < ZCL_GENERAL_MAX_SCENES; x++)
     {
         if(zclport_readNV(zclSceneNVID, x, 0,
                           sizeof(zclGenSceneNVItem_t), &nvItem) == SUCCESS)
@@ -1170,7 +1164,7 @@ uint8_t zclGeneral_RemoveScene(uint8_t endpoint, uint16_t groupID, uint8_t scene
     uint16_t x;
     zclGenSceneNVItem_t nvItem;
 
-    for(x = 0; x < ZCL_GEN_MAX_SCENES; x++)
+    for(x = 0; x < ZCL_GENERAL_MAX_SCENES; x++)
     {
         if(zclport_readNV(zclSceneNVID, x, 0,
                           sizeof(zclGenSceneNVItem_t), &nvItem) == SUCCESS)
@@ -1218,7 +1212,7 @@ zclGeneral_Scene_t *zclGeneral_FindScene(uint8_t endpoint, uint16_t groupID,
 
     if(pEPDesc != NULL)
     {
-        for(x = 0; x < ZCL_GEN_MAX_SCENES; x++)
+        for(x = 0; x < ZCL_GENERAL_MAX_SCENES; x++)
         {
             if(zclport_readNV(zclSceneNVID, x, 0,
                               sizeof(zclGenSceneNVItem_t),
@@ -1260,7 +1254,7 @@ ZStatus_t zclGeneral_AddScene(uint8_t endpoint, zclGeneral_Scene_t *scene)
     zclGenSceneNVItem_t nvItem;
 
     // See if the item exists already
-    for(x = 0; x < ZCL_GEN_MAX_SCENES; x++)
+    for(x = 0; x < ZCL_GENERAL_MAX_SCENES; x++)
     {
         if(zclport_readNV(zclSceneNVID, x, 0,
                           sizeof(zclGenSceneNVItem_t), &nvItem) == SUCCESS)
@@ -1276,9 +1270,9 @@ ZStatus_t zclGeneral_AddScene(uint8_t endpoint, zclGeneral_Scene_t *scene)
     }
 
     // Find an empty slot
-    if(x == ZCL_GEN_MAX_SCENES)
+    if(x == ZCL_GENERAL_MAX_SCENES)
     {
-        for(x = 0; x < ZCL_GEN_MAX_SCENES; x++)
+        for(x = 0; x < ZCL_GENERAL_MAX_SCENES; x++)
         {
             if(zclport_readNV(zclSceneNVID, x, 0,
                               sizeof(zclGenSceneNVItem_t),
@@ -1292,7 +1286,7 @@ ZStatus_t zclGeneral_AddScene(uint8_t endpoint, zclGeneral_Scene_t *scene)
         }
     }
 
-    if(x == ZCL_GEN_MAX_SCENES)
+    if(x == ZCL_GENERAL_MAX_SCENES)
     {
         return(ZFailure);
     }
@@ -1325,7 +1319,7 @@ uint8_t zclGeneral_CountAllScenes(void)
     zclGenSceneNVItem_t nvItem;
     uint8_t cnt = 0;
 
-    for(x = 0; x < ZCL_GEN_MAX_SCENES; x++)
+    for(x = 0; x < ZCL_GENERAL_MAX_SCENES; x++)
     {
         if(zclport_readNV(zclSceneNVID, x, 0,
                           sizeof(zclGenSceneNVItem_t), &nvItem) == SUCCESS)
@@ -1357,7 +1351,7 @@ uint8_t zclGeneral_FindAllScenesForGroup(uint8_t endpoint, uint16_t groupID,
     zclGenSceneNVItem_t nvItem;
     uint8_t cnt = 0;
 
-    for(x = 0; x < ZCL_GEN_MAX_SCENES; x++)
+    for(x = 0; x < ZCL_GENERAL_MAX_SCENES; x++)
     {
         if(zclport_readNV(zclSceneNVID, x, 0,
                           sizeof(zclGenSceneNVItem_t), &nvItem) == SUCCESS)

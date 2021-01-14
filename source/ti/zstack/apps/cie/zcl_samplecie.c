@@ -78,7 +78,7 @@
 #include <ti/drivers/apps/Button.h>
 #include <ti/drivers/apps/LED.h>
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 #include "zcl_sampleapps_ui.h"
 #include "zcl_sample_app_def.h"
 #endif
@@ -88,7 +88,9 @@
 #include "zstackmsg.h"
 #include "zcl_port.h"
 
+#include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Task.h>
 #include "zstackapi.h"
 #include "util_timer.h"
 
@@ -164,8 +166,6 @@ static zoneDevice_t authenticatedZoneDevices[NUM_IAS_ZONE_SERVERS];
 // Passed in function pointers to the NV driver
 static NVINTF_nvFuncts_t *pfnZdlNV = NULL;
 
-static uint16_t zclSampleCIE_BdbCommissioningModes;
-
 static afAddrType_t zclSampleCIE_DstAddr;
 
 //App current state to display in UI
@@ -176,7 +176,8 @@ uint16_t lastEventAddr = 0xFFFF;
 
 static LED_Handle gRedLedHandle;
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
+static uint16_t zclSampleCIE_BdbCommissioningModes;
 CONST char zclSampleCIE_appStr[] = APP_TITLE_STR;
 CUI_clientHandle_t gCuiHandle;
 static uint32_t gSampleCIEInfoLine;
@@ -199,15 +200,15 @@ static void zclSampleCIE_processEndDeviceRejoinTimeoutCallback(UArg a0);
 #endif
 static void zclSampleCIE_processDiscoverDeviceTimeoutCallback(UArg a0);
 
-static void zclSampleCIE_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleCIE_Init( void );
 
 static void zclSampleCIE_BasicResetCB( void );
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
+static void zclSampleCIE_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleCIE_RemoveAppNvmData(void);
 static void zclSampleCIE_InitializeStatusLine(CUI_clientHandle_t gCuiHandle);
 static void zclSampleCIE_UpdateStatusLine(void);
-
+static void ArrayToString (uint8_t * buf, char * str, uint8_t num_of_digists, bool big_endian);
 #endif
 static void zclSampleCIE_IdentifyQueryRspCB(zclIdentifyQueryRsp_t *pRsp);
 static void zclSampleCIE_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *bdbCommissioningModeMsg);
@@ -237,9 +238,10 @@ static ZStatus_t zclSampleCIE_EnrollRequestCB(zclZoneEnrollReq_t *pReq, uint8_t 
 #endif
 
 #ifdef ZCL_WD
-static void zclSendSquawkToAllWD( zclWDSquawk_t *squawk );
 static void zclSendWarningToAllWD(zclWDStartWarning_t *alarm);
-static void ArrayToString (uint8_t * buf, char * str, uint8_t num_of_digists, bool big_endian);
+#ifndef CUI_DISABLE
+static void zclSendSquawkToAllWD( zclWDSquawk_t *squawk );
+#endif
 #endif
 
 #ifdef ZCL_ACE
@@ -286,6 +288,7 @@ static zclGeneral_AppCallbacks_t zclSampleCIE_CmdCallbacks =
   NULL,                                   // Level Control Move command
   NULL,                                   // Level Control Step command
   NULL,                                   // Level Control Stop command
+  NULL,                                   // Level Control Move to Closest Frequency command
 #endif
 #ifdef ZCL_GROUPS
   NULL,                                   // Group Response commands
@@ -433,7 +436,7 @@ static void zclSampleCIE_Init( void )
   zcl_registerAttrList( SAMPLECIE_ENDPOINT, zclSampleCIE_NumAttributes, zclSampleCIE_Attrs );
 
   // Register the Application to receive the unprocessed Foundation command/response messages
-  zclport_registerZclHandleExternal( SAMPLECIE_ENDPOINT, zclSampleCIE_ProcessIncomingMsg );
+  zclport_registerZclHandleExternal(SAMPLECIE_ENDPOINT, zclSampleCIE_ProcessIncomingMsg);
 
   //Write the bdb initialization parameters
   zclSampleCIE_initParameters();
@@ -454,12 +457,11 @@ static void zclSampleCIE_Init( void )
     serviceDiscoveryList[i].CIE_IEEE_Addr_Written = FALSE;
   }
 
+
+#ifndef CUI_DISABLE
 #if defined ( BDB_TL_INITIATOR )
   zclSampleCIE_BdbCommissioningModes |= BDB_COMMISSIONING_MODE_INITIATOR_TL;
 #endif
-
-
-#ifdef USE_ZCL_SAMPLEAPP_UI
    // set up default application BDB commissioning modes based on build type
    if(ZG_BUILD_COORDINATOR_TYPE && ZG_DEVICE_COORDINATOR_TYPE)
    {
@@ -505,7 +507,7 @@ static void zclSampleCIE_Init( void )
   Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
 }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 /*********************************************************************
  * @fn          zclSampleCIE_RemoveAppNvmData
  *
@@ -565,7 +567,7 @@ static void zclSampleCIE_initializeClocks(void)
 {
 #if ZG_BUILD_ENDDEVICE_TYPE
     // Initialize the timers needed for this application
-    EndDeviceRejoinClkHandle = Timer_construct(
+    EndDeviceRejoinClkHandle = UtilTimer_construct(
     &EndDeviceRejoinClkStruct,
     zclSampleCIE_processEndDeviceRejoinTimeoutCallback,
     SAMPLEAPP_END_DEVICE_REJOIN_DELAY,
@@ -573,7 +575,7 @@ static void zclSampleCIE_initializeClocks(void)
 #endif
 
     // Initialize the timers needed for this application
-    Timer_construct(
+    UtilTimer_construct(
     &DiscoverDeviceClkStruct,
     zclSampleCIE_processDiscoverDeviceTimeoutCallback,
     SAMPLECIE_SERVICE_DISCOVERY_RETRY_PERIOD,
@@ -704,13 +706,13 @@ static void zclSampleCIE_process_loop(void)
 
               if ( restartTimer && serviceDiscoveryEnabled )
               {
-                Timer_start(&DiscoverDeviceClkStruct);
+                UtilTimer_start(&DiscoverDeviceClkStruct);
               }
 
               appServiceTaskEvents &= ~SAMPLEAPP_DISCOVER_DEVICE_EVT;
             }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             //Process the events that the UI may have
             zclsampleApp_ui_event_loop();
 #endif
@@ -753,7 +755,7 @@ static void zclSampleCIE_process_loop(void)
             }
 #endif
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   //Update status line
   zclSampleCIE_UpdateStatusLine();
 #endif
@@ -788,7 +790,7 @@ static void zclSampleCIE_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
           case zstackmsg_CmdIDs_BDB_IDENTIFY_TIME_CB:
               {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbIdentifyTimeoutInd_t *pInd;
                 pInd = (zstackmsg_bdbIdentifyTimeoutInd_t*) pMsg;
                 uiProcessIdentifyTimeChange(&(pInd->EndPoint));
@@ -798,7 +800,7 @@ static void zclSampleCIE_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
           case zstackmsg_CmdIDs_BDB_BIND_NOTIFICATION_CB:
               {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbBindNotificationInd_t *pInd;
                 pInd = (zstackmsg_bdbBindNotificationInd_t*) pMsg;
                 uiProcessBindNotification(&(pInd->Req));
@@ -845,10 +847,12 @@ static void zclSampleCIE_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 #endif
           case zstackmsg_CmdIDs_DEV_STATE_CHANGE_IND:
           {
+#ifndef CUI_DISABLE
               // The ZStack Thread is indicating a State change
               zstackmsg_devStateChangeInd_t *pInd =
                   (zstackmsg_devStateChangeInd_t *)pMsg;
-                    UI_DeviceStateUpdated(&(pInd->req));
+              UI_DeviceStateUpdated(&(pInd->req));
+#endif
           }
           break;
 
@@ -889,7 +893,7 @@ static void zclSampleCIE_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
           case zstackmsg_CmdIDs_GP_COMMISSIONING_MODE_IND:
           {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             zstackmsg_gpCommissioningModeInd_t *pInd;
             pInd = (zstackmsg_gpCommissioningModeInd_t*)pMsg;
             UI_SetGPPCommissioningMode( &(pInd->Req) );
@@ -1096,20 +1100,19 @@ static void zclSampleCIE_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *b
       else
       {
         //Parent not found, attempt to rejoin again after a fixed delay
-        Timer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
-        Timer_start(&EndDeviceRejoinClkStruct);
+        UtilTimer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
+        UtilTimer_start(&EndDeviceRejoinClkStruct);
       }
     break;
 #endif
   }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   UI_UpdateBdbStatusLine(bdbCommissioningModeMsg);
 #endif
 
 }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
 /*********************************************************************
  * @fn      zclSampleCIE_BasicResetCB
  *
@@ -1124,10 +1127,11 @@ static void zclSampleCIE_BasicResetCB( void )
 {
   zclSampleCIE_ResetAttributesToDefaultValues();
 
+#ifndef CUI_DISABLE
   // update the display
   zclSampleCIE_UpdateStatusLine( );
-}
 #endif
+}
 
 /*********************************************************************
  * @fn      zclSampleCIE_IdentifyQueryRspCB
@@ -1421,7 +1425,9 @@ static ZStatus_t zclSampleCIE_ChangeNotificationCB(zclZoneChangeNotif_t *pCmd, a
       LED_setOff(gRedLedHandle);
       alarm.warningmessage.warningbits.warnMode = SS_IAS_START_WARNING_WARNING_MODE_STOP;
       alarm.warningmessage.warningbits.warnStrobe = SS_IAS_START_WARNING_STROBE_NO_STROBE_WARNING;
+#ifndef CUI_DISABLE
       zclSampleCIE_UpdateStatusLine();
+#endif
     }
     break;
 
@@ -1435,14 +1441,16 @@ static ZStatus_t zclSampleCIE_ChangeNotificationCB(zclZoneChangeNotif_t *pCmd, a
       LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
       alarm.warningmessage.warningbits.warnMode = SS_IAS_START_WARNING_WARNING_MODE_FIRE;
       alarm.warningmessage.warningbits.warnStrobe = SS_IAS_START_WARNING_STROBE_USE_STPOBE_IN_PARALLEL_TO_WARNING;
+#ifndef CUI_DISABLE
       zclSampleCIE_UpdateStatusLine();
+#endif
     }
     break;
 
   default:
     break;
   }
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   //Update status line
   zclSampleCIE_UpdateStatusLine();
 #endif
@@ -1478,7 +1486,7 @@ static ZStatus_t zclSampleCIE_EnrollRequestCB(zclZoneEnrollReq_t *pReq, uint8_t 
 
   lastEvent = ZONE_ADDED;
   lastEventAddr = pReq->srcAddr->addr.shortAddr;
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   //Update status line
   zclSampleCIE_UpdateStatusLine();
 #endif
@@ -1548,7 +1556,7 @@ static void zclSampleCIE_WriteIAS_CIE_Address(afAddrType_t *dstAddr)
     attrRec->attrData = Rsp.ieeeAddr;
 
     zcl_SendWrite(SAMPLECIE_ENDPOINT, dstAddr,ZCL_CLUSTER_ID_SS_IAS_ZONE,
-                  writeCmd,ZCL_FRAME_CLIENT_SERVER_DIR,0,0,zclCounterRsp.zclFrameCounter );
+                  writeCmd,ZCL_FRAME_CLIENT_SERVER_DIR,0,zclCounterRsp.zclFrameCounter );
 
     OsalPort_free( writeCmd );
   }
@@ -1559,6 +1567,7 @@ static void zclSampleCIE_WriteIAS_CIE_Address(afAddrType_t *dstAddr)
 
 
 #ifdef ZCL_WD
+#ifndef CUI_DISABLE
 /*******************************************************************************
 
 * @fn      static void zclSendSquawkToAllWD
@@ -1573,6 +1582,7 @@ static void zclSendSquawkToAllWD( zclWDSquawk_t *squawk )
 {
     zclSS_Send_IAS_WD_SquawkCmd(SAMPLECIE_ENDPOINT, &zclSampleCIE_DstAddr, squawk, 0, 1);
 }
+#endif
 
 /*******************************************************************************
 
@@ -1591,6 +1601,7 @@ static void zclSendWarningToAllWD(zclWDStartWarning_t *alarm)
 
 #endif //ZCL_WD
 
+#ifndef CUI_DISABLE
 /*********************************************************************
  * @fn      zclSampleCIE_processKey
  *
@@ -1658,7 +1669,6 @@ static void zclSampleCIE_UpdateStatusLine(void)
     CUI_statusLinePrintf(gCuiHandle, gSampleCIEInfoLine, lineFormat);
 }
 
-
 static void zclSampleCIE_InitializeStatusLine(CUI_clientHandle_t gCuiHandle)
 {
     /* Request Async Line for Light application Info */
@@ -1666,6 +1676,44 @@ static void zclSampleCIE_InitializeStatusLine(CUI_clientHandle_t gCuiHandle)
 
     zclSampleCIE_UpdateStatusLine();
 }
+
+/*********************************************************************
+ * @fn          ArrayToString
+ *
+ * @brief       format a memory buffer into a string buffer in hex representation.
+ *
+ * @param       buf - pointer to a bufer to be formatted
+ *              str - pointer to a buffer to store the formatted string
+ *              num_of_digists - number of digits to include in the formatted string
+ *              big_endian - whether the memory content should be represented as big or little endian
+ *
+ * @return      none
+ */
+static void ArrayToString (uint8_t * buf, char * str, uint8_t num_of_digists, bool big_endian)
+{
+  int i;
+  uint8_t stringIndex;
+  uint8_t value;
+
+  for (i = 0; i < num_of_digists; i++)
+  {
+    stringIndex = (big_endian ? i : num_of_digists - 1 - i);
+    if(big_endian)
+    {
+      value = (buf[i / 2] >> (4 * (!(i % 2)))) & 0x0F;
+    }
+    else
+    {
+      value = (buf[i / 2] >> (4 * (i % 2))) & 0x0F;
+    }
+    str[stringIndex] = '0' + value;
+    if (str[stringIndex] > '9')
+    {
+      str[stringIndex] += 'A' - '0' - 10;
+    }
+  }
+}
+#endif // CUI_DISABLE
 
 static void zclSampleCIE_performServiceDiscovery(uint16_t discoveryAddr)
 {
@@ -1738,13 +1786,14 @@ static void zclSampleCIE_performServiceDiscovery(uint16_t discoveryAddr)
     }
   }
 
-  Timer_stop(&DiscoverDeviceClkStruct);
+  UtilTimer_stop(&DiscoverDeviceClkStruct);
   if( serviceDiscoveryEnabled )
   {
-    Timer_start(&DiscoverDeviceClkStruct);
+    UtilTimer_start(&DiscoverDeviceClkStruct);
   }
 }
 
+#ifndef CUI_DISABLE
 void zclSampleCIE_UiActionSendSquawk(const int32_t _itemEntry)
 {
     zclWDSquawk_t squawk;
@@ -1780,13 +1829,13 @@ void zclSampleCIE_UiActionConfigureServiceDiscovery(const char _input, char* _pL
   {
     case TRUE:
     {
-      Timer_start(&DiscoverDeviceClkStruct);
+      UtilTimer_start(&DiscoverDeviceClkStruct);
       strncpy(_pLines[1], "ENABLED", MAX_MENU_LINE_LEN);
     }
     break;
     case FALSE:
     {
-      Timer_stop(&DiscoverDeviceClkStruct);
+      UtilTimer_stop(&DiscoverDeviceClkStruct);
       strncpy(_pLines[1], "DISABLED", MAX_MENU_LINE_LEN);
     }
     break;
@@ -1797,6 +1846,7 @@ void zclSampleCIE_UiActionConfigureServiceDiscovery(const char _input, char* _pL
       strncpy(_pLines[2], " CONFIG DISCOVERY ", MAX_MENU_LINE_LEN);
   }
 }
+#endif // CUI_DISABLE
 
 #ifdef ZCL_ACE
 
@@ -2031,42 +2081,4 @@ static ZStatus_t zclSampleCIE_GetZoneInformationCB(zclIncoming_t *pInMsg )
                                                    pInMsg->hdr.transSeqNum );
 }
 
-
 #endif //ZCL_ACE
-
-/*********************************************************************
- * @fn          ArrayToString
- *
- * @brief       format a memory buffer into a string buffer in hex representation.
- *
- * @param       buf - pointer to a bufer to be formatted
- *              str - pointer to a buffer to store the formatted string
- *              num_of_digists - number of digits to include in the formatted string
- *              big_endian - whether the memory content should be represented as big or little endian
- *
- * @return      none
- */
-static void ArrayToString (uint8_t * buf, char * str, uint8_t num_of_digists, bool big_endian)
-{
-  int i;
-  uint8_t stringIndex;
-  uint8_t value;
-
-  for (i = 0; i < num_of_digists; i++)
-  {
-    stringIndex = (big_endian ? i : num_of_digists - 1 - i);
-    if(big_endian)
-    {
-      value = (buf[i / 2] >> (4 * (!(i % 2)))) & 0x0F;
-    }
-    else
-    {
-      value = (buf[i / 2] >> (4 * (i % 2))) & 0x0F;
-    }
-    str[stringIndex] = '0' + value;
-    if (str[stringIndex] > '9')
-    {
-      str[stringIndex] += 'A' - '0' - 10;
-    }
-  }
-}

@@ -254,12 +254,12 @@ ZStatus_t gp_autoCommissioningGpdfSinkTblUpdate(gpdID_t *gpdId, gp_DataInd_t *gp
 {
     gpSinkTableOptions_t sinkOptions;
     uint8_t cmdId;
-    uint8_t deviceId;
+    uint8_t deviceId = 0x00;
     uint8_t gpCommunicationMode;
 
     // Create a new entry
     cmdId = *(gpDataInd->GPDasdu);
-    if( (cmdId == 0x20) || (cmdId == 0x21) || (cmdId == 0x22) );
+    if( (cmdId == 0x20) || (cmdId == 0x21) || (cmdId == 0x22) )
     {
       deviceId = 0x02;
     }
@@ -521,7 +521,7 @@ void gp_commissioningSinkEntryParse(gpdID_t *gpdId, uint8_t ep, uint8_t deviceId
     {
         zcl_memcpy( &pEntry[SINK_TBL_SEC_FRAME], ( uint8_t* )&pCommissioningCmd->gpdOutCounter, GP_SECURITY_MIC_SIZE );
     }
-    else if( (sinkOptions.securityUse == FALSE) )
+    else if( sinkOptions.securityUse == FALSE )
     {
         pEntry[SINK_TBL_SEC_OPT] = 0x00;
     }

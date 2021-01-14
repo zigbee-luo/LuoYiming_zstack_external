@@ -78,7 +78,6 @@ extern "C"
 /*******************************************************************************
  * INCLUDES
  */
-#include <hal_types.h>
 #include <chipinfo.h>
 #include "api_mac.h"
 

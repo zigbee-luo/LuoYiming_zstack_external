@@ -63,6 +63,7 @@
     <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/devices/cc13x2_cc26x2</path>
     <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/devices/cc13x2_cc26x2/inc</path>
     <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/devices/cc13x2_cc26x2/driverlib</path>
+    <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/common/time</path>
     <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/zstack/apps/gpd_temperaturesensor</path>
     <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/common/boards</path>
     <path>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source</path>
@@ -73,7 +74,7 @@
     <define>GPD_COMMISSIONING_CMD_SUPPORT</define>
     <define>TIMAC_ROM_IMAGE_BUILD</define>
     <define>TIMAC_ROM_PATCH</define>
-    <define>USE_ZCL_SAMPLEAPP_UI</define>
+    <define>xCUI_DISABLE</define>
     <define>ZSTACK_SECURITY</define>
     <define>OSAL_PORT2TIRTOS</define>
     <define>OSAL_PORT2TIRTOS_OSALMAP</define>
@@ -84,7 +85,6 @@
     <define>NV_INIT</define>
     <define>FEATURE_NON_BEACON_MODE</define>
     <define>DEVICE_FAMILY=cc26x0</define>
-    <define>CC2652RB_LAUNCHXL</define>
     <define>DeviceFamily_CC26X2</define>
   </defines>
 
@@ -122,13 +122,9 @@
       <arg>--redirect</arg>
       <arg>_Printf=_PrintfSmall</arg>
       <arg>-f$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/library/tirtos/iar/timac_rom_PG2_0_rom_api_linker.icf</arg>
-      <arg>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/zstack/lib/iar/libZStack_gpd_sec_iar.a</arg>
-      <arg>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/display/lib/display.arm4f</arg>
-      <arg>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/grlib/lib/iar/m4f/grlib.a</arg>
-      <arg>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/drivers/rf/lib/rf_multiMode_cc26x2.arm4f</arg>
-      <arg>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/drivers/lib/drivers_cc26x2.arm4f</arg>
-      <arg>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/library/tirtos/iar/bin/maclib_nosecure_cc26x2_2_4g.a</arg>
-      <arg>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/kernel/tirtos/packages/ti/dpl/lib/dpl_cc26x2.arm4f</arg>
+      <arg>-f$PROJ_DIR$/ti_utils_build_linker.cmd.genlibs</arg>
+      <arg>-L$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source</arg>
+      <arg>-L$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/kernel/tirtos/packages</arg>
       <arg>$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/devices/cc13x2_cc26x2/driverlib/bin/iar/driverlib.lib</arg>
       <arg>--silent</arg>
       <arg>--cpu=Cortex-M4F</arg>
@@ -189,9 +185,9 @@
         <path copyTo="$PROJ_DIR$/Application/gpd_temperaturesensor.c">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/zstack/apps/gpd_temperaturesensor/gpd_temperaturesensor.c</path>
         <path copyTo="$PROJ_DIR$/Application/gpd_temperaturesensor.h">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/zstack/apps/gpd_temperaturesensor/gpd_temperaturesensor.h</path>
         <path copyTo="$PROJ_DIR$/Application/gpd_temperaturesensor_data.c">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/zstack/apps/gpd_temperaturesensor/gpd_temperaturesensor_data.c</path>
-        <path copyTo="$PROJ_DIR$/Application/macTask.c">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/common/osal_port/macTask.c</path>
+        <path copyTo="$PROJ_DIR$/Application/macTask.c">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/common/osal_port/osal_port_tirtos/macTask.c</path>
         <path copyTo="$PROJ_DIR$/Application/macTask.h">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/common/osal_port/macTask.h</path>
-        <path copyTo="$PROJ_DIR$/Application/api_mac.c">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/common/osal_port/api_mac.c</path>
+        <path copyTo="$PROJ_DIR$/Application/api_mac.c">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/common/osal_port/osal_port_tirtos/api_mac.c</path>
         <path copyTo="$PROJ_DIR$/Application/api_mac.h">$COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR$/source/ti/ti154stack/common/osal_port/api_mac.h</path>
       </group>
       <group name="Application/Services">

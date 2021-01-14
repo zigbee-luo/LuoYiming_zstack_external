@@ -50,14 +50,10 @@
 #include "mt.h"
 #include "mt_util.h"
 #include "mt_mac.h"
+#include "mt_zdo.h"
 #include "ssp.h"
-#if defined ZCL_KEY_ESTABLISH
-#include "zcl_key_establish.h"
-#include "zcl_se.h"
-#endif
 
 #if !defined NONWK
-#include "mt_zdo.h"
 
 #include "mt_nwk.h"
 #include "mt_af.h"
@@ -68,10 +64,6 @@
 
 #if defined MT_SRNG
 #include "hal_srng.h"
-#endif
-
-#if defined FEATURE_DUAL_MAC
-#include "dmmgr.h"
 #endif
 
 /***************************************************************************************************
@@ -86,16 +78,13 @@
 #define MT_APSME_LINKKEY_NV_ID_GET_RSP_LEN (MT_UTIL_STATUS_LEN + 2)
 
 /***************************************************************************************************
+ * EXTERNAL REFERENCES
+ ***************************************************************************************************/
+// extern uint32_t _zdoCallbackSub;
+
+/***************************************************************************************************
  * LOCAL VARIABLES
  ***************************************************************************************************/
-#if defined ZCL_KEY_ESTABLISH
-uint8_t zcl_key_establish_task_id;
-#endif
-
-#ifdef FEATURE_GET_PRIMARY_IEEE
-/* This feature is not compatible with MSP430 or ARM platforms. */
-__no_init const __xdata char ieeeMac[1] @ 0x780C;
-#endif
 
 /***************************************************************************************************
  * LOCAL FUNCTIONS
@@ -125,20 +114,8 @@ static void MT_UtilGpioSetDirection(uint8_t *pBuf);
 static void MT_UtilGpioRead(uint8_t *pBuf);
 static void MT_UtilGpioWrite(uint8_t *pBuf);
 
-#if (defined HAL_KEY) && (HAL_KEY == TRUE)
-static void MT_UtilKeyEvent(uint8_t *pBuf);
-#endif
-
-#if (defined HAL_LED) && (HAL_LED == TRUE)
-static void MT_UtilLedControl(uint8_t *pBuf);
-#endif
-
 #ifdef MT_SRNG
 static void MT_UtilSrngGen(void);
-#endif
-
-#ifdef FEATURE_GET_PRIMARY_IEEE
-static void MT_UtilGetPrimaryIEEE(void);
 #endif
 
 #if !defined NONWK
@@ -156,10 +133,6 @@ static void MT_UtilAssocGetWithAddress(uint8_t *pBuf);
 static void MT_UtilBindAddEntry(uint8_t *pBuf);
 static void packDev_t(uint8_t *pBuf, associated_devices_t *pDev);
 static void packBindEntry_t(uint8_t *pBuf, BindingEntry_t *pBind);
-#if defined ZCL_KEY_ESTABLISH
-static void MT_UtilzclGeneral_KeyEstablish_InitiateKeyEstablishment(uint8_t *pBuf);
-static void MT_UtilzclGeneral_KeyEstablishment_ECDSASign(uint8_t *pBuf);
-#endif // ZCL_KEY_ESTABLISH
 static void MT_UtilSync(void);
 #endif // !defined NONWK
 #endif // MT_UTIL_FUNC
@@ -207,30 +180,12 @@ uint8_t MT_UtilCommandProcessing(uint8_t *pBuf)
     break;
 #endif
 
-#ifdef FEATURE_GET_PRIMARY_IEEE
-  case MT_UTIL_GET_PRIMARY_IEEE:
-    MT_UtilGetPrimaryIEEE();
-    break;
-#endif
-
   case MT_UTIL_CALLBACK_SUB_CMD:
     MT_UtilCallbackSub(pBuf);
     break;
 
-  case MT_UTIL_KEY_EVENT:
-#if (defined HAL_KEY) && (HAL_KEY == TRUE)
-    MT_UtilKeyEvent(pBuf);
-#endif
-    break;
-
   case MT_UTIL_TIME_ALIVE:
     MT_UtilTimeAlive();
-    break;
-
-  case MT_UTIL_LED_CONTROL:
-#if (defined HAL_LED) && (HAL_LED == TRUE)
-    MT_UtilLedControl(pBuf);
-#endif
     break;
 
   case MT_UTIL_SRC_MATCH_ENABLE:
@@ -316,16 +271,6 @@ uint8_t MT_UtilCommandProcessing(uint8_t *pBuf)
   case MT_UTIL_BIND_ADD_ENTRY:
     MT_UtilBindAddEntry(pBuf);
     break;
-
-#if defined ZCL_KEY_ESTABLISH
-  case MT_UTIL_ZCL_KEY_EST_INIT_EST:
-    MT_UtilzclGeneral_KeyEstablish_InitiateKeyEstablishment(pBuf);
-    break;
-
-  case MT_UTIL_ZCL_KEY_EST_SIGN:
-    MT_UtilzclGeneral_KeyEstablishment_ECDSASign(pBuf);
-    break;
-#endif
 
   case MT_UTIL_SYNC_REQ:
     MT_UtilSync();
@@ -677,33 +622,6 @@ static void MT_UtilSetPreCfgKey(uint8_t *pBuf)
 
 }
 
-#ifdef FEATURE_GET_PRIMARY_IEEE
-/***************************************************************************************************
- * @fn      MT_UtilGetPrimaryIEEE
- *
- * @brief   Return a copy of the Primary IEEE address
- *
- * @param   none
- *
- * @return  void
- ***************************************************************************************************/
-static void MT_UtilGetPrimaryIEEE(void)
-{
-  uint8_t i;
-  uint8_t retBuf[Z_EXTADDR_LEN+1];
-
-  retBuf[0] = SUCCESS;
-
-  for(i = 1; i <= Z_EXTADDR_LEN; i++)
-  {
-    retBuf[i] = ieeeMac[i];
-  }
-
-  MT_BuildAndSendZToolResponse( ((uint8_t)MT_RPC_CMD_SRSP | (uint8_t)MT_RPC_SYS_UTIL),
-                                  MT_UTIL_GET_PRIMARY_IEEE, Z_EXTADDR_LEN+1, retBuf );
-}
-#endif /* FEATURE_GET_PRIMARY_IEEE */
-
 /***************************************************************************************************
  * @fn      MT_UtilCallbackSub
  *
@@ -740,11 +658,7 @@ void MT_UtilCallbackSub(uint8_t *pBuf)
   #if defined( MT_MAC_CB_FUNC )
     if ((subSystem == MT_RPC_SYS_MAC) || (subscribed_command == 0xFFFF))
     {
-    #if !defined (FEATURE_DUAL_MAC)
-      _macCallbackSub = 0xFFFF;
-    #else
       DMMGR_SaveMacCbReg( 0xFFFF );
-    #endif /* ! FEATURE_DUAL_MAC */
     }
   #endif
 
@@ -774,11 +688,6 @@ void MT_UtilCallbackSub(uint8_t *pBuf)
   #if defined( MT_MAC_CB_FUNC )
     if ((subSystem == MT_RPC_SYS_MAC) || (subscribed_command == 0xFFFF))
       _macCallbackSub = 0x0000;
-
-  #if defined (FEATURE_DUAL_MAC )
-    DMMGR_SaveMacCbReg( 0x0000 );
-  #endif /* FEATURE_DUAL_MAC */
-
   #endif
 
   #if defined( MT_NWK_CB_FUNC )
@@ -807,60 +716,6 @@ void MT_UtilCallbackSub(uint8_t *pBuf)
   MT_BuildAndSendZToolResponse(((uint8_t)MT_RPC_CMD_SRSP | (uint8_t)MT_RPC_SYS_UTIL), cmdId, 1, &retValue );
 }
 
-#if (defined HAL_KEY) && (HAL_KEY == TRUE)
-/***************************************************************************************************
- * @fn      MT_UtilKeyEvent
- *
- * @brief   Process Key Event
- *
- * @param   pBuf - pointer to the data
- *
- * @return  void
- ***************************************************************************************************/
-static void MT_UtilKeyEvent(uint8_t *pBuf)
-{
-  uint8_t x = 0;
-  uint8_t retValue;
-  uint8_t cmdId;
-
-  /* parse header */
-  cmdId = pBuf[MT_RPC_POS_CMD1];
-  pBuf += MT_RPC_FRAME_HDR_SZ;
-
-  /* Translate between SPI values to device values */
-  if ( *pBuf & 0x01 )
-    x |= HAL_KEY_SW_1;
-  if ( *pBuf & 0x02 )
-    x |= HAL_KEY_SW_2;
-  if ( *pBuf & 0x04 )
-    x |= HAL_KEY_SW_3;
-  if ( *pBuf & 0x08 )
-    x |= HAL_KEY_SW_4;
-#if defined ( HAL_KEY_SW_5 )
-  if ( *pBuf & 0x10 )
-    x |= HAL_KEY_SW_5;
-#endif
-#if defined ( HAL_KEY_SW_6 )
-  if ( *pBuf & 0x20 )
-    x |= HAL_KEY_SW_6;
-#endif
-#if defined ( HAL_KEY_SW_7 )
-  if ( *pBuf & 0x40 )
-    x |= HAL_KEY_SW_7;
-#endif
-#if defined ( HAL_KEY_SW_8 )
-  if ( *pBuf & 0x80 )
-    x |= HAL_KEY_SW_8;
-#endif
-  pBuf++;
-
-  retValue = OnBoard_SendKeys(x, *pBuf);
-
-  /* Build and send back the response */
-  MT_BuildAndSendZToolResponse(((uint8_t)MT_RPC_CMD_SRSP | (uint8_t)MT_RPC_SYS_UTIL), cmdId, 1, &retValue );
-}
-#endif
-
 /***************************************************************************************************
  * @fn      MT_UtilTimeAlive
  *
@@ -885,70 +740,6 @@ static void MT_UtilTimeAlive(void)
   MT_BuildAndSendZToolResponse(((uint8_t)MT_RPC_CMD_SRSP | (uint8_t)MT_RPC_SYS_UTIL),
                                        MT_UTIL_TIME_ALIVE, sizeof(timeAlive), timeAlive);
 }
-
-#if (defined HAL_LED) && (HAL_LED == TRUE)
-/***************************************************************************************************
- * @fn      MT_UtilLedControl
- *
- * @brief   Process the LED Control Message
- *
- * @param   pBuf - pointer to the received data
- *
- * @return  None
- ***************************************************************************************************/
-static void MT_UtilLedControl(uint8_t *pBuf)
-{
-  uint8_t iLed, Led, iMode, Mode, cmdId;
-  uint8_t retValue;
-
-  /* parse header */
-  cmdId = pBuf[MT_RPC_POS_CMD1];
-  pBuf += MT_RPC_FRAME_HDR_SZ;
-
-  /* LED and Mode */
-  iLed = *pBuf++;
-  iMode = *pBuf;
-
-  if ( iLed == 1 )
-    Led = HAL_LED_1;
-  else if ( iLed == 2 )
-    Led = HAL_LED_2;
-  else if ( iLed == 3 )
-    Led = HAL_LED_3;
-  else if ( iLed == 4 )
-    Led = HAL_LED_4;
-  else if ( iLed == 0xFF )
-    Led = HAL_LED_ALL;
-  else
-    Led = 0;
-
-  if ( iMode == 0 )
-    Mode = HAL_LED_MODE_OFF;
-  else if ( iMode == 1 )
-    Mode = HAL_LED_MODE_ON;
-  else if ( iMode == 2 )
-    Mode = HAL_LED_MODE_BLINK;
-  else if ( iMode == 3 )
-    Mode = HAL_LED_MODE_FLASH;
-  else if ( iMode == 4 )
-    Mode = HAL_LED_MODE_TOGGLE;
-  else
-    Led = 0;
-
-  if ( Led != 0 )
-  {
-    HalLedSet (Led, Mode);
-    retValue = ZSuccess;
-  }
-  else
-  {
-    retValue = ZFailure;
-  }
-
-  /* Build and send back the response */
-  MT_BuildAndSendZToolResponse(((uint8_t)MT_RPC_CMD_SRSP | (uint8_t)MT_RPC_SYS_UTIL), cmdId, 1, &retValue );
-}
-#endif /* HAL_LED */
 
 /***************************************************************************************************
  * @fn          MT_UtilSrcMatchEnable
@@ -1771,95 +1562,6 @@ static void packBindEntry_t(uint8_t *pBuf, BindingEntry_t *pBind)
     OsalPort_memcpy( pBuf, pBind->clusterIdList, pBind->numClusterIds * sizeof(uint16_t));
   }
 }
-
-#if defined ZCL_KEY_ESTABLISH
-/***************************************************************************************************
- * @fn      MT_UtilzclGeneral_KeyEstablish_InitiateKeyEstablishment
- *
- * @brief   Proxy the zclKE_StartDirect() function.
- *
- * @param   pBuf - pointer to the received buffer
- *
- * @return  void
- ***************************************************************************************************/
-static void MT_UtilzclGeneral_KeyEstablish_InitiateKeyEstablishment(uint8_t *pBuf)
-{
-  afAddrType_t partnerAddr;
-  uint8_t cmdId = pBuf[MT_RPC_POS_CMD1];
-  pBuf += MT_RPC_FRAME_HDR_SZ;
-
-  partnerAddr.panId = 0;  // Not an inter-pan message.
-  partnerAddr.endPoint = pBuf[2];
-  partnerAddr.addrMode = afAddr16Bit;
-  partnerAddr.addr.shortAddr = OsalPort_buildUint16( &pBuf[4] );
-
-  zcl_key_establish_task_id = pBuf[0];
-
-  *pBuf = zclKE_StartDirect(MT_TaskID, &partnerAddr, pBuf[1], pBuf[3]);
-
-  MT_BuildAndSendZToolResponse(((uint8_t)MT_RPC_CMD_SRSP | (uint8_t)MT_RPC_SYS_UTIL), cmdId, 1, pBuf);
-}
-
-/***************************************************************************************************
- * @fn      MT_UtilzclGeneral_KeyEstablishment_ECDSASign
- *
- * @brief   Proxy the zclGeneral_KeyEstablishment_ECDSASign() function.
- *
- * @param   pBuf - pointer to the received buffer
- *
- * @return  void
- ***************************************************************************************************/
-static void MT_UtilzclGeneral_KeyEstablishment_ECDSASign(uint8_t *pBuf)
-{
-#if defined ZCL_KEY_ESTABLISH
-  uint8_t *output;
-  uint8_t signLen;
-  uint8_t cmdId = pBuf[MT_RPC_POS_CMD1];
-  pBuf += MT_RPC_FRAME_HDR_SZ;
-
-  signLen = zclKE_ECDSASignGetLen(ZCL_KE_SUITE_1);
-
-  output = OsalPort_malloc(signLen+1);
-
-  if (NULL == output)
-  {
-    *pBuf = FAILURE;
-    MT_BuildAndSendZToolResponse(((uint8_t)MT_RPC_CMD_SRSP | (uint8_t)MT_RPC_SYS_UTIL), cmdId, 1, pBuf);
-  }
-  else
-  {
-    *output = zclKE_ECDSASign(ZCL_KE_SUITE_1, pBuf+1, *pBuf, output+1);
-    MT_BuildAndSendZToolResponse(((uint8_t)MT_RPC_CMD_SRSP | (uint8_t)MT_RPC_SYS_UTIL), cmdId,
-                                         signLen+1, output);
-    OsalPort_free(output);
-  }
-#endif
-}
-
-/***************************************************************************************************
- * @fn      MT_UtilKeyEstablishInd
- *
- * @brief   Proxy the ZCL_KEY_ESTABLISH_IND command.
- *
- * @param   pInd - Pointer to a zclKE_StatusInd_t structure.
- *
- * @return  None
- ***************************************************************************************************/
-void MT_UtilKeyEstablishInd(zclKE_StatusInd_t *pInd)
-{
-  uint8_t msg[6];
-
-  msg[0] = zcl_key_establish_task_id;
-  msg[1] = pInd->hdr.event;
-  msg[2] = pInd->hdr.status;
-  msg[3] = pInd->waitTime;
-  msg[4] = LO_UINT16(pInd->suites);
-  msg[5] = HI_UINT16(pInd->suites);
-
-  MT_BuildAndSendZToolResponse(((uint8_t)MT_RPC_CMD_AREQ | (uint8_t)MT_RPC_SYS_UTIL),
-                                       MT_UTIL_ZCL_KEY_ESTABLISH_IND, 6, msg);
-}
-#endif
 
 /***************************************************************************************************
  * @fn      MT_UtilSync

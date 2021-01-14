@@ -72,7 +72,9 @@
 #include "ti_drivers_config.h"
 #include "util_timer.h"
 
+#include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Task.h>
 
 #if !defined (DISABLE_GREENPOWER_BASIC_PROXY) && (ZG_BUILD_RTR_TYPE)
 #include "gp_common.h"
@@ -201,6 +203,7 @@ static zclGeneral_AppCallbacks_t zclGenericApp_CmdCallbacks =
   NULL,                                   // Level Control Move command
   NULL,                                   // Level Control Step command
   NULL,                                   // Level Control Stop command
+  NULL,                                   // Level Control Move to Closest Frequency command
 #endif
 #ifdef ZCL_GROUPS
   NULL,                                   // Group Response commands
@@ -381,7 +384,7 @@ static void zclGenericApp_Init( void )
   zcl_registerAttrList( GENERICAPP_ENDPOINT, zclGenericApp_NumAttributes, zclGenericApp_Attrs );
 
   // Register the Application to receive the unprocessed Foundation command/response messages
-  zclport_registerZclHandleExternal( GENERICAPP_ENDPOINT, zclGenericApp_ProcessIncomingMsg );
+  zclport_registerZclHandleExternal(GENERICAPP_ENDPOINT, zclGenericApp_ProcessIncomingMsg);
 
 #if !defined (DISABLE_GREENPOWER_BASIC_PROXY) && (ZG_BUILD_RTR_TYPE)
   gp_endpointInit(appServiceTaskId);
@@ -495,7 +498,7 @@ static void zclGenericApp_initializeClocks(void)
 {
 #if ZG_BUILD_ENDDEVICE_TYPE
     // Initialize the timers needed for this application
-    EndDeviceRejoinClkHandle = Timer_construct(
+    EndDeviceRejoinClkHandle = UtilTimer_construct(
     &EndDeviceRejoinClkStruct,
     zclGenericApp_processEndDeviceRejoinTimeoutCallback,
     GENERICAPP_END_DEVICE_REJOIN_DELAY,
@@ -921,8 +924,8 @@ static void zclGenericApp_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *
       else
       {
         //Parent not found, attempt to rejoin again after a fixed delay
-          Timer_setTimeout( EndDeviceRejoinClkHandle, GENERICAPP_END_DEVICE_REJOIN_DELAY );
-          Timer_start(&EndDeviceRejoinClkStruct);
+          UtilTimer_setTimeout( EndDeviceRejoinClkHandle, GENERICAPP_END_DEVICE_REJOIN_DELAY );
+          UtilTimer_start(&EndDeviceRejoinClkStruct);
       }
     break;
 #endif

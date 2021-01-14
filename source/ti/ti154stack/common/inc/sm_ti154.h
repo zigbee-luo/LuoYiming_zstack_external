@@ -56,7 +56,9 @@
 #include "api_mac.h"
 #include "smsgs.h"
 #include "sm_ecc_ti154.h"
+#ifndef CUI_DISABLE
 #include "cui.h"
+#endif /* CUI_DISABLE */
 #include "llc.h"
 
 #include <ti/drivers/utils/List.h>
@@ -392,7 +394,12 @@ extern void Main_assertHandler(uint8_t assertReason);
  * @param       sem - pointer to semaphore used to sync MAC and APP tasks
  * @param       pCuiHndl - pointer to to Common UI handle for UI interaction
  */
+#ifndef CUI_DISABLE
 extern void SM_init(void *sem, CUI_clientHandle_t cuiHndl);
+#else
+extern void SM_init(void *sem);
+#endif /* CUI_DISABLE */
+
 
 /*!
  * @brief       Start the security manager event handler

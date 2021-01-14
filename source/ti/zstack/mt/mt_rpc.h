@@ -106,12 +106,6 @@ extern "C" {
 #define MT_RPC_ERR_PARAMETER  3     /* invalid parameter */
 #define MT_RPC_ERR_LENGTH     4     /* invalid length */
 
-#ifdef FEATURE_DUAL_MAC
-#define MT_RPC_ERR_VER_UNSUPP 5     /* unsupported mt extension version */
-#define MT_RPC_ERR_STACK_ID   6     /* Missing or invalid stack id */
-#define MT_RPC_ERR_BUSY       7     /* System is busy */
-#endif /* FEATURE_DUAL_MAC */
-
 /***************************************************************************************************
  * TYPEDEF
  ***************************************************************************************************/

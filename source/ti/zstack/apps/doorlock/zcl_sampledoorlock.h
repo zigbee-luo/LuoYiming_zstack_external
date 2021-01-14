@@ -51,7 +51,9 @@ extern "C"
  */
 #include "zcl.h"
 #include "nvintf.h"
+#ifndef CUI_DISABLE
 #include "cui.h"
+#endif
 
 /*********************************************************************
  * CONSTANTS
@@ -129,11 +131,13 @@ extern void zclSampleDoorLock_updateLockStateAttribute(uint8_t LockState);
  */
 extern uint8_t zclSampleDoorLock_getLockStateAttribute(void);
 
+
+#ifndef CUI_DISABLE
 extern void zclSampleDoorLock_UiActionEnterPin(const char _input, char* _lines[3], CUI_cursorInfo_t * _curInfo);
 extern void zclSampleDoorLock_UiActionDoorLockDiscoverable(const int32_t _itemEntry);
 extern void zclSampleDoorLock_UiActionLock(const int32_t _itemEntry);
 extern void zclSampleDoorLock_UiActionUnlock(const int32_t _itemEntry);
-
+#endif
 /*********************************************************************
 *********************************************************************/
 

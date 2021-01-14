@@ -58,8 +58,6 @@ extern "C"
 #include <stdlib.h>
 #include <string.h>
 #include "stdbool.h"
-#include <ti/sysbios/knl/Clock.h>
-#include <ti/sysbios/BIOS.h>
 
 #include "osal_port.h"
 

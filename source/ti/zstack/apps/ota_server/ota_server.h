@@ -50,21 +50,15 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "zcl_ota.h"
 #include "nvintf.h"
 
 /*********************************************************************
  * CONSTANTS
  */
-
-// Endpoint for SYS App messages
-#define OTA_SYSAPP_ENDPOINT                 20
-
-#define OTA_DONGLE_ENDPOINT                     13
-#define OTA_DONGLE_MAX_ATTRIBUTES               12
-#define OTA_DONGLE_MAX_OPTIONS                  1
+#define OTA_SERVER_ENDPOINT                     ZCL_OTA_ENDPOINT
 #define OTA_SAMPLE_PROFILE_ID                   0x0104
 #define OTA_SAMPLE_DEVICEID                     0
-
 
 // Application Events
 #define SAMPLELIGHT_POLL_CONTROL_TIMEOUT_EVT  0x0001
@@ -97,9 +91,7 @@ extern "C"
  * VARIABLES
  */
 
-extern SimpleDescriptionFormat_t otaServerEpDesc;
-extern SimpleDescriptionFormat_t otaServerSysAppEpDesc;
-
+extern SimpleDescriptionFormat_t otaServerSimpleDesc;
 
 extern CONST zclCommandRec_t otaServer_Cmds[];
 

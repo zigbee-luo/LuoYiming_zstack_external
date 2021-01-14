@@ -105,7 +105,7 @@ CONST zclAttrRec_t zclSampleTemperatureSensor_Attrs[] =
 {
   // *** General Basic Cluster Attributes ***
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_ZCL_VERSION,
       ZCL_DATATYPE_UINT8,
@@ -114,7 +114,7 @@ CONST zclAttrRec_t zclSampleTemperatureSensor_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
+    ZCL_CLUSTER_ID_GENERAL_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
     {  // Attribute record
       ATTRID_BASIC_HW_VERSION,            // Attribute ID - Found in Cluster Library header (ie. zcl_general.h)
       ZCL_DATATYPE_UINT8,                 // Data Type - found in zcl.h
@@ -123,7 +123,7 @@ CONST zclAttrRec_t zclSampleTemperatureSensor_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_MANUFACTURER_NAME,
       ZCL_DATATYPE_CHAR_STR,
@@ -132,7 +132,7 @@ CONST zclAttrRec_t zclSampleTemperatureSensor_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_POWER_SOURCE,
       ZCL_DATATYPE_ENUM8,
@@ -141,16 +141,16 @@ CONST zclAttrRec_t zclSampleTemperatureSensor_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
-      ATTRID_BASIC_PHYSICAL_ENV,
+      ATTRID_BASIC_PHYSICAL_ENVIRONMENT,
       ZCL_DATATYPE_ENUM8,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclSampleTemperatureSensor_PhysicalEnvironment
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -160,16 +160,16 @@ CONST zclAttrRec_t zclSampleTemperatureSensor_Attrs[] =
   },
   // *** Identify Cluster Attribute ***
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     { // Attribute record
-      ATTRID_IDENTIFY_TIME,
+      ATTRID_IDENTIFY_IDENTIFY_TIME,
       ZCL_DATATYPE_UINT16,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclSampleTemperatureSensor_IdentifyTime
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -182,7 +182,7 @@ CONST zclAttrRec_t zclSampleTemperatureSensor_Attrs[] =
   {
     ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT,
     { // Attribute record
-      ATTRID_MS_TEMPERATURE_MEASURED_VALUE,
+      ATTRID_TEMPERATURE_MEASUREMENT_MEASURED_VALUE,
       ZCL_DATATYPE_INT16,
       ACCESS_CONTROL_READ | ACCESS_REPORTABLE,
       (void *)&zclSampleTemperatureSensor_MeasuredValue
@@ -191,7 +191,7 @@ CONST zclAttrRec_t zclSampleTemperatureSensor_Attrs[] =
   {
     ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT,
     { // Attribute record
-      ATTRID_MS_TEMPERATURE_MIN_MEASURED_VALUE,
+      ATTRID_TEMPERATURE_MEASUREMENT_MIN_MEASURED_VALUE,
       ZCL_DATATYPE_INT16,
       ACCESS_CONTROL_READ,
       (void *)&zclSampleTemperatureSensor_MinMeasuredValue
@@ -200,7 +200,7 @@ CONST zclAttrRec_t zclSampleTemperatureSensor_Attrs[] =
   {
     ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT,
     { // Attribute record
-      ATTRID_MS_TEMPERATURE_MAX_MEASURED_VALUE,
+      ATTRID_TEMPERATURE_MEASUREMENT_MAX_MEASURED_VALUE,
       ZCL_DATATYPE_INT16,
       ACCESS_CONTROL_READ,
       (void *)&zclSampleTemperatureSensor_MaxMeasuredValue
@@ -228,22 +228,22 @@ uint8_t CONST zclSampleTemperatureSensor_NumAttributes = ( sizeof(zclSampleTempe
 #define ZCLSAMPLETEMPERATURESENSOR_MAX_INCLUSTERS       3
 const cId_t zclSampleTemperatureSensor_InClusterList[ZCLSAMPLETEMPERATURESENSOR_MAX_INCLUSTERS] =
 {
-  ZCL_CLUSTER_ID_GEN_BASIC,
-  ZCL_CLUSTER_ID_GEN_IDENTIFY,
+  ZCL_CLUSTER_ID_GENERAL_BASIC,
+  ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
   ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT
 };
 
 #define ZCLSAMPLETEMPERATURESENSOR_MAX_OUTCLUSTERS       1
 const cId_t zclSampleTemperatureSensor_OutClusterList[ZCLSAMPLETEMPERATURESENSOR_MAX_OUTCLUSTERS] =
 {
-  ZCL_CLUSTER_ID_GEN_IDENTIFY
+  ZCL_CLUSTER_ID_GENERAL_IDENTIFY
 };
 
 SimpleDescriptionFormat_t zclSampleTemperatureSensor_SimpleDesc =
 {
   SAMPLETEMPERATURESENSOR_ENDPOINT,                  //  int Endpoint;
   ZCL_HA_PROFILE_ID,                                 //  uint16_t AppProfId[2];
-  ZCL_HA_DEVICEID_TEMPERATURE_SENSOR,                //  uint16_t AppDeviceId[2];
+  ZCL_DEVICEID_TEMPERATURE_SENSOR,                //  uint16_t AppDeviceId[2];
   SAMPLETEMPERATURESENSOR_DEVICE_VERSION,            //  int   AppDevVer:4;
   SAMPLETEMPERATURESENSOR_FLAGS,                     //  int   AppFlags:4;
   ZCLSAMPLETEMPERATURESENSOR_MAX_INCLUSTERS,         //  byte  AppNumInClusters;

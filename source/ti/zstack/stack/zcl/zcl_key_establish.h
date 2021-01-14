@@ -52,6 +52,7 @@ extern "C"
 #include "hal_types.h"
 #include "rom_jt_154.h"
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
 
 /**************************************************************************************************

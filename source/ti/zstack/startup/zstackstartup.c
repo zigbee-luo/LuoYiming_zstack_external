@@ -41,6 +41,10 @@
 /*********************************************************************
  * INCLUDES
  */
+#include "ti_zstack_config.h"
+#include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/BIOS.h>
 
 #include "rom_jt_154.h"
 #include "osal_nv.h"
@@ -91,6 +95,10 @@
 #include "bdb_touchlink_target.h"
 #endif
 
+#ifdef FEATURE_UTC_TIME
+  #include "utc_clock.h"
+#endif //FEATURE_UTC_TIME
+
 #include <ti/drivers/AESCCM.h>
 #include <ti/drivers/AESECB.h>
 
@@ -102,11 +110,13 @@
 
 #include "bdb.h"
 
+#include "ti_zstack_config.h"
+
 /*********************************************************************
  * CONSTANTS
  */
 
-#define STACK_TASK_PRIORITY   3
+#define STACK_TASK_PRIORITY   5
 #define STACK_TASK_STACK_SIZE 3072
 
 
@@ -475,7 +485,7 @@ static void stackTaskFxn(UArg a0, UArg a1)
         *(pTasksEvents[idx]) = 0;  // Clear the Events for this task.
         OsalPort_leaveCS(key);
 
-        events = (zstackTasksArr[idx])( NULL, events );
+        events = (zstackTasksArr[idx])( 0U, events );
 
         key = OsalPort_enterCS();
         *(pTasksEvents[idx]) |= events;  // Add back unprocessed events to the current task.
@@ -642,12 +652,19 @@ static void stackInit(void)
     uint8_t responseWaitTime = 16;
     ZMacSetReq(MAC_RESPONSE_WAIT_TIME, &responseWaitTime);
 
+    uint16_t transactionPersistenceTime = 500;
+    ZMacSetReq(MAC_TRANSACTION_PERSISTENCE_TIME, (byte *)&transactionPersistenceTime);
+
     ZMacSetTransmitPower( (ZMacTransmitPower_t)TXPOWER );
 
     if(RFD_RCVC_ALWAYS_ON == TRUE)
     {
         nwk_SetCurrentPollRateType(POLL_RATE_RX_ON_TRUE,TRUE);
     }
+
+#ifdef FEATURE_UTC_TIME
+    UTC_init();
+#endif //FEATURE_UTC_TIME
 }
 
 /*********************************************************************

@@ -40,6 +40,7 @@
 /*********************************************************************
  * INCLUDES
  */
+#include "ti_zstack_config.h"
 #include "zcl.h"
 #include "zcl_general.h"
 #include "zcl_pi.h"
@@ -48,6 +49,7 @@
   #include "stub_aps.h"
 #endif
 
+#ifdef ZCL_PI
 /*********************************************************************
  * MACROS
  */
@@ -816,4 +818,6 @@ static ZStatus_t zclPI_ProcessIn_11073TunnelCmds( zclIncoming_t *pInMsg,
 
 /****************************************************************************
 ****************************************************************************/
+
+#endif // ZCL_PI
 

@@ -167,7 +167,7 @@ function moduleInstances(inst)
     // Get settings from selected phy
     const radioConfigArgs = _.cloneDeep(phySettings[0].args);
 
-    if(deviceId.match(/CC1352P/))
+    if(deviceId.match(/CC1352P/) || deviceId.match(/CC2652PSIP/))
     {
         isPDevice = true;
         if ( !isNaN(inst.txPower) )
@@ -237,6 +237,18 @@ function getRfDesignOptions()
     else if(deviceId === "CC2652RB")
     {
         newRfDesignOptions = [{name: "LAUNCHXL-CC2652RB"}];
+    }
+    else if(deviceId === "CC2652R1FSIP")
+    {
+        newRfDesignOptions = [{name: "LP_CC2652RSIP"}];
+    }
+    else if(deviceId === "CC2652P1FSIP")
+    {
+        newRfDesignOptions = [{name: "LP_CC2652PSIP"}];
+    }
+    else
+    {
+        throw new Error("Unknown deviceId " + deviceId + ".");
     }
 
     return(newRfDesignOptions);

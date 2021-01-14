@@ -107,7 +107,7 @@ MEMORY
     FLASH (RX) : origin = FLASH_START, length = FLASH_SIZE
 
     /* FLASH NV */
-    FLASH_NV (RWX) : origin = FLASH_NV_BASE, length = FLASH_NV_SIZE	
+    FLASH_NV (RWX) : origin = FLASH_NV_BASE, length = FLASH_NV_SIZE
 
     /* Last flash page */
     FLASH_LAST (RX) : origin = FLASH_LAST_BASE, length = FLASH_LAST_SIZE
@@ -133,9 +133,6 @@ SECTIONS
     }
 
     .text           :   > FLASH
-
-    config_const { mac_user_config.obj(.const) } > FLASH
-
     .const          :   > FLASH
     .constdata      :   > FLASH
     .rodata         :   > FLASH
@@ -149,6 +146,7 @@ SECTIONS
     {
         .data LOAD_START(ramStartHere)
         .bss
+        .noinit
         .vtable
         .vtable_ram
          vtable_ram

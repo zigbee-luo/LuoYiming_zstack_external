@@ -50,6 +50,10 @@ extern "C"
  */
 #include "zcl.h"
 #include "ota_common.h"
+#include "ti_zstack_config.h"
+#if defined ZCL_SYSCONFIG
+#include "zcl_config.h"
+#endif
 
 /******************************************************************************
  * CONSTANTS
@@ -130,36 +134,38 @@ extern "C"
 // OTA Attribute IDs
 /// The attribute is used to store the IEEE address of the upgrade server
 /// resulted from the discovery of the upgrade server's identity
-#define ATTRID_UPGRADE_SERVER_ID                      0x0000
+#define ATTRID_OTA_UPGRADE_UPGRADE_SERVER_ID                      0x0000
 /// The parameter indicates the current location in the OTA upgrade image.
-#define ATTRID_FILE_OFFSET                            0x0001
+#define ATTRID_OTA_UPGRADE_FILE_OFFSET                            0x0001
 /// The file version of the running firmware image on the device.
-#define ATTRID_CURRENT_FILE_VERSION                   0x0002
+#define ATTRID_OTA_UPGRADE_CURRENT_FILE_VERSION                   0x0002
 /// The ZigBee stack version of the running image on the device.
-#define ATTRID_CURRENT_ZIGBEE_STACK_VERSION           0x0003
+#define ATTRID_OTA_UPGRADE_CURRENT_ZIG_BEE_STACK_VERSION          0x0003
 /// The file version of the downloaded image on additional memory space on
 /// the device.
-#define ATTRID_DOWNLOADED_FILE_VERSION                0x0004
+#define ATTRID_OTA_UPGRADE_DOWNLOADED_FILE_VERSION                0x0004
 /// The ZigBee stack version of the downloaded image on additional memory space
 /// on the device.
-#define ATTRID_DOWNLOADED_ZIGBEE_STACK_VERSION        0x0005
+#define ATTRID_OTA_UPGRADE_DOWNLOADED_ZIG_BEE_STACK_VERSION       0x0005
 /// The upgrade status of the client device. The status indicates where the
 /// client device is at in terms of the download and upgrade process.
-#define ATTRID_IMAGE_UPGRADE_STATUS                   0x0006
+#define ATTRID_OTA_UPGRADE_IMAGE_UPGRADE_STATUS                   0x0006
 /// This attribute SHALL reflect the ZigBee assigned value for the manufacturer
 /// of the device.
-#define ATTRID_MANUFACTURER_ID                        0x0007  // uint16_t, R, O
+#define ATTRID_OTA_UPGRADE_MANUFACTURER_ID                        0x0007  // uint16_t, R, O
 /// This attribute SHALL indicate the image type identifier of the file that
 /// the client is currently downloading, or a file that has been completely
 /// downloaded but not upgraded to yet.
-#define ATTRID_IMAGE_TYPE_ID                          0x0008  // uint16_t, R, O
+#define ATTRID_OTA_UPGRADE_IMAGE_TYPE_ID                          0x0008  // uint16_t, R, O
 /// This attribute acts as a rate limiting feature for the server to slow down
 /// the client download and prevent saturating the network with block requests.
-#define ATTRID_MINIMUM_BLOCK_REQ_DELAY                0x0009  // uint16_t, R, O
+#define ATTRID_OTA_UPGRADE_MINIMUM_BLOCK_PERIOD                   0x0009  // uint16_t, R, O
 /// This attribute acts as a second verification to identify the image in the
 /// case that sometimes developers of the application have forgotten to increase
 /// the firmware version attribute.
-#define ATTRID_IMAGE_STAMP                            0x000A  // uint32_t, R, O
+#define ATTRID_OTA_UPGRADE_IMAGE_STAMP                            0x000A  // uint32_t, R, O
+#define ATTRID_OTA_UPGRADE_UPGRADE_ACTIVATION_POLICY              0x000B
+#define ATTRID_OTA_UPGRADE_UPGRADE_TIMEOUT_POLICY                 0x000C
 
 /// OTA Upgrade Status
 #define OTA_STATUS_NORMAL                             0x00
@@ -175,28 +181,28 @@ extern "C"
 // OTA Cluster Command Frames
 /// The purpose of sending Image Notify command is so the server has a way to
 /// notify client devices of when the OTA upgrade images are available for them.
-#define COMMAND_IMAGE_NOTIFY                          0x00
+#define COMMAND_OTA_UPGRADE_IMAGE_NOTIFY                                    0x00
 /// Client devices SHALL send a Query Next Image Request command to the server
 /// to see if there is new OTA upgrade image available.
-#define COMMAND_QUERY_NEXT_IMAGE_REQ                  0x01
+#define COMMAND_OTA_UPGRADE_QUERY_NEXT_IMAGE_REQUEST                        0x01
 /// The upgrade server sends a Query Next Image Response with one of the
 /// following status: SUCCESS, NO_IMAGE_AVAILABLE or NOT_AUTHORIZED.
 /// When a SUCCESS status is sent, it is considered to be the explicit
 /// authorization to a device by the upgrade server that the device MAY upgrade
 /// to a specific software image.
-#define COMMAND_QUERY_NEXT_IMAGE_RSP                  0x02
+#define COMMAND_OTA_UPGRADE_QUERY_NEXT_IMAGE_RESPONSE                       0x02
 /// The client device requests the image data at its leisure by sending Image
 /// Block Request command to the upgrade server.
-#define COMMAND_IMAGE_BLOCK_REQ                       0x03
+#define COMMAND_OTA_UPGRADE_IMAGE_BLOCK_REQUEST                             0x03
 /// The support for the command is optional. The client device MAY choose to
 /// request OTA upgrade data in one page size at a time from upgrade server.
-#define COMMAND_IMAGE_PAGE_REQ                        0x04
+#define COMMAND_OTA_UPGRADE_IMAGE_PAGE_REQUEST                              0x04
 /// Upon receipt of an Image Block Request command the server SHALL generate
 /// an Image Block Response.
-#define COMMAND_IMAGE_BLOCK_RSP                       0x05
+#define COMMAND_OTA_UPGRADE_IMAGE_BLOCK_RESPONSE                            0x05
 /// Upon reception all the image data, the client SHOULD verify the image to
 /// ensure its integrity and validity.
-#define COMMAND_UPGRADE_END_REQ                       0x06
+#define COMMAND_OTA_UPGRADE_UPGRADE_END_REQUEST                             0x06
 /// When an upgrade server receives an Upgrade End Request command with a status
 /// of INVALID_IMAGE, REQUIRE_MORE_IMAGE, or ABORT, no additional processing
 /// SHALL be done in its part. If the upgrade server receives an Upgrade
@@ -204,13 +210,13 @@ extern "C"
 /// End Response 17245 with the manufacturer code and image type received in
 /// the Upgrade End Request along with the times indicating when the device
 /// SHOULD upgrade to the new image.
-#define COMMAND_UPGRADE_END_RSP                       0x07
+#define COMMAND_OTA_UPGRADE_UPGRADE_END_RESPONSE                            0x07
 /// Client devices SHALL send a Query Device Specific File Request command to
 /// the server to request for a file that is specific and unique to it.
-#define COMMAND_QUERY_SPECIFIC_FILE_REQ               0x08
+#define COMMAND_OTA_UPGRADE_QUERY_DEVICE_SPECIFIC_FILE_REQUEST              0x08
 /// The server sends Query Device Specific File Response after receiving Query
 /// Device Specific File Request from a client.
-#define COMMAND_QUERY_SPECIFIC_FILE_RSP               0x09
+#define COMMAND_OTA_UPGRADE_QUERY_DEVICE_SPECIFIC_FILE_RESPONSE             0x09
 
 // OTA Cluster Command Frame Payload Lengths
 #define PAYLOAD_MAX_LEN_IMAGE_NOTIFY                  10
@@ -436,21 +442,9 @@ typedef struct
 /******************************************************************************
  * GLOBAL VARIABLES
  */
-// OTA Cluster
-extern uint8_t zclOTA_UpgradeServerID[Z_EXTADDR_LEN];
-extern uint32_t zclOTA_FileOffset;
-extern uint32_t zclOTA_CurrentFileVersion;
-extern uint16_t zclOTA_CurrentZigBeeStackVersion;
-extern uint32_t zclOTA_DownloadedFileVersion;
-extern uint16_t zclOTA_DownloadedZigBeeStackVersion;
-extern uint8_t zclOTA_ImageUpgradeStatus;
-extern uint16_t zclOTA_ImageType;
-extern uint16_t zclOTA_MinBlockReqDelay;
-extern uint16_t zclOTA_ManufacturerID;
-extern uint8_t zclOTA_Permit;
-extern uint8_t zclOta_OtaUpgradeEndReqTransSeq;
 extern uint8_t currentOtaEndpoint;
-extern uint16_t zclOTA_clusterRevision;
+extern uint8_t zclOTA_OtaUpgradeEndReqTransSeq;
+extern uint8_t zclOTA_Permit;
 
 /** @} End ZCL_OTA_CLUSTER_GLOBALS */
 
@@ -497,7 +491,7 @@ extern void zclOTA_PermitOta(uint8_t permit);
  */
 extern uint8_t zclOTA_getStatus( void );
 
-#if ((defined OTA_SERVER) && (OTA_SERVER == TRUE))
+#if defined OTA_SERVER
 /*********************************************************************
  * @fn      zclOTA_getSeqNo
  *
@@ -510,7 +504,30 @@ extern uint8_t zclOTA_getStatus( void );
 extern uint8_t zclOTA_getSeqNo(void);
 #endif
 
-#if defined(OTA_CLIENT) && (OTA_CLIENT == TRUE)
+#if (defined OTA_CLIENT_STANDALONE) || (defined OTA_CLIENT_INTEGRATED)
+/******************************************************************************
+ * @fn      zclOTA_ProcessInDefaultRspCmd
+ *
+ * @brief   Passed along from application.
+ *
+ * @param   pInMsg - Pointer to Default Response Command
+ *
+ * @return  void
+ */
+extern void zclOTA_ProcessInDefaultRspCmd( zclIncomingMsg_t *pInMsg );
+
+/*********************************************************************
+ * @fn      zclOTA_setAttributes
+ *
+ * @brief   Sets pointers to attributes used by ZCL OTA module
+ *
+ * @param   *attrs - set of attributes from the application
+ * @param   numAttrs - number of attributes in the list
+ *
+ * @return  void
+ */
+extern void zclOTA_setAttributes( const zclAttrRec_t *attrs, uint8_t numAttrs );
+
 /******************************************************************************
  * @fn      zclOTA_SendQueryNextImageReq
  *
@@ -592,9 +609,7 @@ extern ZStatus_t zclOTA_SendQueryDevSpecFileReq (uint8_t srcEp, afAddrType_t *ds
 
 extern void zclOTA_ProcessUnhandledFoundationZCLMsgs ( zclIncomingMsg_t *pMsg );
 
-extern void zclOTA_ProcessInDefaultRspCmd( zclIncomingMsg_t *pInMsg );
-
-#if defined(OTA_SERVER) && (OTA_SERVER == TRUE)
+#if defined OTA_SERVER
 /******************************************************************************
  * @fn      zclOTA_SendImageNotify
  *
@@ -666,7 +681,7 @@ extern ZStatus_t zclOTA_SendUpgradeEndRsp (uint8_t srcEp, afAddrType_t *dstAddr,
 
 /** @} End ZCL_OTA_CLUSTER_FUNCTIONS */
 
-#endif // (defined OTA_SERVER) && (OTA_SERVER == TRUE)
+#endif // OTA_SERVER
 
 
 #ifdef __cplusplus

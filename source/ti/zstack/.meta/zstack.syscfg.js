@@ -36,6 +36,10 @@
 
 "use strict";
 
+const genLibs = system.getScript("/ti/utils/build/GenLibs.syscfg.js");
+// Get common 154 utility functions
+const Common154 = system.getScript("/ti/ti154stack/ti154stack_common.js");
+
 /* Description text for module and configurables */
 const deviceTypeLongDescription = `The logical device type for the ZigBee \
 node.
@@ -86,6 +90,12 @@ clear non-volatile storage.
 [4]: /zigbee/html/zigbee/application_overview.html#reset-to-fn-screen
 `;
 
+
+const genLibDescription = "Configures genLibs usage for local libraries. Always hidden";
+const genLibLongDescription = `This is a hidden parameter that controls whether the \
+stack module contributes libraries to the generated linker command file.
+\n\__Default__: True (checked)`;
+
 /* Static module definition for zstack module */
 const moduleStatic = {
     config: [
@@ -105,15 +115,81 @@ const moduleStatic = {
             ]
         },
         {
+            name: "genLibs",
+            displayName: "Generate Z-Stack Libraries",
+            default: true,
+            hidden: true,
+            description: genLibDescription,
+            longDescription: genLibLongDescription
+        },
+        {
             name: "deviceTypeReadOnly",
             default: false,
             hidden: true,
             onChange: onDeviceTypeReadOnlyChange
+        },
+        {
+            name: "appBuilder",
+            default: false,
+            hidden: true,
         }
     ],
     moduleInstances: moduleInstances,
     modules: modules
 };
+
+/*
+ * ======== getLibs ========
+ * Contribute libraries to linker command file
+ *
+ * @param inst  - zstack module instance
+ * @returns     - Object containing the name of component, array of dependent
+ *                components, and array of library names
+ */
+function getLibs(inst)
+{
+    // Create a GenLibs input argument
+    let results = {
+        name: "/ti/zstack",
+        deps: [],
+        libs: []
+    };
+
+    if(inst.$static.genLibs)
+    {
+        const toolchain = genLibs.getToolchainDir();
+
+        // Add mac lib
+        const dev = Common154.isSub1GHzDevice() ? "cc13x2" : "cc26x2";
+        let maclib = "ti/ti154stack/library/tirtos/"
+        maclib += toolchain + "/bin/"
+        maclib += "maclib_nosecure_" + dev + "_2_4g.a"
+        results.libs.push(maclib);
+
+        // Add zstack lib
+        let zlib = "ti/zstack/lib/";
+        let devType = inst.$static.deviceType;
+        switch(devType) {
+            case "zc":
+                devType = "nwk_zr_";
+                break;
+            case "znp":
+                devType = "nwk_all_";
+                break;
+            case "gpd":
+                devType = "gpd_sec_";
+                break;
+            default:
+                devType = "nwk_" + devType + "_"; // nwk_<zr/zed>_
+                break;
+        }
+        zlib += toolchain + "/";
+        zlib += "libZStack_" + devType + toolchain + ".a";
+        results.libs.push(zlib);
+    }
+
+    return(results);
+}
 
 /* Submodule instance definitions */
 function moduleInstances(inst)
@@ -153,12 +229,37 @@ function moduleInstances(inst)
     }
     else
     {
+        if( inst.appBuilder === true )
+        {
+          submodules.push({
+              name: "app",
+              displayName: "Zigbee Application Endpoint",
+              description: "Configure Zigbee Cluster Library (ZCL) settings",
+              moduleName: "/ti/zstack/app/zstack_app",
+              collapsed: true
+          });
+          submodules.push({
+              name: "otaClient",
+              displayName: "Over-The-Air Upgrade Client Endpoint",
+              description: "Configure OTA Client settings",
+              moduleName: "/ti/zstack/app/zstack_ota_client",
+              collapsed: true
+          });
+        }
+        submodules.push({
+            name: "touchlink",
+            displayName: "Touchlink Commissioning Endpoint",
+            description: "Enable/Disable Touchlink Commissioning",
+            moduleName: "/ti/zstack/touchlink/zstack_touchlink",
+            collapsed: true,
+            args: {deviceType: inst.deviceType}
+        });
         submodules.push({
             name: "pm",
             displayName: "Power Management",
             description: "Configure radio power settings",
             moduleName: "/ti/zstack/pm/zstack_pm",
-            collapsed: false,
+            collapsed: true,
             args: {deviceType: inst.deviceType}
         });
         submodules.push({
@@ -198,7 +299,7 @@ function modules(inst)
     submodules.push({
         name: "multiStack",
         displayName: "Multi-Stack Validation",
-        moduleName: "/ti/easylink/multi_stack_validate",
+        moduleName: "/ti/common/multi_stack_validate",
         hidden: true
     });
     submodules.push({
@@ -239,7 +340,14 @@ const zstackModule = {
     displayName: "Z-Stack",
     description: "Z-Stack configuration module",
     longDescription: modulelongDescription,
-    moduleStatic: moduleStatic
+    moduleStatic: moduleStatic,
+    templates: {
+        "/ti/utils/build/GenLibs.cmd.xdt":
+        {
+            modName: "/ti/zstack/zstack",
+            getLibs: getLibs
+        }
+    }
 };
 
 exports = zstackModule;

@@ -675,30 +675,6 @@ typedef enum
    */
   extern ZMacStatus_t ZMacEnhancedActiveScanReq( ZMacScanReq_t *param );
 
-  #ifdef FEATURE_DUAL_MAC
-  /*
-   * This function is the MAC Event callback handler.
-   */
-  extern void ZMacCbackEventHdlr( macCbackEvent_t *pData );
-
-  /*
-   * This functions free's the scan buffer.
-   */
-  extern void ZMacFreeScanBuf( void );
-
-  /*
-   * This function is the MAC Retransmit query call back
-   */
-  extern uint8_t ZMacCbackQueryRetransmit(void);
-
-  /*
-   * This function is the MAC Retransmit query call back
-   */
-  extern uint8_t ZMacCbackCheckPending(void);
-
-
-  #endif /* FEATURE_DUAL_MAC */
-
 /*********************************************************************
 *********************************************************************/
 

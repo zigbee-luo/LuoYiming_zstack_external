@@ -41,6 +41,7 @@
  * INCLUDES
  */
 #include "zcomdef.h"
+#include "ti_zstack_config.h"
 #include "zcl.h"
 #include "zcl_general.h"
 #include "zcl_appliance_statistics.h"

@@ -1,5 +1,5 @@
 PROJ_DIR = $(abspath ../../)
-COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR ?= $(abspath ../../../../../../../..)
+COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR ?= $(abspath ../../../../../../..)
 
 include $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/imports.mak
 
@@ -12,7 +12,7 @@ LNK = "$(IAR_ARMCOMPILER)/bin/ilinkarm"
 XDCTARGET = iar.targets.arm.M4F
 PLATFORM = ti.platforms.simplelink:CC2652RB1F
 
-OBJECTS = ti_drivers_config.obj ti_radio_config.obj CC2652RB_LAUNCHXL_fxns.obj mac_user_config.obj mac_settings.obj zcl_samplesw.obj zcl_samplesw_data.obj main.obj cui.obj zstackstartup.obj crc.obj nvocmp.obj saddr.obj zcl_sampleapps_ui.obj mac_util.obj util_timer.obj af.obj bdb.obj bdb_finding_and_binding.obj bdb_reporting.obj bdb_touchlink.obj bdb_touchlink_initiator.obj bdb_touchlink_target.obj bdb_tl_commissioning.obj touchlink_initiator_app.obj touchlink_target_app.obj gp_common.obj gp_proxy_table.obj gp_proxy.obj gp_bit_fields.obj dbg.obj mac_cfg.obj binding_table.obj nwk_globals.obj stub_aps.obj osal_nv.obj osal_port.obj osal_port_timers.obj zstackapi.obj zstacktask.obj zdiags.obj zglobals.obj zd_app.obj zd_config.obj zd_nwk_mgr.obj zd_object.obj zd_profile.obj zd_sec_mgr.obj zmac.obj zmac_cb.obj rom_init_154.obj fh_rom_init.obj hmac_rom_init.obj lmac_rom_init.obj icall_osal_rom_init.obj  zcl.obj zcl_port.obj zcl_general.obj zcl_green_power.obj zcl_ha.obj zcl_diagnostic.obj zcl_closures.obj zcl_appliance_control.obj zcl_appliance_events_alerts.obj zcl_appliance_statistics.obj zcl_cc.obj zcl_cert_data.obj zcl_electrical_measurement.obj zcl_hvac.obj zcl_retail.obj zcl_telecommunication.obj zcl_lighting.obj zcl_ll.obj zcl_ms.obj zcl_ota.obj zcl_partition.obj zcl_pi.obj zcl_poll_control.obj zcl_power_profile.obj zcl_se.obj zcl_ss.obj ota_client_app.obj oad_switch_agama.obj oad_image_header_app.obj flash_interface_ext_rtos_NVS.obj crc32.obj
+OBJECTS = ti_drivers_config.obj ti_radio_config.obj CC2652RB_LAUNCHXL_fxns.obj mac_user_config.obj mac_settings.obj zcl_samplesw.obj zcl_samplesw_data.obj main.obj cui.obj zstackstartup.obj crc.obj nvocmp.obj saddr.obj zcl_sampleapps_ui.obj mac_util.obj util_timer.obj utc_clock.obj af.obj bdb.obj bdb_finding_and_binding.obj bdb_reporting.obj bdb_touchlink.obj bdb_touchlink_initiator.obj bdb_touchlink_target.obj bdb_tl_commissioning.obj touchlink_initiator_app.obj touchlink_target_app.obj gp_common.obj gp_proxy_table.obj gp_proxy.obj gp_bit_fields.obj dbg.obj mac_cfg.obj binding_table.obj nwk_globals.obj stub_aps.obj osal_nv.obj osal_port.obj osal_port_timers.obj zstackapi.obj zstacktask.obj zdiags.obj zglobals.obj zd_app.obj zd_config.obj zd_nwk_mgr.obj zd_object.obj zd_profile.obj zd_sec_mgr.obj zmac.obj zmac_cb.obj rom_init_154.obj fh_rom_init.obj hmac_rom_init.obj lmac_rom_init.obj icall_osal_rom_init.obj  zcl.obj zcl_port.obj zcl_general.obj zcl_green_power.obj zcl_ha.obj zcl_diagnostic.obj zcl_closures.obj zcl_appliance_control.obj zcl_appliance_events_alerts.obj zcl_appliance_statistics.obj zcl_cc.obj zcl_cert_data.obj zcl_electrical_measurement.obj zcl_hvac.obj zcl_retail.obj zcl_telecommunication.obj zcl_lighting.obj zcl_ll.obj zcl_ms.obj zcl_ota.obj zcl_partition.obj zcl_pi.obj zcl_poll_control.obj zcl_power_profile.obj zcl_se.obj zcl_ss.obj ota_client.obj oad_switch_agama.obj oad_image_header_app.obj flash_interface_ext_rtos_NVS.obj crc32.obj
 
 CONFIGPKG = zc_sw_ota_client
 
@@ -38,7 +38,7 @@ CFLAGS = -I../.. \
     --diag_suppress=Pa050 \
     -DTIMAC_ROM_IMAGE_BUILD \
     -DTIMAC_ROM_PATCH \
-    -DUSE_ZCL_SAMPLEAPP_UI \
+    -DxCUI_DISABLE \
     -DMAX_STATUS_LINES=10 \
     -DZSTACK_SECURITY \
     -DBOARD_DISPLAY_USE_UART \
@@ -121,25 +121,25 @@ CFLAGS = -I../.. \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/devices/cc13x2_cc26x2" \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/devices/cc13x2_cc26x2/inc" \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/devices/cc13x2_cc26x2/driverlib" \
+    "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/common/time" \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/zstack/apps/sw" \
     "-f$(PROJ_DIR)/configPkg/compiler.opt.defs" \
     "-f$(PROJ_DIR)/Stack/Config/f8wcoord.opts" \
     "-I$(PROJ_DIR)/Common/zcl" \
     -DDEVICE_FAMILY=cc26x0 \
-    -DCC2652RB_LAUNCHXL \
     -DDeviceFamily_CC26X2 \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/common/boards" \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source" \
-    -DOTA_CLIENT_CC26XX \
-    -DOTA_CLIENT=TRUE \
+    -DOTA_CLIENT_INTEGRATED \
     -DSECURITY \
     -DOTA_MANUFACTURER_ID=0xBEBE \
     -DOTA_APP_VERSION=0x00000001 \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/zstack/stack/zcl/app" \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/zstack/ota" \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/common/oad/CC13X2_CC26X2R1_LAUNCHXL" \
-    "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/common/cc26xx/flash_interface" \
-    "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/common/cc26xx/crc" \
+    "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/common/cc26xx/flash_interface" \
+    "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/common/cc26xx/crc" \
+    "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/" \
     -DOTA_TYPE_ID=0x2652 \
     "-I$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/posix/iar"
 
@@ -147,13 +147,9 @@ LFLAGS = --silent \
     --cpu=Cortex-M4F \
     _Printf=_PrintfSmall \
     "-f$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/library/tirtos/iar/timac_rom_PG2_0_rom_api_linker.icf" \
-    "$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/zstack/lib/iar/libZStack_nwk_zr_iar.a" \
-    "$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/display/lib/display.arm4f" \
-    "$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/grlib/lib/iar/m4f/grlib.a" \
-    "$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/drivers/rf/lib/rf_multiMode_cc26x2.arm4f" \
-    "$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/drivers/lib/drivers_cc26x2.arm4f" \
-    "$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/library/tirtos/iar/bin/maclib_nosecure_cc26x2_2_4g.a" \
-    "$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/kernel/tirtos/packages/ti/dpl/lib/dpl_cc26x2.arm4f" \
+    "-f$(PROJ_DIR)/ti_utils_build_linker.cmd.genlibs" \
+    "-L$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source" \
+    "-L$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/kernel/tirtos/packages" \
     "$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/devices/cc13x2_cc26x2/driverlib/bin/iar/driverlib.lib" \
     --config "$(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/zstack/boards/CC2652RB_LAUNCHXL/cc26x2lp_ota.icf" \
     --map "$(NAME).map" \
@@ -180,7 +176,7 @@ ti_drivers_config.c ti_drivers_config.h ti_zstack_config.h ti_radio_config.c ti_
 
 syscfg: ../../zc_sw_ota_client.syscfg
 	@ echo Generating configuration files...
-	@ $(SYSCONFIG_TOOL) --product $(SYSCONFIG_PRODUCT) --output $(@D) $<
+	@ $(SYSCONFIG_TOOL) --product $(SYSCONFIG_PRODUCT) --compiler iar --output $(@D) $<
 
 ti_drivers_config.obj: ti_drivers_config.c $(CONFIGPKG)/compiler.opt
 	@ echo Building $@
@@ -239,6 +235,10 @@ mac_util.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154st
 	@ $(CC) $(CFLAGS) $< -f $(CONFIGPKG)/compiler.opt -o $@
 
 util_timer.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/common/util/util_timer.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
+	@ echo Building $@
+	@ $(CC) $(CFLAGS) $< -f $(CONFIGPKG)/compiler.opt -o $@
+
+utc_clock.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/common/time/utc_clock.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
 	@ echo Building $@
 	@ $(CC) $(CFLAGS) $< -f $(CONFIGPKG)/compiler.opt -o $@
 
@@ -502,7 +502,7 @@ zcl_ss.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/zstack/st
 	@ echo Building $@
 	@ $(CC) $(CFLAGS) $< -f $(CONFIGPKG)/compiler.opt -o $@
 
-ota_client_app.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/zstack/ota/ota_client_app.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
+ota_client.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/zstack/ota/ota_client.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
 	@ echo Building $@
 	@ $(CC) $(CFLAGS) $< -f $(CONFIGPKG)/compiler.opt -o $@
 
@@ -514,11 +514,11 @@ oad_image_header_app.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/sourc
 	@ echo Building $@
 	@ $(CC) $(CFLAGS) $< -f $(CONFIGPKG)/compiler.opt -o $@
 
-flash_interface_ext_rtos_NVS.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/common/cc26xx/flash_interface/external/flash_interface_ext_rtos_NVS.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
+flash_interface_ext_rtos_NVS.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/common/cc26xx/flash_interface/external/flash_interface_ext_rtos_NVS.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
 	@ echo Building $@
 	@ $(CC) $(CFLAGS) $< -f $(CONFIGPKG)/compiler.opt -o $@
 
-crc32.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/ti154stack/common/cc26xx/crc/crc32.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
+crc32.obj: $(COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR)/source/ti/common/cc26xx/crc/crc32.c ti_drivers_config.h $(CONFIGPKG)/compiler.opt
 	@ echo Building $@
 	@ $(CC) $(CFLAGS) $< -f $(CONFIGPKG)/compiler.opt -o $@
 

@@ -70,7 +70,7 @@
  * CONSTANTS
  */
 
-#define PER_TEST_CLUSTER         ZCL_CLUSTER_ID_GEN_ON_OFF
+#define PER_TEST_CLUSTER         ZCL_CLUSTER_ID_GENERAL_ON_OFF
 #define PER_TEST_ENDPOINT        8
 #define PER_TEST_FC_BUFFER_SIZE  15
 #define PER_TEST_INVALID_FC      0xFFFF
@@ -286,8 +286,8 @@ void PERTest_processZStackMsg(zstackmsg_genericReq_t *pMsg)
     case zstackmsg_CmdIDs_BDB_BIND_NOTIFICATION_CB:
     {
       //If we have created a bind with the light, then start configuration for PER test on zed
-      Timer_setTimeout( PERTest_sendCmdClkHandle, SAMPLEAPP_PER_TEST_SEND_CMD_DELAY );
-      Timer_start(&PERTest_sendCmdClkStruct);
+      UtilTimer_setTimeout( PERTest_sendCmdClkHandle, SAMPLEAPP_PER_TEST_SEND_CMD_DELAY );
+      UtilTimer_start(&PERTest_sendCmdClkStruct);
       isPERinitialized = TRUE;
     }
     break;
@@ -307,8 +307,8 @@ void PERTest_processZStackMsg(zstackmsg_genericReq_t *pMsg)
             if(pInd->Req.bdbCommissioningStatus == BDB_COMMISSIONING_SUCCESS)
             {
                 //If we are on a network, then start configuration for PER test on zed
-                Timer_setTimeout( PERTest_sendCmdClkHandle, SAMPLEAPP_PER_TEST_SEND_CMD_DELAY );
-                Timer_start(&PERTest_sendCmdClkStruct);
+                UtilTimer_setTimeout( PERTest_sendCmdClkHandle, SAMPLEAPP_PER_TEST_SEND_CMD_DELAY );
+                UtilTimer_start(&PERTest_sendCmdClkStruct);
                 isPERinitialized = TRUE;
             }
           break;
@@ -317,8 +317,8 @@ void PERTest_processZStackMsg(zstackmsg_genericReq_t *pMsg)
             if(pInd->Req.bdbCommissioningStatus == BDB_COMMISSIONING_NETWORK_RESTORED)
             {
               //If we are on a network, then start configuration for PER test on zed
-              Timer_setTimeout( PERTest_sendCmdClkHandle, SAMPLEAPP_PER_TEST_SEND_CMD_DELAY );
-              Timer_start(&PERTest_sendCmdClkStruct);
+              UtilTimer_setTimeout( PERTest_sendCmdClkHandle, SAMPLEAPP_PER_TEST_SEND_CMD_DELAY );
+              UtilTimer_start(&PERTest_sendCmdClkStruct);
               isPERinitialized = TRUE;
             }
           break;
@@ -326,8 +326,8 @@ void PERTest_processZStackMsg(zstackmsg_genericReq_t *pMsg)
             if(pInd->Req.bdbCommissioningStatus == BDB_COMMISSIONING_NETWORK_RESTORED)
             {
               //If we are on a network, then start configuration for PER test on zed
-              Timer_setTimeout( PERTest_sendCmdClkHandle, SAMPLEAPP_PER_TEST_SEND_CMD_DELAY );
-              Timer_start(&PERTest_sendCmdClkStruct);
+              UtilTimer_setTimeout( PERTest_sendCmdClkHandle, SAMPLEAPP_PER_TEST_SEND_CMD_DELAY );
+              UtilTimer_start(&PERTest_sendCmdClkStruct);
               isPERinitialized = TRUE;
             }
           break;
@@ -439,7 +439,7 @@ static void PerTest_initializeClocks(void)
 
 #if defined(PER_TEST_SEND_TO_PARENT) || defined(PER_TEST_SEND_USE_FINDING_BINDING)
     // Initialize the timers needed for this application
-    PERTest_sendCmdClkHandle = Timer_construct(
+    PERTest_sendCmdClkHandle = UtilTimer_construct(
     &PERTest_sendCmdClkStruct,
     PERTest_processPERTestSendCmdTimeoutCallback,
     SAMPLEAPP_PER_TEST_SEND_CMD_DELAY,
@@ -513,8 +513,8 @@ static void PERTest_sendCmd(void)
     }
 #endif
     //Keep sending the commands
-    Timer_setTimeout( PERTest_sendCmdClkHandle, SAMPLEAPP_PER_TEST_SEND_CMD_DELAY );
-    Timer_start(&PERTest_sendCmdClkStruct);
+    UtilTimer_setTimeout( PERTest_sendCmdClkHandle, SAMPLEAPP_PER_TEST_SEND_CMD_DELAY );
+    UtilTimer_start(&PERTest_sendCmdClkStruct);
 }
 #endif
 

@@ -75,7 +75,9 @@
 #include "ti_drivers_config.h"
 #include <ti/drivers/apps/Button.h>
 #include <ti/drivers/apps/LED.h>
+#ifndef CUI_DISABLE
 #include "cui.h"
+#endif
 #include <ti/sysbios/knl/Semaphore.h>
 #include "api_mac.h"
 #include "mac_util.h"
@@ -279,7 +281,7 @@ static void gpdSampleTempSensor_initialization(void)
 static void gpdSampleTempSensor_initializeClocks(void)
 {
     // Initialize the timers for reporting the temperature
-    ReportTempClkHandle = Timer_construct(
+    ReportTempClkHandle = UtilTimer_construct(
     &ReportTempClkStruct,
     gpdSampleTempSensor_processReportTempTimeoutCallback,
     GPD_REPORT_TEMP_DELAY,
@@ -379,8 +381,8 @@ static uint16_t gpdSampleTempSensor_process_loop( void )
 
             GreenPowerAttributeReportingSend(ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT, 1, &attributeReportCmd, gpdChannel);
 
-            Timer_setTimeout( ReportTempClkHandle, GPD_REPORT_TEMP_DELAY );
-            Timer_start(&ReportTempClkStruct);
+            UtilTimer_setTimeout( ReportTempClkHandle, GPD_REPORT_TEMP_DELAY );
+            UtilTimer_start(&ReportTempClkStruct);
 
             events &= ~SAMPLEAPP_REPORT_TEMP_EVT;
         }
@@ -437,8 +439,8 @@ static void gpdSampleTempSensor_processKey(Button_Handle keysPressed, Button_Eve
         if(keysPressed == gLeftButtonHandle)
         {
             GreenPowerAttributeReportingSend(ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT, 1, &attributeReportCmd, gpdChannel);
-            Timer_setTimeout( ReportTempClkHandle, GPD_REPORT_TEMP_DELAY );
-            Timer_start(&ReportTempClkStruct);
+            UtilTimer_setTimeout( ReportTempClkHandle, GPD_REPORT_TEMP_DELAY );
+            UtilTimer_start(&ReportTempClkStruct);
         }
         else if (keysPressed == gRightButtonHandle)
         {

@@ -41,15 +41,16 @@
 #define ZCL_SAMPLEAPPS_UI_H
 
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 
 #include "zstackmsg.h"
 #include "zstackapi.h"
 #include "cui.h"
 #include <string.h>
 #include "zcl_sample_app_def.h"
+#include <ti/sysbios/knl/Semaphore.h>
 #include <ti/drivers/apps/Button.h>
-
+#include "zcl_sample_app_def.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -62,9 +63,9 @@ extern "C"
 
 // UI Events
 #define SAMPLEAPP_UI_BDB_NWK_LINE_UPDATE_EVT  0x0020
-#define SAMPLEAPP_UI_INPUT_EVT            0x0040
-#define SAMPLEAPP_UI_GP_LINE_UPDATE_EVT   0x0100
-#define SAMPLEAPP_KEY_EVT                 0x0200
+#define SAMPLEAPP_UI_INPUT_EVT                0x0040
+#define SAMPLEAPP_UI_GP_LINE_UPDATE_EVT       0x0100
+#define SAMPLEAPP_KEY_EVT_UI                  0x0200
 
 /*********************************************************************
  * TYPEDEFS
@@ -130,6 +131,6 @@ void UI_SetGPPCommissioningMode( zstack_gpCommissioningMode_t *Req );
 }
 #endif
 
-#endif //#ifdef USE_ZCL_SAMPLEAPP_UI
+#endif //#ifndef CUI_DISABLE
 
 #endif

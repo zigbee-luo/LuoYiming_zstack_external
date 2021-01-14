@@ -95,12 +95,14 @@
 #include <ti/drivers/apps/Button.h>
 #include <ti/drivers/apps/LED.h>
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 #include "zcl_sampleapps_ui.h"
 #include "zcl_sample_app_def.h"
 #endif
 
+#include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/knl/Clock.h>
 #include "zstackapi.h"
 #include "util_timer.h"
@@ -157,7 +159,7 @@ static Clock_Struct EndDeviceRejoinClkStruct;
 // Passed in function pointers to the NV driver
 static NVINTF_nvFuncts_t *pfnZdlNV = NULL;
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 static uint16_t zclSampleThermostat_BdbCommissioningModes;
 #endif
 
@@ -175,7 +177,7 @@ static uint16_t zclSampleThermostat_BdbCommissioningModes;
 
 static LED_Handle gRedLedHandle;
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 CONST char zclSampleThermostat_appStr[] = APP_TITLE_STR;
 CUI_clientHandle_t gCuiHandle;
 static uint32_t gSampleThermostatInfoLine1;
@@ -197,9 +199,9 @@ static void zclSampleThermostat_processEndDeviceRejoinTimeoutCallback(UArg a0);
 #endif
 
 static void zclSampleThermostat_Init( void );
-
-#ifdef USE_ZCL_SAMPLEAPP_UI
 static void zclSampleThermostat_BasicResetCB( void );
+
+#ifndef CUI_DISABLE
 static void zclSampleThermostat_RemoveAppNvmData(void);
 static void zclSampleThermostat_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleThermostat_InitializeStatusLine(CUI_clientHandle_t gCuiHandle);
@@ -273,6 +275,7 @@ static zclGeneral_AppCallbacks_t zclSampleThermostat_CmdCallbacks =
   NULL,                                        // Level Control Move command
   NULL,                                        // Level Control Step command
   NULL,                                        // Level Control Stop command
+  NULL,                                        // Level Control Move to Closest Frequency Command
 #endif
 #ifdef ZCL_GROUPS
   NULL,                                        // Group Response commands
@@ -453,8 +456,6 @@ static void zclSampleThermostat_Init( void )
 #ifdef BDB_REPORTING
   zstack_bdbRepAddAttrCfgRecordDefaultToListReq_t  Req = {0};
 #endif
-  // Register the Application to receive the unprocessed Foundation command/response messages
-  zclport_registerZclHandleExternal(  SAMPLETHERMOSTAT_ENDPOINT, zclSampleThermostat_ProcessIncomingMsg );
 
   //Register Endpoint
   zclSampleThermostatEpDesc.endPoint = SAMPLETHERMOSTAT_ENDPOINT;
@@ -471,6 +472,9 @@ static void zclSampleThermostat_Init( void )
 
   // Register the ZCL HVAC Cluster Library callback functions
   zclHVAC_RegisterCmdCallbacks(SAMPLETHERMOSTAT_ENDPOINT,  &zclSampleThermostat_HVAC_CmdCallbacks );
+
+  // Register the Application to receive the unprocessed Foundation command/response messages
+  zclport_registerZclHandleExternal(SAMPLETHERMOSTAT_ENDPOINT, zclSampleThermostat_ProcessIncomingMsg);
 
   // Register the application's attribute list and reset to default values
   zclSampleThermostat_ResetAttributesToDefaultValues();
@@ -496,7 +500,7 @@ static void zclSampleThermostat_Init( void )
     //Default minReportingInterval value is 3 seconds
     //Default reportChange value is 300 (3 degrees)
 
-    Req.attrID = ATTRID_HVAC_THERMOSTAT_LOCAL_TEMPERATURE;
+    Req.attrID = ATTRID_THERMOSTAT_LOCAL_TEMPERATURE;
     Req.cluster = ZCL_CLUSTER_ID_HVAC_THERMOSTAT;
     Req.endpoint = SAMPLETHERMOSTAT_ENDPOINT;
     Req.maxReportInt = 10;
@@ -506,7 +510,7 @@ static void zclSampleThermostat_Init( void )
 #endif
 
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   // set up default application BDB commissioning modes based on build type
   if(ZG_BUILD_COORDINATOR_TYPE && ZG_DEVICE_COORDINATOR_TYPE)
   {
@@ -543,7 +547,7 @@ static void zclSampleThermostat_Init( void )
                        SAMPLEAPP_PROCESS_GP_EXPIRE_DUPLICATE_EVT, SAMPLEAPP_PROCESS_GP_TEMP_MASTER_EVT);
 #endif
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   UI_UpdateBdbStatusLine(NULL);
 #endif
 
@@ -554,7 +558,7 @@ static void zclSampleThermostat_Init( void )
   Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
 }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 /*********************************************************************
  * @fn          zclSampleThermostat_RemoveAppNvmData
  *
@@ -614,7 +618,7 @@ static void zclSampleThermostat_initializeClocks(void)
 {
 #if ZG_BUILD_ENDDEVICE_TYPE
     // Initialize the timers needed for this application
-    EndDeviceRejoinClkHandle = Timer_construct(
+    EndDeviceRejoinClkHandle = UtilTimer_construct(
     &EndDeviceRejoinClkStruct,
     zclSampleThermostat_processEndDeviceRejoinTimeoutCallback,
     SAMPLEAPP_END_DEVICE_REJOIN_DELAY,
@@ -679,7 +683,7 @@ static void zclSampleThermostat_process_loop(void)
                 OsalPort_msgDeallocate((uint8_t*)pMsg);
             }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             //Process the events that the UI may have
             zclsampleApp_ui_event_loop();
 #endif
@@ -722,11 +726,11 @@ static void zclSampleThermostat_process_loop(void)
             }
 #endif
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             //Update status line
             zclSampleThermostat_UpdateStatusLine();
-            zclSampleThermostat_UpdateLedState();
 #endif
+            zclSampleThermostat_UpdateLedState();
         }
     }
 
@@ -758,7 +762,7 @@ static void zclSampleThermostat_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
         case zstackmsg_CmdIDs_BDB_IDENTIFY_TIME_CB:
             {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbIdentifyTimeoutInd_t *pInd;
                 pInd = (zstackmsg_bdbIdentifyTimeoutInd_t*) pMsg;
                 uiProcessIdentifyTimeChange(&(pInd->EndPoint));
@@ -768,7 +772,7 @@ static void zclSampleThermostat_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
         case zstackmsg_CmdIDs_BDB_BIND_NOTIFICATION_CB:
             {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbBindNotificationInd_t *pInd;
                 pInd = (zstackmsg_bdbBindNotificationInd_t*) pMsg;
                 uiProcessBindNotification(&(pInd->Req));
@@ -811,7 +815,7 @@ static void zclSampleThermostat_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
 #endif
         case zstackmsg_CmdIDs_DEV_STATE_CHANGE_IND:
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
           {
             // The ZStack Thread is indicating a State change
             zstackmsg_devStateChangeInd_t *pInd =
@@ -856,7 +860,7 @@ static void zclSampleThermostat_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
           break;
 
           case zstackmsg_CmdIDs_GP_COMMISSIONING_MODE_IND:
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
           {
             zstackmsg_gpCommissioningModeInd_t *pInd;
             pInd = (zstackmsg_gpCommissioningModeInd_t*)pMsg;
@@ -985,7 +989,7 @@ static void zclSampleThermostat_BasicResetCB( void )
 {
   zclSampleThermostat_ResetAttributesToDefaultValues();
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   UI_UpdateBdbStatusLine(NULL);
 #endif
   zclSampleThermostat_UpdateLedState();
@@ -1179,7 +1183,7 @@ static void zclSampleThermostat_ProcessInReportCmd( zclIncoming_t *pInMsg )
 
   pInTempSensorReport = (zclReportCmd_t *)pInMsg->attrCmd;
 
-  if ( pInTempSensorReport->attrList[0].attrID != ATTRID_MS_TEMPERATURE_MEASURED_VALUE )
+  if ( pInTempSensorReport->attrList[0].attrID != ATTRID_TEMPERATURE_MEASUREMENT_MEASURED_VALUE )
   {
     return;
   }
@@ -1187,7 +1191,7 @@ static void zclSampleThermostat_ProcessInReportCmd( zclIncoming_t *pInMsg )
   // store the current temperature value sent over the air from temperature sensor
   zclSampleThermostat_LocalTemperature = BUILD_UINT16(pInTempSensorReport->attrList[0].attrData[0], pInTempSensorReport->attrList[0].attrData[1]);
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   zclSampleThermostat_UpdateStatusLine();
 #endif
   zclSampleThermostat_UpdateLedState();
@@ -1282,21 +1286,47 @@ static void zclSampleThermostat_ProcessCommissioningStatus(bdbCommissioningModeM
       else
       {
         //Parent not found, attempt to rejoin again after a fixed delay
-        Timer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
-        Timer_start(&EndDeviceRejoinClkStruct);
+        UtilTimer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
+        UtilTimer_start(&EndDeviceRejoinClkStruct);
       }
     break;
 #endif
   }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   UI_UpdateBdbStatusLine(bdbCommissioningModeMsg);
 #endif
 }
 
+void zclSampleThermostat_UpdateLedState(void)
+{
+  // use LEDs to show heating or cooling cycles based off local temperature
+  if ( zclSampleThermostat_LocalTemperature != ATTR_INVALID_MEASUREMENT_HVAC_THERMOSTAT_LOCAL_TEMPERATURE )
+  {
+    if ( zclSampleThermostat_LocalTemperature <= zclSampleThermostat_OccupiedHeatingSetpoint )
+    {
+      // turn on heating
+      zclSampleThermostat_SystemMode = HVAC_THERMOSTAT_SYSTEM_MODE_HEAT;
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
+    }
+    else if ( zclSampleThermostat_LocalTemperature >= zclSampleThermostat_OccupiedCoolingSetpoint )
+    {
+      // turn on cooling
+      zclSampleThermostat_SystemMode = HVAC_THERMOSTAT_SYSTEM_MODE_COOL;
+      LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
+    }
+    else
+    {
+      // turn off heating/cooling
+      zclSampleThermostat_SystemMode = HVAC_THERMOSTAT_SYSTEM_MODE_OFF;
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOff(gRedLedHandle);
+    }
+  }
+}
 
-
-
+#ifndef CUI_DISABLE
 void zclSampleThermostat_UiActionSetHeatPoint(const char _input, char* _lines[3], CUI_cursorInfo_t * _curInfos)
 {
     if(_input == CUI_INPUT_UP)
@@ -1361,35 +1391,6 @@ void zclSampleThermostat_UiActionSetCoolPoint(const char _input, char* _lines[3]
     strcpy(_lines[2], " SET COOL TEMP ");
 }
 
-void zclSampleThermostat_UpdateLedState(void)
-{
-  // use LEDs to show heating or cooling cycles based off local temperature
-  if ( zclSampleThermostat_LocalTemperature != ATTR_INVALID_MEASUREMENT_HVAC_THERMOSTAT_LOCAL_TEMPERATURE )
-  {
-    if ( zclSampleThermostat_LocalTemperature <= zclSampleThermostat_OccupiedHeatingSetpoint )
-    {
-      // turn on heating
-      zclSampleThermostat_SystemMode = HVAC_THERMOSTAT_SYSTEM_MODE_HEAT;
-      LED_stopBlinking(gRedLedHandle);
-      LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
-    }
-    else if ( zclSampleThermostat_LocalTemperature >= zclSampleThermostat_OccupiedCoolingSetpoint )
-    {
-      // turn on cooling
-      zclSampleThermostat_SystemMode = HVAC_THERMOSTAT_SYSTEM_MODE_COOL;
-      LED_startBlinking(gRedLedHandle, 500, LED_BLINK_FOREVER);
-    }
-    else
-    {
-      // turn off heating/cooling
-      zclSampleThermostat_SystemMode = HVAC_THERMOSTAT_SYSTEM_MODE_OFF;
-      LED_stopBlinking(gRedLedHandle);
-      LED_setOff(gRedLedHandle);
-    }
-  }
-}
-
-#ifdef USE_ZCL_SAMPLEAPP_UI
 /*********************************************************************
  * @fn      zclSampleThermostat_processKey
  *
@@ -1473,7 +1474,7 @@ static void zclSampleThermostat_UpdateStatusLine(void)
 #endif
 
 #if defined (ENABLE_GREENPOWER_COMBO_BASIC)
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 void zclSampleThermostat_setGPSinkCommissioningMode(const int32_t _itemEntry)
 {
   bool zclSampleThermostat_SetSinkCommissioningMode = 0;
@@ -1534,7 +1535,7 @@ static void zclSampleThermostat_GPSink_ProcessReport(zclGpNotification_t *zclGpN
   pData += 3;  // attrId + dataType
 
 
-  if ( (attrId != ATTRID_MS_TEMPERATURE_MEASURED_VALUE) && (clusterId == ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT) )
+  if ( (attrId != ATTRID_TEMPERATURE_MEASUREMENT_MEASURED_VALUE) && (clusterId == ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT) )
   {
     return;
   }
@@ -1543,7 +1544,7 @@ static void zclSampleThermostat_GPSink_ProcessReport(zclGpNotification_t *zclGpN
   zclSampleThermostat_LocalTemperature = BUILD_UINT16(pData[0], pData[1]);
   zclSampleThermostat_LocalTemperature *= 100;  // to format the temperature correctly
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   zclSampleThermostat_UpdateStatusLine();
 #endif
   zclSampleThermostat_UpdateLedState();

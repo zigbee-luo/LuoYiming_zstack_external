@@ -62,6 +62,7 @@ extern "C"
 #include "zcl.h"
 #include "cgp_stub.h"
 #include "gp_bit_fields.h"
+#include "ti_zstack_config.h"
 
  /*********************************************************************
  * MACROS

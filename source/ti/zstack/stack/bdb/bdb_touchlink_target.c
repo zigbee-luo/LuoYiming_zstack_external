@@ -43,6 +43,7 @@
  */
 #include "zcomdef.h"
 #include "rom_jt_154.h"
+#include "ti_zstack_config.h"
 #include "osal_nv.h"
 #include "af.h"
 #include "zd_app.h"

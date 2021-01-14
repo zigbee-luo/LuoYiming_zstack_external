@@ -58,6 +58,7 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
 /*********************************************************************
  * CONSTANTS
@@ -80,7 +81,7 @@ extern "C"
 #define ATTRID_BASIC_ZCL_VERSION                          0x0000
 /// The ApplicationVersion attribute is 8 bits in length and specifies the
 /// version number of the application software contained in the device.
-#define ATTRID_BASIC_APPL_VERSION                         0x0001
+#define ATTRID_BASIC_APPLICATION_VERSION                  0x0001
 /// The StackVersion attribute is 8 bits in length and specifies the version
 /// number of the implementation of the stack contained in the device.
 #define ATTRID_BASIC_STACK_VERSION                        0x0002
@@ -93,7 +94,7 @@ extern "C"
 /// The ModelIdentifier attribute is a maximum of 32 bytes in length and
 /// specifies the model number (or other identifier) assigned by the
 /// manufacturer as a character string.
-#define ATTRID_BASIC_MODEL_ID                             0x0005
+#define ATTRID_BASIC_MODEL_IDENTIFIER                     0x0005
 ///The DateCode attribute is a character string with a maximum length of
 /// 16 bytes. The first 8 characters specify the date of manufacturer of
 /// the device in international date notation according to ISO 8601.
@@ -103,10 +104,10 @@ extern "C"
 #define ATTRID_BASIC_POWER_SOURCE                         0x0007
 /// The GenericDeviceClass attribute defines the field of application of the
 /// GenericDeviceType attribute.
-#define ATTRID_BASIC_DEVICE_CLASS                         0x0008
+#define ATTRID_BASIC_GENERIC_DEVICE_CLASS                       0x0008
 /// The GenericDeviceType attribute allows an application to show an icon on
 /// a rich user interface
-#define ATTRID_BASIC_DEVICE_TYPE                          0x0009
+#define ATTRID_BASIC_GENERIC_DEVICE_TYPE                        0x0009
 /// The ProductCode attribute allows an application to specify a code for
 /// the product.
 #define ATTRID_BASIC_PRODUCT_CODE                         0x000A
@@ -122,10 +123,10 @@ extern "C"
 #define ATTRID_BASIC_PRODUCT_LABEL                        0x000E
 /// The LocationDescription attribute is a maximum of 16 bytes in length and
 /// describes the physical location of the device  as a character string.
-#define ATTRID_BASIC_LOCATION_DESC                        0x0010
+#define ATTRID_BASIC_LOCATION_DESCRIPTION                 0x0010
 /// The PhysicalEnvironment attribute is 8 bits in length and specifies the
 /// type of physical environment in which the device will operate.
-#define ATTRID_BASIC_PHYSICAL_ENV                         0x0011
+#define ATTRID_BASIC_PHYSICAL_ENVIRONMENT                 0x0011
 /// The DeviceEnabled attribute is a Boolean and specifies whether the device
 /// is enabled or disabled.
 #define ATTRID_BASIC_DEVICE_ENABLED                       0x0012
@@ -283,15 +284,15 @@ extern "C"
 #define DEVICE_ENABLED                                    0x01
 
 /*** Alarm Mask Attribute bits ***/
-#define ALARM_MASK_GEN_HW_FAULT                           0x01
-#define ALARM_MASK_GEN_SW_FAULT                           0x02
+#define ALARM_MASK_GENERAL_HW_FAULT                           0x01
+#define ALARM_MASK_GENERAL_SW_FAULT                           0x02
 
 /******************************/
 /*** Basic Cluster Commands ***/
 /******************************/
 /// On receipt of this command, the device resets all the attributes of all
 /// its clusters to their factory defaults.
-#define COMMAND_BASIC_RESET_FACT_DEFAULT                  0x00
+#define COMMAND_BASIC_RESET_TO_FACTORY_DEFAULTS                  0x00
 
 /** @} End ZCL_GENERAL_BASIC_CLUSTER */
 
@@ -306,35 +307,35 @@ extern "C"
 /// The MainsVoltage attribute is 16 bits in length and specifies the actual
 /// (measured) RMS voltage (or DC voltage in the 3501 case of a DC supply)
 /// currently applied to the device, measured in units of 100mV.
-#define ATTRID_POWER_CFG_MAINS_VOLTAGE                    0x0000
+#define ATTRID_POWER_CONFIGURATION_MAINS_VOLTAGE                    0x0000
 /// The MainsFrequency attribute is 8 bits in length and represents the
 /// frequency, in Hertz
-#define ATTRID_POWER_CFG_MAINS_FREQUENCY                  0x0001
+#define ATTRID_POWER_CONFIGURATION_MAINS_FREQUENCY                  0x0001
 
 // Mains Settings
 /// The MainsAlarmMask attribute is 8 bits in length and specifies which
 /// mains alarms MAY be generated
-#define ATTRID_POWER_CFG_MAINS_ALARM_MASK                 0x0010
+#define ATTRID_POWER_CONFIGURATION_MAINS_ALARM_MASK                 0x0010
 /// The MainsVoltageMinThreshold attribute is 16 bits in length and specifies
 /// the lower alarm threshold, measured in units of 100mV, for the MainsVoltage
 /// attribute.
-#define ATTRID_POWER_CFG_MAINS_VOLT_MIN_THRES             0x0011
+#define ATTRID_POWER_CONFIGURATION_MAINS_VOLTAGE_MIN_THRESHOLD      0x0011
 /// The MainsVoltageMaxThreshold attribute is 16 bits in length and specifies
 /// the upper alarm threshold, measured in units of 100mV, for the MainsVoltage
 /// attribute.
-#define ATTRID_POWER_CFG_MAINS_VOLT_MAX_THRES             0x0012
+#define ATTRID_POWER_CONFIGURATION_MAINS_VOLTAGE_MAX_THRESHOLD      0x0012
 /// The MainsVoltageDwellTripPoint attribute is 16 bits in length and specifies
 /// the length of time, in seconds that the 3545 value of MainsVoltage MAY
 /// exist beyond either of its thresholds before an alarm is generated.
-#define ATTRID_POWER_CFG_MAINS_DWELL_TRIP_POINT           0x0013
+#define ATTRID_POWER_CONFIGURATION_MAINS_VOLTAGE_DWELL_TRIP_POINT   0x0013
 
 // Battery Information
 /// The BatteryVoltage attribute is 8 bits in length and specifies the current
 /// actual (measured) battery voltage, in units of 100mV.
-#define ATTRID_POWER_CFG_BATTERY_VOLTAGE                  0x0020
+#define ATTRID_POWER_CONFIGURATION_BATTERY_VOLTAGE                  0x0020
 /// Specifies the remaining battery life as a half integer percentage of the
 /// full battery capacity
-#define ATTRID_POWER_CFG_BATTERY_PERCENTAGE_REMAINING     0x0021
+#define ATTRID_POWER_CONFIGURATION_BATTERY_PERCENTAGE_REMAINING     0x0021
 
 // Battery Information Default Attribute Value
 #define ATTR_DEFAULT_POWER_CFG_BATTERY_PERCENTAGE_REMAINING    0
@@ -342,55 +343,183 @@ extern "C"
 // Battery Settings
 /// The BatteryManufacturer attribute is a maximum of 16 bytes in length and
 /// specifies the name of the battery manufacturer as a character string.
-#define ATTRID_POWER_CFG_BAT_MANU                         0x0030
+#define ATTRID_POWER_CONFIGURATION_BATTERY_MANUFACTURER             0x0030
 /// The BatterySize attribute is an enumeration which specifies the type of
 /// battery being used by the device.
-#define ATTRID_POWER_CFG_BAT_SIZE                         0x0031
+#define ATTRID_POWER_CONFIGURATION_BATTERY_SIZE                     0x0031
 /// The BatteryAHrRating attribute is 16 bits in length and specifies the
 /// Ampere-hour rating of the battery, measured in units of 10mAHr.
-#define ATTRID_POWER_CFG_BAT_AHR_RATING                   0x0032
+#define ATTRID_POWER_CONFIGURATION_BATTERY_A_HR_RATING              0x0032
 /// The BatteryQuantity attribute is 8 bits in length and specifies the number
 /// of battery cells used to power the device.
-#define ATTRID_POWER_CFG_BAT_QUANTITY                     0x0033
+#define ATTRID_POWER_CONFIGURATION_BATTERY_QUANTITY                 0x0033
 /// The BatteryRatedVoltage attribute is 8 bits in length and specifies the
 /// rated voltage of the battery being used in the device, measured in
 /// units of 100mV.
-#define ATTRID_POWER_CFG_BAT_RATED_VOLTAGE                0x0034
+#define ATTRID_POWER_CONFIGURATION_BATTERY_RATED_VOLTAGE            0x0034
 /// The BatteryAlarmMask attribute specifies which battery alarms must
 /// be generated.
-#define ATTRID_POWER_CFG_BAT_ALARM_MASK                   0x0035
+#define ATTRID_POWER_CONFIGURATION_BATTERY_ALARM_MASK               0x0035
 /// Specifies the low battery voltage alarm threshold, measured in units of
 /// 100mV at which the device can no longer operate or transmit via its radio
-#define ATTRID_POWER_CFG_BAT_VOLT_MIN_THRES               0x0036
+#define ATTRID_POWER_CONFIGURATION_BATTERY_VOLTAGE_MIN_THRESHOLD    0x0036
 /// Specify the low voltage alarm thresholds, measured in units of 100mV,
 ///for the BatteryVoltage attribute. BatteryVoltageThreshold1 is higher than
 /// the level specified to trigger BatteryVoltageMinThreshold.
-#define ATTRID_POWER_CFG_BAT_VOLT_THRES_1                 0x0037
+#define ATTRID_POWER_CONFIGURATION_BATTERY_VOLTAGE_THRESHOLD_1      0x0037
 /// Specify the low voltage alarm thresholds, measured in units of 100mV,
 /// for the BatteryVoltage attribute. BatteryVoltageThreshold2 is higher than
 /// the level specified to trigger BatteryVoltageThreshold.
-#define ATTRID_POWER_CFG_BAT_VOLT_THRES_2                 0x0038
+#define ATTRID_POWER_CONFIGURATION_BATTERY_VOLTAGE_THRESHOLD_2      0x0038
 /// Specify the low voltage alarm thresholds, measured in units of 100mV,
 /// for the BatteryVoltage attribute. BatteryVoltageThreshold3 is higher than
 /// the level specified to trigger BatteryVoltageThreshold2.
-#define ATTRID_POWER_CFG_BAT_VOLT_THRES_3                 0x0039
+#define ATTRID_POWER_CONFIGURATION_BATTERY_VOLTAGE_THRESHOLD_3      0x0039
 /// Specifies the low battery percentage alarm threshold, measured in
 /// percentage.
-#define ATTRID_POWER_CFG_BAT_PERCENT_MIN_THRES            0x003A
+#define ATTRID_POWER_CONFIGURATION_BATTERY_PERCENTAGE_MIN_THRESHOLD 0x003A
 /// Specifies the low battery percentage alarm threshold, measured in
 /// percentage. BatteryPercentageThreshold1 is higher than the level specified
 /// to trigger BatteryPercentageMinThreshold.
-#define ATTRID_POWER_CFG_BAT_PERCENT_THRES_1              0x003B
+#define ATTRID_POWER_CONFIGURATION_BATTERY_PERCENTAGE_THRESHOLD_1   0x003B
 /// Specifies the low battery percentage alarm threshold, measured in
 /// percentage. BatteryPercentageThreshold2 is higher than the level specified
 /// to trigger BatteryPercentageThreshold.
-#define ATTRID_POWER_CFG_BAT_PERCENT_THRES_2              0x003C
+#define ATTRID_POWER_CONFIGURATION_BATTERY_PERCENTAGE_THRESHOLD_2   0x003C
 /// Specifies the low battery percentage alarm threshold, measured in
 /// percentage. BatteryPercentageThreshold3 is higher than the level specified
 /// to trigger BatteryPercentageThreshold2.
-#define ATTRID_POWER_CFG_BAT_PERCENT_THRES_3              0x003D
+#define ATTRID_POWER_CONFIGURATION_BATTERY_PERCENTAGE_THRESHOLD_3   0x003D
 /// Specifies the current state of the device's battery alarms.
-#define ATTRID_POWER_CFG_BAT_ALARM_STATE                  0x003E
+#define ATTRID_POWER_CONFIGURATION_BATTERY_ALARM_STATE              0x003E
+
+// Battery 2 Information
+/// The BatteryVoltage attribute is 8 bits in length and specifies the current
+/// actual (measured) battery voltage, in units of 100mV.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_VOLTAGE                  0x0040
+/// Specifies the remaining battery life as a half integer percentage of the
+/// full battery capacity
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_PERCENTAGE_REMAINING     0x0041
+
+// Battery Information Default Attribute Value
+#define ATTR_DEFAULT_POWER_CFG_BATTERY_2_PERCENTAGE_REMAINING    0
+
+// Battery 2 Settings
+/// The BatteryManufacturer attribute is a maximum of 16 bytes in length and
+/// specifies the name of the battery manufacturer as a character string.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_MANUFACTURER             0x0050
+/// The BatterySize attribute is an enumeration which specifies the type of
+/// battery being used by the device.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_SIZE                     0x0051
+/// The BatteryAHrRating attribute is 16 bits in length and specifies the
+/// Ampere-hour rating of the battery, measured in units of 10mAHr.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_A_HR_RATING              0x0052
+/// The BatteryQuantity attribute is 8 bits in length and specifies the number
+/// of battery cells used to power the device.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_QUANTITY                 0x0053
+/// The BatteryRatedVoltage attribute is 8 bits in length and specifies the
+/// rated voltage of the battery being used in the device, measured in
+/// units of 100mV.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_RATED_VOLTAGE            0x0054
+/// The BatteryAlarmMask attribute specifies which battery alarms must
+/// be generated.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_ALARM_MASK               0x0055
+/// Specifies the low battery voltage alarm threshold, measured in units of
+/// 100mV at which the device can no longer operate or transmit via its radio
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_VOLTAGE_MIN_THRESHOLD    0x0056
+/// Specify the low voltage alarm thresholds, measured in units of 100mV,
+///for the BatteryVoltage attribute. BatteryVoltageThreshold1 is higher than
+/// the level specified to trigger BatteryVoltageMinThreshold.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_VOLTAGE_THRESHOLD_1      0x0057
+/// Specify the low voltage alarm thresholds, measured in units of 100mV,
+/// for the BatteryVoltage attribute. BatteryVoltageThreshold2 is higher than
+/// the level specified to trigger BatteryVoltageThreshold.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_VOLTAGE_THRESHOLD_2      0x0058
+/// Specify the low voltage alarm thresholds, measured in units of 100mV,
+/// for the BatteryVoltage attribute. BatteryVoltageThreshold3 is higher than
+/// the level specified to trigger BatteryVoltageThreshold2.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_VOLTAGE_THRESHOLD_3      0x0059
+/// Specifies the low battery percentage alarm threshold, measured in
+/// percentage.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_PERCENTAGE_MIN_THRESHOLD 0x005A
+/// Specifies the low battery percentage alarm threshold, measured in
+/// percentage. BatteryPercentageThreshold1 is higher than the level specified
+/// to trigger BatteryPercentageMinThreshold.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_PERCENTAGE_THRESHOLD_1   0x005B
+/// Specifies the low battery percentage alarm threshold, measured in
+/// percentage. BatteryPercentageThreshold2 is higher than the level specified
+/// to trigger BatteryPercentageThreshold.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_PERCENTAGE_THRESHOLD_2   0x005C
+/// Specifies the low battery percentage alarm threshold, measured in
+/// percentage. BatteryPercentageThreshold3 is higher than the level specified
+/// to trigger BatteryPercentageThreshold2.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_PERCENTAGE_THRESHOLD_3   0x005D
+/// Specifies the current state of the device's battery alarms.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_2_ALARM_STATE              0x005E
+
+// Battery 3 Information
+/// The BatteryVoltage attribute is 8 bits in length and specifies the current
+/// actual (measured) battery voltage, in units of 100mV.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_VOLTAGE                  0x0060
+/// Specifies the remaining battery life as a half integer percentage of the
+/// full battery capacity
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_PERCENTAGE_REMAINING     0x0061
+
+// Battery Information Default Attribute Value
+#define ATTR_DEFAULT_POWER_CFG_BATTERY_3_PERCENTAGE_REMAINING    0
+
+// Battery 3 Settings
+/// The BatteryManufacturer attribute is a maximum of 16 bytes in length and
+/// specifies the name of the battery manufacturer as a character string.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_MANUFACTURER             0x0070
+/// The BatterySize attribute is an enumeration which specifies the type of
+/// battery being used by the device.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_SIZE                     0x0071
+/// The BatteryAHrRating attribute is 16 bits in length and specifies the
+/// Ampere-hour rating of the battery, measured in units of 10mAHr.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_A_HR_RATING              0x0072
+/// The BatteryQuantity attribute is 8 bits in length and specifies the number
+/// of battery cells used to power the device.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_QUANTITY                 0x0073
+/// The BatteryRatedVoltage attribute is 8 bits in length and specifies the
+/// rated voltage of the battery being used in the device, measured in
+/// units of 100mV.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_RATED_VOLTAGE            0x0074
+/// The BatteryAlarmMask attribute specifies which battery alarms must
+/// be generated.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_ALARM_MASK               0x0075
+/// Specifies the low battery voltage alarm threshold, measured in units of
+/// 100mV at which the device can no longer operate or transmit via its radio
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_VOLTAGE_MIN_THRESHOLD    0x0076
+/// Specify the low voltage alarm thresholds, measured in units of 100mV,
+///for the BatteryVoltage attribute. BatteryVoltageThreshold1 is higher than
+/// the level specified to trigger BatteryVoltageMinThreshold.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_VOLTAGE_THRESHOLD_1      0x0077
+/// Specify the low voltage alarm thresholds, measured in units of 100mV,
+/// for the BatteryVoltage attribute. BatteryVoltageThreshold2 is higher than
+/// the level specified to trigger BatteryVoltageThreshold.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_VOLTAGE_THRESHOLD_2      0x0078
+/// Specify the low voltage alarm thresholds, measured in units of 100mV,
+/// for the BatteryVoltage attribute. BatteryVoltageThreshold3 is higher than
+/// the level specified to trigger BatteryVoltageThreshold2.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_VOLTAGE_THRESHOLD_3      0x0079
+/// Specifies the low battery percentage alarm threshold, measured in
+/// percentage.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_PERCENTAGE_MIN_THRESHOLD 0x007A
+/// Specifies the low battery percentage alarm threshold, measured in
+/// percentage. BatteryPercentageThreshold1 is higher than the level specified
+/// to trigger BatteryPercentageMinThreshold.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_PERCENTAGE_THRESHOLD_1   0x007B
+/// Specifies the low battery percentage alarm threshold, measured in
+/// percentage. BatteryPercentageThreshold2 is higher than the level specified
+/// to trigger BatteryPercentageThreshold.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_PERCENTAGE_THRESHOLD_2   0x007C
+/// Specifies the low battery percentage alarm threshold, measured in
+/// percentage. BatteryPercentageThreshold3 is higher than the level specified
+/// to trigger BatteryPercentageThreshold2.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_PERCENTAGE_THRESHOLD_3   0x007D
+/// Specifies the current state of the device's battery alarms.
+#define ATTRID_POWER_CONFIGURATION_BATTERY_3_ALARM_STATE              0x007E
 
 /*** Mains Alarm Mask Attribute bit ***/
 #define MAINS_ALARM_MASK_VOLT_2_LOW                       0x01
@@ -464,36 +593,36 @@ extern "C"
 // Device Temperature Information
 /// The CurrentTemperature attribute is 16 bits in length and specifies the
 /// current internal temperature, in degrees Celsius, of the device.
-#define ATTRID_DEV_TEMP_CURRENT                           0x0000
+#define ATTRID_DEVICE_TEMPERATURE_CONFIGURATION_CURRENT_TEMPERATURE                    0x0000
 /// The MinTempExperienced attribute is 16 bits in length and specifies the
 /// minimum internal temperature, in degrees Celsius, the device has experienced
 /// while powered.
-#define ATTRID_DEV_TEMP_MIN_EXPERIENCED                   0x0001
+#define ATTRID_DEVICE_TEMPERATURE_CONFIGURATION_MIN_TEMP_EXPERIENCED                   0x0001
 /// The MaxTempExperienced attribute is 16 bits in length and specifies the
 /// maximum internal temperature, in degrees  Celsius, the device has experienced
 /// while powered.
-#define ATTRID_DEV_TEMP_MAX_EXPERIENCED                   0x0002
+#define ATTRID_DEVICE_TEMPERATURE_CONFIGURATION_MAX_TEMP_EXPERIENCED                   0x0002
 /// The MaxTempExperienced attribute is 16 bits in length and specifies the
 /// maximum internal temperature, in degrees Celsius, the device has experienced
 /// while powered.
-#define ATTRID_DEV_TEMP_OVER_TOTAL_DWELL                  0x0003
+#define ATTRID_DEVICE_TEMPERATURE_CONFIGURATION_OVER_TEMP_TOTAL_DWELL                  0x0003
 
 // Device Temperature Settings
 /// The DeviceTempAlarmMask attribute is 8 bits in length and specifies which
 /// alarms MAY be generated.
-#define ATTRID_DEV_TEMP_ALARM_MASK                        0x0010
+#define ATTRID_DEVICE_TEMPERATURE_CONFIGURATION_DEVICE_TEMP_ALARM_MASK                 0x0010
 /// The LowTempThreshold attribute is 16 bits in length and specifies the lower
 /// alarm threshold.
-#define ATTRID_DEV_TEMP_LOW_THRES                         0x0011
+#define ATTRID_DEVICE_TEMPERATURE_CONFIGURATION_LOW_TEMP_THRESHOLD                     0x0011
 /// The HighTempThreshold attribute is 16 bits in length and specifies the
 /// upper alarm threshold.
-#define ATTRID_DEV_TEMP_HI_THRES                          0x0012
+#define ATTRID_DEVICE_TEMPERATURE_CONFIGURATION_HIGH_TEMP_THRESHOLD                    0x0012
 /// The LowTempDwellTripPoint attribute is 24 bits in length and specifies the
 /// length of time, in seconds, that the value  of CurrentTemperature
-#define ATTRID_DEV_TEMP_LOW_DWELL_TRIP_POINT              0x0013
+#define ATTRID_DEVICE_TEMPERATURE_CONFIGURATION_LOW_TEMP_DWELL_TRIP_POINT              0x0013
 /// The HighTempDwellTripPoint attribute is 24 bits in length and specifies the
 /// length of time, in seconds, that the value of CurrentTemperature
-#define ATTRID_DEV_TEMP_HI_DWELL_TRIP_POINT               0x0014
+#define ATTRID_DEVICE_TEMPERATURE_CONFIGURATION_HIGH_TEMP_DWELL_TRIP_POINT             0x0014
 
 /*** Device Temp Alarm_Mask Attribute bits ***/
 #define DEV_TEMP_ALARM_MASK_2_LOW                         0x01
@@ -515,22 +644,22 @@ extern "C"
 /***********************************/
 /// The IdentifyTime attribute specifies the remaining length of time, in seconds,
 /// that the device will continue to identify itself.
-#define ATTRID_IDENTIFY_TIME                             0x0000
+#define ATTRID_IDENTIFY_IDENTIFY_TIME                             0x0000
 
 /*********************************/
 /*** Identify Cluster Commands ***/
 /*********************************/
 /// The identify command starts or stops the receiving device identifying itself.
-#define COMMAND_IDENTIFY                                 0x00
+#define COMMAND_IDENTIFY_IDENTIFY                                 0x00
 /// The identify query command allows the sending device to request the target
 /// or targets to respond if they are currently identifying themselves.
-#define COMMAND_IDENTIFY_QUERY                           0x01
+#define COMMAND_IDENTIFY_IDENTIFY_QUERY                           0x01
 /// The Trigger Effect command allows the support of feedback to the user,
 /// such as a certain light effect.
 #define COMMAND_IDENTIFY_TRIGGER_EFFECT                  0x40
 /// The identify query response command is generated in response to receiving
 /// an Identify Query command.
-#define COMMAND_IDENTIFY_QUERY_RSP                       0x00
+#define COMMAND_IDENTIFY_IDENTIFY_QUERY_RESPONSE                       0x00
 
 /*** Values of 'effect identifier' field of 'trigger effect' command ***/
 #define EFFECT_ID_BLINK              0x00 // Light is turned on/off once
@@ -555,43 +684,43 @@ extern "C"
 /********************************/
 /// The most significant bit of the NameSupport attribute indicates whether
 /// or not group names are supported.
-#define ATTRID_GROUP_NAME_SUPPORT                         0x0000
+#define ATTRID_GROUPS_NAME_SUPPORT                         0x0000
 
 /******************************/
 /*** Group Cluster Commands ***/
 /******************************/
 /// The Add Group command allows the sending device to add group membership in
 /// a particular group for one or more endpoints on the receiving device.
-#define COMMAND_GROUP_ADD                                 0x00
+#define COMMAND_GROUPS_ADD_GROUP                                 0x00
 /// The view group command allows the sending device to request that the
 /// receiving entity or entities respond with a view group response command
 /// containing the application name string for a particular group.
-#define COMMAND_GROUP_VIEW                                0x01
+#define COMMAND_GROUPS_VIEW_GROUP                                0x01
 /// The get group membership command allows the sending device to inquire about
 /// the group membership of the receiving device and endpoint in a number of ways.
-#define COMMAND_GROUP_GET_MEMBERSHIP                      0x02
+#define COMMAND_GROUPS_GET_GROUP_MEMBERSHIP                      0x02
 /// The remove group command allows the sender to request that the receiving
 /// entity or entities remove their membership, if any, in a particular group.
-#define COMMAND_GROUP_REMOVE                              0x03
+#define COMMAND_GROUPS_REMOVE_GROUP                              0x03
 /// The remove all groups command allows the sending device to direct the
 /// receiving entity or entities to remove all group associations.
-#define COMMAND_GROUP_REMOVE_ALL                          0x04
+#define COMMAND_GROUPS_REMOVE_ALL_GROUPS                          0x04
 /// The add group if identifying command allows the sending device to add group
 /// membership in a particular group for one or more endpoints on the receiving device
-#define COMMAND_GROUP_ADD_IF_IDENTIFYING                  0x05
+#define COMMAND_GROUPS_ADD_GROUP_IF_IDENTIFYING                  0x05
 
 /// The add group response is sent by the groups cluster server in response to
 /// an add group command.
-#define COMMAND_GROUP_ADD_RSP                             0x00
+#define COMMAND_GROUPS_ADD_GROUP_RESPONSE                             0x00
 /// The view group response command is sent by the groups cluster server in
 /// response to a view group command.
-#define COMMAND_GROUP_VIEW_RSP                            0x01
+#define COMMAND_GROUPS_VIEW_GROUP_RESPONSE                            0x01
 /// The get group membership response command is sent by the groups cluster
 /// server in response to a get group membership command.
-#define COMMAND_GROUP_GET_MEMBERSHIP_RSP                  0x02
+#define COMMAND_GROUPS_GET_GROUP_MEMBERSHIP_RESPONSE                  0x02
 /// The remove group response command is generated by an application entity in
 /// response to the receipt of a remove group command.
-#define COMMAND_GROUP_REMOVE_RSP                          0x03
+#define COMMAND_GROUPS_REMOVE_GROUP_RESPONSE                          0x03
 
 /** @} End ZCL_GENERAL_GROUPS_CLUSTER */
 
@@ -606,7 +735,7 @@ extern "C"
 // Scene Management Information
 // The SceneCount attribute specifies the number of scenes currently in the
 /// device's scene table.
-#define ATTRID_SCENES_COUNT                               0x0000
+#define ATTRID_SCENES_SCENE_COUNT                         0x0000
 /// The CurrentScene attribute holds the Scene ID of the scene last invoked.
 #define ATTRID_SCENES_CURRENT_SCENE                       0x0001
 /// The CurrentGroup attribute holds the Group ID of the scene last invoked,
@@ -620,64 +749,64 @@ extern "C"
 #define ATTRID_SCENES_NAME_SUPPORT                        0x0004
 /// The LastConfiguredBy attribute is 64 bits in length and specifies the IEEE
 /// address of the device that last configured the scene table.
-#define ATTRID_SCENES_LAST_CFG_BY                         0x0005
+#define ATTRID_SCENES_LAST_CONFIGURED_BY                  0x0005
 
 /*******************************/
 /*** Scenes Cluster Commands ***/
 /*******************************/
 /// On receipt of this command, the device SHALL (if possible) create an entry
 /// in the Scene Table with fields copied from the command payload
-#define COMMAND_SCENE_ADD                                 0x00
+#define COMMAND_SCENES_ADD_SCENE                                 0x00
 /// On receipt of this command, the device SHALL generate an appropriate View
 /// Scene Response command.
-#define COMMAND_SCENE_VIEW                                0x01
+#define COMMAND_SCENES_VIEW_SCENE                                0x01
 /// On receipt of this command, the device SHALL (if possible) remove from its
 /// Scene Table the entry with this Scene ID and group ID.
-#define COMMAND_SCENE_REMOVE                              0x02
+#define COMMAND_SCENES_REMOVE_SCENE                              0x02
 /// On receipt of this command, the device SHALL, if possible, remove from its
 /// Scene Table all entries with this Group ID.
-#define COMMAND_SCENE_REMOVE_ALL                          0x03
+#define COMMAND_SCENES_REMOVE_ALL_SCENES                          0x03
 /// On receipt of this command, the device SHALL (if possible) add an entry to
 /// the Scene Table with the Scene ID and  Group ID given in the command.
-#define COMMAND_SCENE_STORE                               0x04
+#define COMMAND_SCENES_STORE_SCENE                               0x04
 /// On receipt of this command, the device SHALL (if possible) locate the entry
 ///in its Scene Table with the Group ID and Scene ID given in the command.
-#define COMMAND_SCENE_RECALL                              0x05
+#define COMMAND_SCENES_RECALL_SCENE                              0x05
 /// The Get Scene Membership command can be used to find an unused scene number
 /// within the group when no commissioning tool is in the network.
-#define COMMAND_SCENE_GET_MEMBERSHIP                      0x06
+#define COMMAND_SCENES_GET_SCENE_MEMBERSHIP                      0x06
 /// The Enhanced Add Scene command allows a scene to be added using a finer
 /// scene transition time than the Add Scene command.
-#define COMMAND_SCENE_ENHANCED_ADD                        0x40
+#define COMMAND_SCENES_ENHANCED_ADD_SCENE                        0x40
 /// The Enhanced View Scene command allows a scene to be retrieved using a
 /// finer scene transition time than the View Scene command.
-#define COMMAND_SCENE_ENHANCED_VIEW                       0x41
+#define COMMAND_SCENES_ENHANCED_VIEW_SCENE                       0x41
 /// The Copy Scene command allows a device to efficiently copy scenes from one
 /// group/scene identifier pair to another group/scene identifier pair.
-#define COMMAND_SCENE_COPY                                0x42
+#define COMMAND_SCENES_COPY_SCENE                                0x42
 
 /// This command is generated in response to a received Add Scene command.
-#define COMMAND_SCENE_ADD_RSP                             0x00
+#define COMMAND_SCENES_ADD_SCENE_RESPONSE                             0x00
 /// This command is generated in response to a received View Scene command.
-#define COMMAND_SCENE_VIEW_RSP                            0x01
+#define COMMAND_SCENES_VIEW_SCENE_RESPONSE                            0x01
 /// This command is generated in response to a received Remove Scene command.
-#define COMMAND_SCENE_REMOVE_RSP                          0x02
+#define COMMAND_SCENES_REMOVE_SCENE_RESPONSE                          0x02
 /// This command is generated in response to a received Remove All Scenes command.
-#define COMMAND_SCENE_REMOVE_ALL_RSP                      0x03
+#define COMMAND_SCENES_REMOVE_ALL_SCENES_RESPONSE                      0x03
 /// This command is generated in response to a received Store Scene command.
-#define COMMAND_SCENE_STORE_RSP                           0x04
+#define COMMAND_SCENES_STORE_SCENE_RESPONSE                           0x04
 /// This command is generated in response to a received Get Scene Membership command.
-#define COMMAND_SCENE_GET_MEMBERSHIP_RSP                  0x06
+#define COMMAND_SCENES_GET_SCENE_MEMBERSHIP_RESPONSE                  0x06
 /// The Enhanced Add Scene Response command allows a device to respond to an
 /// Enhanced Add Scene command.
-#define COMMAND_SCENE_ENHANCED_ADD_RSP                    0x40
+#define COMMAND_SCENES_ENHANCED_ADD_SCENE_RESPONSE                    0x40
 /// The Enhanced View Scene Response command allows a device to respond to an
 /// Enhanced View Scene command using a finer scene transition time that was
 /// available in the ZCL.
-#define COMMAND_SCENE_ENHANCED_VIEW_RSP                   0x41
+#define COMMAND_SCENES_ENHANCED_VIEW_SCENE_RESPONSE                   0x41
 /// The Copy Scene Response command allows a device to respond to a
 /// Copy Scene command.
-#define COMMAND_SCENE_COPY_RSP                            0x42
+#define COMMAND_SCENES_COPY_SCENE_RESPONSE                            0x42
 
 // command parameter
 #define SCENE_COPY_MODE_ALL_BIT                           0x01
@@ -693,10 +822,10 @@ extern "C"
 /*** On/Off Cluster Attributes ***/
 /*********************************/
 /// Represents the On/Off device state
-#define ATTRID_ON_OFF                                     0x0000
+#define ATTRID_ON_OFF_ON_OFF                                     0x0000
 /// In order to support the use case where the user gets back the last setting
 /// of the devices
-#define ATTRID_ON_OFF_GLOBAL_SCENE_CTRL                   0x4000
+#define ATTRID_ON_OFF_GLOBAL_SCENE_CONTROL                0x4000
 /// The OnTime attribute specifies the length of time (in 1/10ths second) that
 /// the "on" state SHALL be maintained before automatically transitioning to the
 /// "off" state when using the On with timed off command.
@@ -707,28 +836,30 @@ extern "C"
 /// turned off but an occupancy sensor detects the leaving person and attempts
 /// to turn the lights back on).
 #define ATTRID_ON_OFF_OFF_WAIT_TIME                       0x4002
+// Start Up On/Off Attribute
+#define ATTRID_ON_OFF_START_UP_ON_OFF                     0x4003
 
 /*******************************/
 /*** On/Off Cluster Commands ***/
 /*******************************/
 /// On receipt of this command, a device SHALL enter its 'Off' state.
-#define COMMAND_OFF                                       0x00
+#define COMMAND_ON_OFF_OFF                                       0x00
 /// On receipt of this command, a device SHALL enter its 'On' state.
-#define COMMAND_ON                                        0x01
+#define COMMAND_ON_OFF_ON                                        0x01
 /// On receipt of this command, if a device is in its 'Off' state it SHALL
 ///enter its 'On' state. Otherwise, if it is in its 'On' state it SHALL
 /// enter its 'Off' state.
-#define COMMAND_TOGGLE                                    0x02
+#define COMMAND_ON_OFF_TOGGLE                                    0x02
 /// The Effect Identifier field is 8-bits in length and specifies the fading
 /// effect to use when switching the device off.
-#define COMMAND_OFF_WITH_EFFECT                           0x40
+#define COMMAND_ON_OFF_OFF_WITH_EFFECT                           0x40
 /// The On With Recall Global Scene command allows the recall of the settings
 /// when the device was turned off.
-#define COMMAND_ON_WITH_RECALL_GLOBAL_SCENE               0x41
+#define COMMAND_ON_OFF_ON_WITH_RECALL_GLOBAL_SCENE               0x41
 /// The On With Timed Off command allows devices to be turned on for a specific
 /// duration with a guarded off duration so that SHOULD the device be
 /// subsequently switched off, further On With Timed Off commands.
-#define COMMAND_ON_WITH_TIMED_OFF                         0x42
+#define COMMAND_ON_OFF_ON_WITH_TIMED_OFF                         0x42
 
 /*** Values of 'effect identifier' field of 'off with effect' command  ***/
 #define EFFECT_ID_DELAY_ALL_OFF                           0x00
@@ -746,6 +877,80 @@ extern "C"
 /** @} End ZCL_GENERAL_ON_OFF_CLUSTER */
 
 /**
+* @defgroup ZCL_GENERAL_COMMISSIONING_CLUSTER ZCL Commissioning Cluster
+* @{
+*/
+
+/****************************************/
+/*** Commissioning Cluster Attributes ***/
+/****************************************/
+#define ATTRID_COMMISSIONING_SHORT_ADDRESS 			        0x0000
+#define ATTRID_COMMISSIONING_EXTENDED_PAN_ID 		    	0x0001
+#define ATTRID_COMMISSIONING_PAN_ID 			            0x0002
+#define ATTRID_COMMISSIONING_CHANNEL_MASK 		        	0x0003
+#define ATTRID_COMMISSIONING_PROTOCOL_VERSION 	   	    	0x0004
+#define ATTRID_COMMISSIONING_STACK_PROFILE 			        0x0005
+#define ATTRID_COMMISSIONING_STARTUP_CONTROL 		    	0x0006
+#define ATTRID_COMMISSIONING_TRUST_CENTER_ADDRESS 	    	0x0010
+#define ATTRID_COMMISSIONING_TRUST_CENTER_MASTER_KEY    	0x0011
+#define ATTRID_COMMISSIONING_NETWORK_KEY 			        0x0012
+#define ATTRID_COMMISSIONING_USE_INSECURE_JOIN 		    	0x0013
+#define ATTRID_COMMISSIONING_PRECONFIGURED_LINK_KEY     	0x0014
+#define ATTRID_COMMISSIONING_NETWORK_KEY_SEQ_NUM 	    	0x0015
+#define ATTRID_COMMISSIONING_NETWORK_KEY_TYPE 		    	0x0016
+#define ATTRID_COMMISSIONING_NETWORK_MANAGER_ADDRESS    	0x0017
+#define ATTRID_COMMISSIONING_SCAN_ATTEMPTS 			        0x0020
+#define ATTRID_COMMISSIONING_TIME_BETWEEN_SCANS 	    	0x0021
+#define ATTRID_COMMISSIONING_REJOIN_INTERVAL 		    	0x0022
+#define ATTRID_COMMISSIONING_MAX_REJOIN_INTERVAL 	    	0x0023
+#define ATTRID_COMMISSIONING_INDIRECT_POLL_RATE 	    	0x0030
+#define ATTRID_COMMISSIONING_PARENT_RETRY_THRESHOLD     	0x0031
+#define ATTRID_COMMISSIONING_CONCENTRATOR_FLAG 			    0x0040
+#define ATTRID_COMMISSIONING_CONCENTRATOR_RADIUS 	    	0x0041
+#define ATTRID_COMMISSIONING_CONCENTRATOR_DISCOVERY_TIME    0x0042
+
+/**************************************/
+/*** Commissioning Cluster Commands ***/
+/**************************************/
+#define COMMAND_COMMISSIONING_RESTART_DEVICE 			                    0x00
+#define COMMAND_COMMISSIONING_SAVE_STARTUP_PARAMETERS 			            0x01
+#define COMMAND_COMMISSIONING_RESTORE_STARTUP_PARAMETERS 		        	0x02
+#define COMMAND_COMMISSIONING_RESET_STARTUP_PARAMETERS 		            	0x03
+#define COMMAND_COMMISSIONING_RESTART_DEVICE_RESPONSE 		    	        0x00
+#define COMMAND_COMMISSIONING_SAVE_STARTUP_PARAMETERS_RESPONSE 		    	0x01
+#define COMMAND_COMMISSIONING_RESTORE_STARTUP_PARAMETERS_RESPONSE 			0x02
+#define COMMAND_COMMISSIONING_RESET_STARTUP_PARAMETERS_RESPONSE 			0x03
+
+/** @} End ZCL_GENERAL_COMMISSIONING_CLUSTER */
+
+/**
+* @defgroup ZCL_GENERAL_POLL_CONTROL_CLUSTER ZCL Poll Control Cluster
+* @{
+*/
+
+/****************************************/
+/*** Poll Control Cluster Attributes ***/
+/****************************************/
+#define ATTRID_POLL_CONTROL_CHECK_IN_INTERVAL 			0x0000
+#define ATTRID_POLL_CONTROL_LONG_POLL_INTERVAL 			0x0001
+#define ATTRID_POLL_CONTROL_SHORT_POLL_INTERVAL 		0x0002
+#define ATTRID_POLL_CONTROL_FAST_POLL_TIMEOUT 			0x0003
+#define ATTRID_POLL_CONTROL_CHECK_IN_INTERVAL_MIN 		0x0004
+#define ATTRID_POLL_CONTROL_LONG_POLL_INTERVAL_MIN 		0x0005
+#define ATTRID_POLL_CONTROL_FAST_POLL_TIMEOUT_MAX 		0x0006
+
+/**************************************/
+/*** Poll Control Cluster Commands ***/
+/**************************************/
+#define COMMAND_POLL_CONTROL_CHECK_IN 			                0x00
+#define COMMAND_POLL_CONTROL_CHECK_IN_RESPONSE 		        	0x00
+#define COMMAND_POLL_CONTROL_FAST_POLL_STOP 		        	0x01
+#define COMMAND_POLL_CONTROL_SET_LONG_POLL_INTERVAL 			0x02
+#define COMMAND_POLL_CONTROL_SET_SHORT_POLL_INTERVAL 			0x03
+
+/** @} End ZCL_GENERAL_POLL_CONTROL_CLUSTER */
+
+/**
 * @defgroup ZCL_GENERAL_ON_OFF_SWITCH_CONFIG_CLUSTER ZCL On Off Switch Config Cluster
 * @{
 */
@@ -756,22 +961,22 @@ extern "C"
 // Switch Information
 /// The SwitchType attribute specifies the basic functionality of the On/Off
 /// switching device.
-#define ATTRID_ON_OFF_SWITCH_TYPE                         0x0000
+#define ATTRID_ON_OFF_SWITCH_CONFIGURATION_SWITCH_TYPE                          0x0000
 
 // Switch Settings
 /// The SwitchActions attribute is 8 bits in length and specifies the commands
 ///of the On/Off cluster
-#define ATTRID_ON_OFF_SWITCH_ACTIONS                      0x0010
+#define ATTRID_ON_OFF_SWITCH_CONFIGURATION_SWITCH_ACTIONS                       0x0010
 
 /*** On Off Switch Type attribute values ***/
-#define ON_OFF_SWITCH_TYPE_TOGGLE                         0x00
-#define ON_OFF_SWITCH_TYPE_MOMENTARY                      0x01
-#define ON_OFF_SWITCH_TYPE_MULTIFUNCTION                  0x02
+#define ON_OFF_SWITCH_CONFIGURATION_SWITCH_TYPE_TOGGLE                          0x00
+#define ON_OFF_SWITCH_CONFIGURATION_SWITCH_TYPE_MOMENTARY                       0x01
+#define ON_OFF_SWITCH_CONFIGURATION_SWITCH_TYPE_MULTIFUNCTION                   0x02
 
 /*** On Off Switch Actions attribute values ***/
-#define ON_OFF_SWITCH_ACTIONS_ON                           0x00
-#define ON_OFF_SWITCH_ACTIONS_OFF                          0x01
-#define ON_OFF_SWITCH_ACTIONS_TOGGLE                       0x02
+#define ON_OFF_SWITCH_CONFIGURATION_SWITCH_ACTIONS_ON                           0x00
+#define ON_OFF_SWITCH_CONFIGURATION_SWITCH_ACTIONS_OFF                          0x01
+#define ON_OFF_SWITCH_CONFIGURATION_SWITCH_ACTIONS_TOGGLE                       0x02
 
 /**************************************/
 /*** On/Off Switch Cluster Commands ***/
@@ -931,22 +1136,22 @@ extern "C"
 // Alarm Information
 /// The AlarmCount attribute is 16 bits in length and specifies the number of
 /// entries currently in the alarm table.
-#define ATTRID_ALARM_COUNT                                0x0000
+#define ATTRID_ALARMS_ALARM_COUNT                                0x0000
 
 /*******************************/
 /*** Alarms Cluster Commands ***/
 /*******************************/
 // Client generated commands
 /// This command resets a specific alarm.
-#define COMMAND_ALARMS_RESET                              0x00
+#define COMMAND_ALARMS_RESET_ALARM                        0x00
 /// This command resets all alarms.
-#define COMMAND_ALARMS_RESET_ALL                          0x01
+#define COMMAND_ALARMS_RESET_ALL_ALARMS                   0x01
 /// This command causes the alarm with the earliest generated alarm entry in
 /// the alarm table to be reported in a get alarm response command
-#define COMMAND_ALARMS_GET                                0x02
+#define COMMAND_ALARMS_GET_ALARM                          0x02
 /// This command causes the alarm table to be cleared, and does not have
 /// a payload.
-#define COMMAND_ALARMS_RESET_LOG                          0x03
+#define COMMAND_ALARMS_RESET_ALARM_LOG                    0x03
 
 // Server generated commands
 /// The alarm command signals an alarm situation on the sending device.
@@ -954,7 +1159,7 @@ extern "C"
 /// The get alarm response command returns the results of a request to
 /// retrieve information from the alarm log, along  with a time stamp indicating
 /// when the alarm situation was detected.
-#define COMMAND_ALARMS_GET_RSP                            0x01
+#define COMMAND_ALARMS_GET_ALARM_RESPONSE                 0x01
 
 /** @} End ZCL_GENERAL_ALARMS_CLUSTER */
 
@@ -1697,7 +1902,7 @@ extern "C"
 
 // The maximum number of characters to allow in a scene's name
 // remember that the first byte is the length
-#define ZCL_GEN_SCENE_NAME_LEN                           16
+#define ZCL_GENERAL_SCENE_NAME_LEN                           16
 
 
 #ifdef ZCL_ON_OFF
@@ -1736,19 +1941,19 @@ extern "C"
 #define ZCL_WINDOWCOVERING_EXTENSION_SIZE 0
 #endif
 
-#if !defined ( ZCL_GEN_SCENE_EXT_LEN )
+#if !defined ( ZCL_GENERAL_SCENE_EXT_LEN )
 // Scene extension length is defined by:
 // Cluster ID + Attribute ID + Attribute data
 // The maximum length of the scene extension field:
-#define ZCL_GEN_SCENE_EXT_LEN   (ZCL_ON_OFF_EXTENSION_SIZE + ZCL_LEVEL_CONTROL_EXTENSION_SIZE + ZCL_LIGHTING_EXTENSION_SIZE + ZCL_DOORLOCK_EXTENSION_SIZE + ZCL_WINDOWCOVERING_EXTENSION_SIZE)
-#endif  //!defined ( ZCL_GEN_SCENE_EXT_LEN )
+#define ZCL_GENERAL_SCENE_EXT_LEN   (ZCL_ON_OFF_EXTENSION_SIZE + ZCL_LEVEL_CONTROL_EXTENSION_SIZE + ZCL_LIGHTING_EXTENSION_SIZE + ZCL_DOORLOCK_EXTENSION_SIZE + ZCL_WINDOWCOVERING_EXTENSION_SIZE)
+#endif  //!defined ( ZCL_GENERAL_SCENE_EXT_LEN )
 
 // The maximum number of entries in the Scene table
-#if !defined ( ZCL_GEN_MAX_SCENES )
-#define ZCL_GEN_MAX_SCENES                               5
+#if !defined ( ZCL_GENERAL_MAX_SCENES )
+#define ZCL_GENERAL_MAX_SCENES                               5
 #endif
 
-#if (ZCL_GEN_MAX_SCENES > 16)
+#if (ZCL_GENERAL_MAX_SCENES > 16)
 #warning: "According to latest ZCL version 7, secction 3.7.2.3.2 Maximum Number of Scenes: The number of scenes capable of being stored in the table is defined by the profile in which this cluster is used. The default maximum, in the absence of specification by the profile, is 16."
 #endif
 
@@ -1776,9 +1981,9 @@ typedef struct
   uint8_t ID;                              //!< Scene ID
   uint16_t transTime;                      //!< Time to take to transition to this scene
   uint16_t transTime100ms;                 //!< Together with transTime, this allows transition time to be specified in 1/10s
-  uint8_t name[ZCL_GEN_SCENE_NAME_LEN];    //!< Scene name
+  uint8_t name[ZCL_GENERAL_SCENE_NAME_LEN];    //!< Scene name
   uint8_t extLen;                          //!< Length of extension fields
-  uint8_t extField[ZCL_GEN_SCENE_EXT_LEN]; //!< Extension fields
+  uint8_t extField[ZCL_GENERAL_SCENE_EXT_LEN]; //!< Extension fields
 } zclGeneral_Scene_t;
 
 // The format of an Update Commission State Command Payload
@@ -1980,16 +2185,26 @@ typedef struct
 
 typedef struct
 {
+  uint8_t withOnOff;      //!< with On/off command
+} zclLCStop_t;
+
+typedef struct
+{
+  uint16_t freq;          //!< New frequency to move to
+}zclLCMoveFreq_t;
+
+typedef struct
+{
   afAddrType_t *srcAddr; //!< requestor's address
-  uint8_t        cmdID;    //!< which group message - COMMAND_GROUP_ADD_RSP, COMMAND_GROUP_VIEW_RSP,
-                         //!< COMMAND_GROUP_REMOVE_RSP or COMMAND_GROUP_GET_MEMBERSHIP_RSP
+  uint8_t        cmdID;    //!< which group message - COMMAND_GROUPS_ADD_GROUP_RESPONSE, COMMAND_GROUPS_VIEW_GROUP_RESPONSE,
+                         //!< COMMAND_GROUPS_REMOVE_GROUP_RESPONSE or COMMAND_GROUPS_GET_GROUP_MEMBERSHIP_RESPONSE
   uint8_t        status;   //!< GROUP_STATUS_SUCCESS, GROUP_STATUS_TABLE_FULL,
                          //!< GROUP_STATUS_ALREADY_IN_TABLE, or GROUP_STATUS_NOT_IN_TABLE. Not
-                         //!< valid for COMMAND_GROUP_GET_MEMBERSHIP_RSP
+                         //!< valid for COMMAND_GROUPS_GET_GROUP_MEMBERSHIP_RESPONSE
   uint8_t        grpCnt;   //!< number of groups contained in group list
   uint16_t       *grpList; //!< what group IDs the action was performed on
   uint8_t        capacity; //!< remaining capacity of group table
-  uint8_t        *grpName; //!< only valid for COMMAND_GROUP_VIEW_RSP
+  uint8_t        *grpName; //!< only valid for COMMAND_GROUPS_VIEW_GROUP_RESPONSE
 } zclGroupRsp_t;
 
 typedef struct
@@ -2001,27 +2216,27 @@ typedef struct
 typedef struct
 {
   afAddrType_t       *srcAddr;   //!< requestor's address
-  uint8_t              cmdID;      //!< which response - COMMAND_SCENE_ADD_RSP, COMMAND_SCENE_VIEW_RSP,
-                                 //!< COMMAND_SCENE_REMOVE_RSP, COMMAND_SCENE_REMOVE_ALL_RSP,
-                                 //!< COMMAND_SCENE_STORE_RSP or COMMAND_SCENE_GET_MEMBERSHIPSHIP_RSP
+  uint8_t              cmdID;      //!< which response - COMMAND_SCENES_ADD_SCENE_RESPONSE, COMMAND_SCENES_VIEW_SCENE_RESPONSE,
+                                 //!< COMMAND_SCENES_REMOVE_SCENE_RESPONSE, COMMAND_SCENES_REMOVE_ALL_SCENES_RESPONSE,
+                                 //!< COMMAND_SCENES_STORE_SCENE_RESPONSE or COMMAND_SCENES_GET_MEMBERSHIPSHIP_RSP
   uint8_t              status;     //!< response status
   uint8_t              sceneCnt;   //!< number of scenes in the scene list (only valid for
-                                 //!< COMMAND_SCENE_GET_MEMBERSHIPSHIP_RSP)
-  uint8_t              *sceneList; //!< list of scene IDs (only valid for COMMAND_SCENE_GET_MEMBERSHIPSHIP_RSP)
+                                 //!< COMMAND_SCENES_GET_MEMBERSHIPSHIP_RSP)
+  uint8_t              *sceneList; //!< list of scene IDs (only valid for COMMAND_SCENES_GET_MEMBERSHIPSHIP_RSP)
   uint8_t              capacity;   //!< remaining capacity of the scene table (only valid for
-                                 //!< COMMAND_SCENE_GET_MEMBERSHIPSHIP_RSP)
+                                 //!< COMMAND_SCENES_GET_MEMBERSHIPSHIP_RSP)
   zclGeneral_Scene_t *scene;     //!< pointer to the scene structure
 } zclSceneRsp_t;
 
 typedef struct
 {
   afAddrType_t *srcAddr;  //!< requestor's address
-  uint8_t        cmdID;     //!< COMMAND_ALARMS_ALARM or COMMAND_ALARMS_GET_RSP
-  uint8_t        status;    //!< response status (only applicable to COMMAND_ALARMS_GET_RSP)
-  uint8_t        alarmCode; //!< response status (only applicable to COMMAND_ALARMS_GET_RSP)
+  uint8_t        cmdID;     //!< COMMAND_ALARMS_ALARM or COMMAND_ALARMS_GET_ALARM_RESPONSE
+  uint8_t        status;    //!< response status (only applicable to COMMAND_ALARMS_GET_ALARM_RESPONSE)
+  uint8_t        alarmCode; //!< response status (only applicable to COMMAND_ALARMS_GET_ALARM_RESPONSE)
   uint16_t       clusterID; //!< the id of the cluster whose attribute generated this alarm
   uint32_t       timeStamp; //!< the time at which the alarm occurred (only applicable to
-                          //!< COMMAND_ALARMS_GET_RSP)
+                          //!< COMMAND_ALARMS_GET_ALARM_RESPONSE)
 } zclAlarm_t;
 
 typedef struct
@@ -2096,7 +2311,10 @@ typedef void (*zclGCB_LevelControlMove_t)( zclLCMove_t *pCmd );
 typedef void (*zclGCB_LevelControlStep_t)( zclLCStep_t *pCmd );
 
 /// This callback is called to process a Level Control - Stop command
-typedef void (*zclGCB_LevelControlStop_t)( void );
+typedef void (*zclGCB_LevelControlStop_t)( zclLCStop_t *pCmd );
+
+/// This callback is called to process a Level Control - Move to Closest Frequency command
+typedef void (*zclGCB_LevelControlMoveFreq_t)( zclLCMoveFreq_t *pCmd);
 
 /// This callback is called to process an received Group Response message.
 /// This means that this app sent the request message.
@@ -2121,8 +2339,7 @@ typedef void (*zclGCB_SceneRsp_t)( zclSceneRsp_t *pRsp );
 typedef void (*zclGCB_Alarm_t)( uint8_t direction, zclAlarm_t *pAlarm );
 
 /// This callback is called to process an incoming Alarm Get Event Log command.
-typedef void (*zclGCB_GetEventLog_t)( uint8_t srcEP, afAddrType_t *srcAddr,
-                                      zclGetEventLog_t *pEventLog, uint8_t seqNum );
+typedef void (*zclGCB_GetEventLog_t)( uint8_t srcEP, afAddrType_t *srcAddr, zclGetEventLog_t *pEventLog, uint8_t seqNum );
 
 /// This callback is called to process an incoming Alarm Publish Event Log command.
 typedef void (*zclGCB_PublishEventLog_t)( afAddrType_t *srcAddr, zclPublishEventLog_t *pEventLog );
@@ -2138,40 +2355,41 @@ typedef void (*zclGCB_LocationRsp_t)( zclLocationRsp_t *pRsp );
 /// the application would like to receive
 typedef struct
 {
-  zclGCB_BasicReset_t               pfnBasicReset;                //!< Basic Cluster Reset command
-  zclGCB_Identify_t                 pfnIdentify;                  //!< Identfiy cmd
-  zclGCB_IdentifyQuery_t            pfnIdentifyQuery;             //!< Identify Query command
-  zclGCB_IdentifyQueryRsp_t         pfnIdentifyQueryRsp;          //!< Identify Query Response command
-  zclGCB_IdentifyTriggerEffect_t    pfnIdentifyTriggerEffect;     //!< Identify Trigger Effect command
+  zclGCB_BasicReset_t                     pfnBasicReset;                      //!< Basic Cluster Reset command (COMMAND_BASIC_RESET_TO_FACTORY_DEFAULTS)
+  zclGCB_Identify_t                       pfnIdentify;                        //!< Identfiy cmd (COMMAND_IDENTIFY_IDENTIFY)
+  zclGCB_IdentifyQuery_t                  pfnIdentifyQuery;                   //!< Identify Query command (COMMAND_IDENTIFY_IDENTIFY_QUERY)
+  zclGCB_IdentifyQueryRsp_t               pfnIdentifyQueryRsp;                //!< Identify Query Response command (COMMAND_IDENTIFY_IDENTIFY_QUERY_RESPONSE)
+  zclGCB_IdentifyTriggerEffect_t          pfnIdentifyTriggerEffect;           //!< Identify Trigger Effect command (COMMAND_IDENTIFY_TRIGGER_EFFECT)
 #ifdef ZCL_ON_OFF
-  zclGCB_OnOff_t                    pfnOnOff;                     //!< On/Off cluster commands
-  zclGCB_OnOff_OffWithEffect_t      pfnOnOff_OffWithEffect;       //!< On/Off cluster enhanced command Off with Effect
-  zclGCB_OnOff_OnWithRecallGlobalScene_t  pfnOnOff_OnWithRecallGlobalScene;  //!< On/Off cluster enhanced command On with Recall Global Scene
-  zclGCB_OnOff_OnWithTimedOff_t     pfnOnOff_OnWithTimedOff;      //!< On/Off cluster enhanced command On with Timed Off
+  zclGCB_OnOff_t                          pfnOnOff;                           //!< On/Off cluster commands (COMMAND_ON_OFF_OFF, COMMAND_ON_OFF_ON, COMMAND_ON_OFF_TOGGLE)
+  zclGCB_OnOff_OffWithEffect_t            pfnOnOff_OffWithEffect;             //!< On/Off cluster enhanced command Off with Effect (COMMAND_ON_OFF_OFF_WITH_EFFECT)
+  zclGCB_OnOff_OnWithRecallGlobalScene_t  pfnOnOff_OnWithRecallGlobalScene;   //!< On/Off cluster enhanced command On with Recall Global Scene (COMMAND_ON_OFF_ON_WITH_RECALL_GLOBAL_SCENE)
+  zclGCB_OnOff_OnWithTimedOff_t           pfnOnOff_OnWithTimedOff;            //!< On/Off cluster enhanced command On with Timed Off (COMMAND_ON_OFF_ON_WITH_TIMED_OFF)
 #endif
 #ifdef ZCL_LEVEL_CTRL
-  zclGCB_LevelControlMoveToLevel_t  pfnLevelControlMoveToLevel;   //!< Level Control Move to Level command
-  zclGCB_LevelControlMove_t         pfnLevelControlMove;          //!< Level Control Move command
-  zclGCB_LevelControlStep_t         pfnLevelControlStep;          //!< Level Control Step command
-  zclGCB_LevelControlStop_t         pfnLevelControlStop;          //!< Level Control Stop command
+  zclGCB_LevelControlMoveToLevel_t        pfnLevelControlMoveToLevel;         //!< Level Control Move to Level command (COMMAND_LEVEL_MOVE_TO_LEVEL, COMMAND_LEVEL_MOVE_TO_LEVEL_WITH_ON_OFF)
+  zclGCB_LevelControlMove_t               pfnLevelControlMove;                //!< Level Control Move command (COMMAND_LEVEL_MOVE, COMMAND_LEVEL_MOVE_WITH_ON_OFF)
+  zclGCB_LevelControlStep_t               pfnLevelControlStep;                //!< Level Control Step command (COMMAND_LEVEL_STEP, COMMAND_LEVEL_STEP_WITH_ON_OFF)
+  zclGCB_LevelControlStop_t               pfnLevelControlStop;                //!< Level Control Stop command (COMMAND_LEVEL_STOP, COMMAND_LEVEL_STOP_WITH_ON_OFF)
+  zclGCB_LevelControlMoveFreq_t           pfnLevelControlMoveFreq;            //!< Level Control Move to Closest Frequency command (COMMAND_LEVEL_MOVE_TO_CLOSEST_FREQUENCY)
 #endif
 #ifdef ZCL_GROUPS
-  zclGCB_GroupRsp_t                 pfnGroupRsp;                  //!< Group Response commands
+  zclGCB_GroupRsp_t                       pfnGroupRsp;                        //!< Group Response commands (COMMAND_GROUPS_ADD_GROUP_RESPONSE, COMMAND_GROUPS_VIEW_GROUP_RESPONSE, COMMAND_GROUPS_GET_GROUP_MEMBERSHIP_RESPONSE, COMMAND_GROUPS_REMOVE_GROUP_RESPONSE)
 #endif
 #ifdef ZCL_SCENES
-  zclGCB_SceneStoreReq_t            pfnSceneStoreReq;             //!< Scene Store Request command
-  zclGCB_SceneRecallReq_t           pfnSceneRecallReq;            //!< Scene Recall Request command
-  zclGCB_SceneRsp_t                 pfnSceneRsp;                  //!< Scene Response command
+  zclGCB_SceneStoreReq_t                  pfnSceneStoreReq;                   //!< Scene Store Request command (COMMAND_SCENES_STORE_SCENE)
+  zclGCB_SceneRecallReq_t                 pfnSceneRecallReq;                  //!< Scene Recall Request command (COMMAND_SCENES_RECALL_SCENE)
+  zclGCB_SceneRsp_t                       pfnSceneRsp;                        //!< Scene Response command (COMMAND_SCENES_ADD_SCENE_RESPONSE, COMMAND_SCENES_VIEW_SCENE_RESPONSE, COMMAND_SCENES_REMOVE_SCENE_RESPONSE, COMMAND_SCENES_REMOVE_ALL_SCENES_RESPONSE, COMMAND_SCENES_STORE_SCENE_RESPONSE, COMMAND_SCENES_GET_SCENE_MEMBERSHIP_RESPONSE, COMMAND_SCENES_ENHANCED_ADD_SCENE_RESPONSE, COMMAND_SCENES_ENHANCED_VIEW_SCENE_RESPONSE, COMMAND_SCENES_COPY_SCENE_RESPONSE)
 #endif
 #ifdef ZCL_ALARMS
-  zclGCB_Alarm_t                    pfnAlarm;                     //!< Alarm (Response) commands
+  zclGCB_Alarm_t                          pfnAlarm;                           //!< Alarm (Response) commands (COMMAND_ALARMS_GET_ALARM_RESPONSE)
 #endif
 #ifdef SE_UK_EXT
-  zclGCB_GetEventLog_t              pfnGetEventLog;               //!< Get Event Log command
-  zclGCB_PublishEventLog_t          pfnPublishEventLog;           //!< Publish Event Log command
+  zclGCB_GetEventLog_t                    pfnGetEventLog;                     //!< Get Event Log command ()
+  zclGCB_PublishEventLog_t                pfnPublishEventLog;                 //!< Publish Event Log command ()
 #endif
-  zclGCB_Location_t                 pfnLocation;                  //!< RSSI Location command
-  zclGCB_LocationRsp_t              pfnLocationRsp;               //!< RSSI Location Response command
+  zclGCB_Location_t                       pfnLocation;                        //!< RSSI Location command (COMMAND_LOCATION_RSSI_REQUEST, COMMAND_LOCATION_RSSI_PING)
+  zclGCB_LocationRsp_t                    pfnLocationRsp;                     //!< RSSI Location Response command (COMMAND_LOCATION_RSSI_RESPONSE)
 } zclGeneral_AppCallbacks_t;
 
 /** @} End ZCL_GENERAL_TYPEDEFS */
@@ -2191,7 +2409,7 @@ typedef struct
  *  Use like:
  *      ZStatus_t zclGeneral_SendBasicResetFactoryDefaults( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendBasicResetFactoryDefaults(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_BASIC, COMMAND_BASIC_RESET_FACT_DEFAULT, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclGeneral_SendBasicResetFactoryDefaults(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_BASIC, COMMAND_BASIC_RESET_TO_FACTORY_DEFAULTS, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 #endif // ZCL_BASIC
 
 #ifdef ZCL_IDENTIFY
@@ -2200,15 +2418,15 @@ typedef struct
  *  Use like:
  *      ZStatus_t zclGeneral_SendIdentifyQuery( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendIdentifyQuery(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_IDENTIFY, COMMAND_IDENTIFY_QUERY, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclGeneral_SendIdentifyQuery(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_IDENTIFY, COMMAND_IDENTIFY_IDENTIFY_QUERY, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#endif // ZCL_IDENTIFY
 
 /*!
  * Send a Identify Query command from Stack Thread
  *  Use like:
  *      ZStatus_t zclGeneral_SendIdentifyQuery( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_StackSendIdentifyQuery(a,b,c,d) zcl_StackSendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_IDENTIFY, COMMAND_IDENTIFY_QUERY, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
-#endif // ZCL_IDENTIFY
+#define zclGeneral_StackSendIdentifyQuery(a,b,c,d) zcl_StackSendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_IDENTIFY, COMMAND_IDENTIFY_IDENTIFY_QUERY, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 
 #ifdef ZCL_GROUPS
 /*!
@@ -2216,14 +2434,14 @@ typedef struct
  *  Use like:
  *      ZStatus_t zclGeneral_SendGroupAdd( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t groupID, uint8_t *groupName, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendGroupAdd(a,b,c,d,e,f) zclGeneral_SendAddGroupRequestEx( (a), (b), COMMAND_GROUP_ADD, (c), (d), (e), (f), TRUE )
+#define zclGeneral_SendGroupAdd(a,b,c,d,e,f) zclGeneral_SendAddGroupRequestEx( (a), (b), COMMAND_GROUPS_ADD_GROUP, (c), (d), (e), (f), TRUE )
 
 /*!
  *  Send a Group Add Command from Stack Thread
  *  Use like:
  *      ZStatus_t zclGeneral_SendGroupAdd( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t groupID, uint8_t *groupName, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_StackSendGroupAdd(a,b,c,d,e,f) zclGeneral_SendAddGroupRequestEx( (a), (b), COMMAND_GROUP_ADD, (c), (d), (e), (f), FALSE )
+#define zclGeneral_StackSendGroupAdd(a,b,c,d,e,f) zclGeneral_SendAddGroupRequestEx( (a), (b), COMMAND_GROUPS_ADD_GROUP, (c), (d), (e), (f), FALSE )
 
 
 /*!
@@ -2231,56 +2449,56 @@ typedef struct
  *  Use like:
  *      ZStatus_t zclGeneral_SendGroupView( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t groupID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendGroupView(a,b,c,d,e) zclGeneral_SendGroupRequest( (a), (b), COMMAND_GROUP_VIEW, (c), (d), (e) )
+#define zclGeneral_SendGroupView(a,b,c,d,e) zclGeneral_SendGroupRequest( (a), (b), COMMAND_GROUPS_VIEW_GROUP, (c), (d), (e) )
 
 /*!
  *  Send a Group Get Membership Command
  *  Use like:
  *      ZStatus_t zclGeneral_SendGroupGetMembership( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t grpCnt, uint16_t *grpList, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define  zclGeneral_SendGroupGetMembership(a,b,c,d,e,f) zclGeneral_SendGroupGetMembershipRequest( (a), (b), COMMAND_GROUP_GET_MEMBERSHIP, FALSE, ZCL_FRAME_CLIENT_SERVER_DIR, 0, (c), (d), (e), (f) )
+#define  zclGeneral_SendGroupGetMembership(a,b,c,d,e,f) zclGeneral_SendGroupGetMembershipRequest( (a), (b), COMMAND_GROUPS_GET_GROUP_MEMBERSHIP, FALSE, ZCL_FRAME_CLIENT_SERVER_DIR, 0, (c), (d), (e), (f) )
 
 /*!
  *  Send a Group Remove Command
  *  Use like:
  *      ZStatus_t zclGeneral_SendGroupRemove( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t groupID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendGroupRemove(a,b,c,d,e) zclGeneral_SendGroupRequest( (a), (b), COMMAND_GROUP_REMOVE, (c), (d), (e) )
+#define zclGeneral_SendGroupRemove(a,b,c,d,e) zclGeneral_SendGroupRequest( (a), (b), COMMAND_GROUPS_REMOVE_GROUP, (c), (d), (e) )
 
 /*!
- *  Send a Group Remove ALL Command - COMMAND_GROUP_REMOVE_ALL
+ *  Send a Group Remove ALL Command - COMMAND_GROUPS_REMOVE_ALL_GROUPS
  *  Use like:
  *      ZStatus_t zclGeneral_SendGroupRemoveAll( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendGroupRemoveAll(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_GROUPS, COMMAND_GROUP_REMOVE_ALL, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclGeneral_SendGroupRemoveAll(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_GROUPS, COMMAND_GROUPS_REMOVE_ALL_GROUPS, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 
 /*!
  *  Send a Group Add If Identifying Command
  *  Use like:
  *      ZStatus_t zclGeneral_SendGroupAddIfIdentifying( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t groupID, uint8_t *groupName, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendGroupAddIfIdentifying(a,b,c,d,e,f) zclGeneral_SendAddGroupRequestEx( (a), (b), COMMAND_GROUP_ADD_IF_IDENTIFYING, (c), (d), (e), (f), TRUE )
+#define zclGeneral_SendGroupAddIfIdentifying(a,b,c,d,e,f) zclGeneral_SendAddGroupRequestEx( (a), (b), COMMAND_GROUPS_ADD_GROUP_IF_IDENTIFYING, (c), (d), (e), (f), TRUE )
 
 /*!
  *  Send a Group Add Response Command
  *  Use like:
  *      ZStatus_t zclGeneral_SendGroupAddResponse( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint16_t groupID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendGroupAddResponse(a,b,c,d,e,f) zclGeneral_SendGroupResponse( (a), (b), COMMAND_GROUP_ADD_RSP, (c), (d), (e), (f) )
+#define zclGeneral_SendGroupAddResponse(a,b,c,d,e,f) zclGeneral_SendGroupResponse( (a), (b), COMMAND_GROUPS_ADD_GROUP_RESPONSE, (c), (d), (e), (f) )
 
 /*!
  *  Send a Group Get Membership Response Command
  *  Use like:
  *      ZStatus_t zclGeneral_SendGroupGetMembershipResponse( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t capacity, uint8_t grpCnt, uint16_t *grpList, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define  zclGeneral_SendGroupGetMembershipResponse(a,b,c,d,e,f,g) zclGeneral_SendGroupGetMembershipRequest( (a), (b), COMMAND_GROUP_GET_MEMBERSHIP_RSP, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR, (c), (d), (e), (f), (g) )
+#define  zclGeneral_SendGroupGetMembershipResponse(a,b,c,d,e,f,g) zclGeneral_SendGroupGetMembershipRequest( (a), (b), COMMAND_GROUPS_GET_GROUP_MEMBERSHIP_RESPONSE, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR, (c), (d), (e), (f), (g) )
 
 /*!
  *  Send a Group Remove Response Command
  *  Use like:
  *      ZStatus_t zclGeneral_SendGroupRemoveResponse( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint16_t groupID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendGroupRemoveResponse(a,b,c,d,e,f) zclGeneral_SendGroupResponse( (a), (b), COMMAND_GROUP_REMOVE_RSP, (c), (d), (e), (f) )
+#define zclGeneral_SendGroupRemoveResponse(a,b,c,d,e,f) zclGeneral_SendGroupResponse( (a), (b), COMMAND_GROUPS_REMOVE_GROUP_RESPONSE, (c), (d), (e), (f) )
 #endif // ZCL_GROUPS
 
 #ifdef ZCL_SCENES
@@ -2289,84 +2507,84 @@ typedef struct
  *  Use like:
  *      ZStatus_t zclGeneral_SendAddScene( uint8_t srcEP, afAddrType_t *dstAddr, zclGeneral_Scene_t *scene, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-#define zclGeneral_SendAddScene(a,b,c,d,e) zclGeneral_SendAddSceneRequest( (a), (b), COMMAND_SCENE_ADD, (c), (d), (e) )
+#define zclGeneral_SendAddScene(a,b,c,d,e) zclGeneral_SendAddSceneRequest( (a), (b), COMMAND_SCENES_ADD_SCENE, (c), (d), (e) )
 
 /*!
  *  Send a Scene View Command
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneView( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t groupID, uint8_t sceneID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneView(a,b,c,d,e,f) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENE_VIEW, (c), (d), (e), (f) )
+#define zclGeneral_SendSceneView(a,b,c,d,e,f) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENES_VIEW_SCENE, (c), (d), (e), (f) )
 
 /*!
  *  Send a Scene Remove Command
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneRemove( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t groupID, uint8_t sceneID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneRemove(a,b,c,d,e,f) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENE_REMOVE, (c), (d), (e), (f) )
+#define zclGeneral_SendSceneRemove(a,b,c,d,e,f) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENES_REMOVE_SCENE, (c), (d), (e), (f) )
 
 /*!
  *  Send a Scene Store Command
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneStore( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t groupID, uint8_t sceneID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneStore(a,b,c,d,e,f) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENE_STORE, (c), (d), (e), (f) )
+#define zclGeneral_SendSceneStore(a,b,c,d,e,f) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENES_STORE_SCENE, (c), (d), (e), (f) )
 
 /*!
  *  Send a Scene Recall Command
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneRecall( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t groupID, uint8_t sceneID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneRecall(a,b,c,d,e,f) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENE_RECALL, (c), (d), (e), (f) )
+#define zclGeneral_SendSceneRecall(a,b,c,d,e,f) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENES_RECALL_SCENE, (c), (d), (e), (f) )
 
 /*!
- *  Send a Scene Remove ALL Command - COMMAND_SCENE_REMOVE_ALL
+ *  Send a Scene Remove ALL Command - COMMAND_SCENES_REMOVE_ALL_SCENES
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneRemoveAll( uint16_t srcEP, afAddrType_t *dstAddr, uint16_t groupID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneRemoveAll(a,b,c,d,e) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENE_REMOVE_ALL, (c), 0, (d), (e) )
+#define zclGeneral_SendSceneRemoveAll(a,b,c,d,e) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENES_REMOVE_ALL_SCENES, (c), 0, (d), (e) )
 
 /*!
- *  Send a Scene Get Membership Command - COMMAND_SCENE_GET_MEMBERSHIPSHIP
+ *  Send a Scene Get Membership Command - COMMAND_SCENES_GET_MEMBERSHIPSHIP
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneGetMembership( uint16_t srcEP, afAddrType_t *dstAddr, uint16_t groupID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneGetMembership(a,b,c,d,e) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENE_GET_MEMBERSHIP, (c), 0, (d), (e) )
+#define zclGeneral_SendSceneGetMembership(a,b,c,d,e) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENES_GET_SCENE_MEMBERSHIP, (c), 0, (d), (e) )
 
 /*!
- *  Send a Scene Add Response Command - COMMAND_SCENE_ADD_RSP
+ *  Send a Scene Add Response Command - COMMAND_SCENES_ADD_SCENE_RESPONSE
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneAddResponse( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint16_t groupID, uint8_t sceneID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneAddResponse(a,b,c,d,e,f,g) zclGeneral_SendSceneResponse( (a), (b), COMMAND_SCENE_ADD_RSP, (c), (d), (e), (f), (g) )
+#define zclGeneral_SendSceneAddResponse(a,b,c,d,e,f,g) zclGeneral_SendSceneResponse( (a), (b), COMMAND_SCENES_ADD_SCENE_RESPONSE, (c), (d), (e), (f), (g) )
 
 /*!
- *  Send a Scene View Response Command - COMMAND_SCENE_VIEW_RSP
+ *  Send a Scene View Response Command - COMMAND_SCENES_VIEW_SCENE_RESPONSE
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneViewResponse( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t status, zclGeneral_Scene_t *scene, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneViewResponse(a,b,c,d,e,f) zclGeneral_SendSceneViewRsp( (a), (b), COMMAND_SCENE_VIEW_RSP, (c), (d), (e), (f) )
+#define zclGeneral_SendSceneViewResponse(a,b,c,d,e,f) zclGeneral_SendSceneViewRsp( (a), (b), COMMAND_SCENES_VIEW_SCENE_RESPONSE, (c), (d), (e), (f) )
 
 /*!
- *  Send a Scene Remove Response Command - COMMAND_SCENE_REMOVE_RSP
+ *  Send a Scene Remove Response Command - COMMAND_SCENES_REMOVE_SCENE_RESPONSE
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneRemoveResponse( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint16_t groupID, uint8_t sceneID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneRemoveResponse(a,b,c,d,e,f,g) zclGeneral_SendSceneResponse( (a), (b), COMMAND_SCENE_REMOVE_RSP, (c), (d), (e), (f), (g) )
+#define zclGeneral_SendSceneRemoveResponse(a,b,c,d,e,f,g) zclGeneral_SendSceneResponse( (a), (b), COMMAND_SCENES_REMOVE_SCENE_RESPONSE, (c), (d), (e), (f), (g) )
 
 /*!
- *  Send a Scene Remove All Response Command - COMMAND_SCENE_REMOVE_ALL_RSP
+ *  Send a Scene Remove All Response Command - COMMAND_SCENES_REMOVE_ALL_SCENES_RESPONSE
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneRemoveAllResponse( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint16_t groupID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneRemoveAllResponse(a,b,c,d,e,f) zclGeneral_SendSceneResponse( (a), (b), COMMAND_SCENE_REMOVE_ALL_RSP, (c), (d), 0, (e), (f) )
+#define zclGeneral_SendSceneRemoveAllResponse(a,b,c,d,e,f) zclGeneral_SendSceneResponse( (a), (b), COMMAND_SCENES_REMOVE_ALL_SCENES_RESPONSE, (c), (d), 0, (e), (f) )
 
 /*!
- *  Send a Scene Store Response Command - COMMAND_SCENE_STORE_RSP
+ *  Send a Scene Store Response Command - COMMAND_SCENES_STORE_SCENE_RESPONSE
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneStoreResponse( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint16_t groupID, uint8_t sceneID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneStoreResponse(a,b,c,d,e,f,g) zclGeneral_SendSceneResponse( (a), (b), COMMAND_SCENE_STORE_RSP, (c), (d), (e), (f), (g) )
+#define zclGeneral_SendSceneStoreResponse(a,b,c,d,e,f,g) zclGeneral_SendSceneResponse( (a), (b), COMMAND_SCENES_STORE_SCENE_RESPONSE, (c), (d), (e), (f), (g) )
 
 #ifdef ZCL_LIGHT_LINK_ENHANCE
 /*!
@@ -2374,28 +2592,28 @@ typedef struct
  *  Use like:
  *      ZStatus_t zclGeneral_SendEnhancedAddScene( uint8_t srcEP, afAddrType_t *dstAddr, zclGeneral_Scene_t *scene, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-#define zclGeneral_SendEnhancedAddScene(a,b,c,d,e) zclGeneral_SendAddSceneRequest( (a), (b), COMMAND_SCENE_ENHANCED_ADD, (c), (d), (e) )
+#define zclGeneral_SendEnhancedAddScene(a,b,c,d,e) zclGeneral_SendAddSceneRequest( (a), (b), COMMAND_SCENES_ENHANCED_ADD_SCENE, (c), (d), (e) )
 
 /*!
  *  Send a Scene Enahnced View Command
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneEnhancedView( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t groupID, uint8_t sceneID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneEnhancedView(a,b,c,d,e,f) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENE_ENHANCED_VIEW, (c), (d), (e), (f) )
+#define zclGeneral_SendSceneEnhancedView(a,b,c,d,e,f) zclGeneral_SendSceneRequest( (a), (b), COMMAND_SCENES_ENHANCED_VIEW_SCENE, (c), (d), (e), (f) )
 
 /*!
- *  Send a Scene Enhanced Add Response Command - COMMAND_SCENE_ADD_RSP
+ *  Send a Scene Enhanced Add Response Command - COMMAND_SCENES_ADD_SCENE_RESPONSE
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneAddResponse( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint16_t groupID, uint8_t sceneID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneEnhancedAddResponse(a,b,c,d,e,f,g) zclGeneral_SendSceneResponse( (a), (b), COMMAND_SCENE_ENHANCED_ADD_RSP, (c), (d), (e), (f), (g) )
+#define zclGeneral_SendSceneEnhancedAddResponse(a,b,c,d,e,f,g) zclGeneral_SendSceneResponse( (a), (b), COMMAND_SCENES_ENHANCED_ADD_SCENE_RESPONSE, (c), (d), (e), (f), (g) )
 
 /*!
- *  Send a Scene Enhanced View Response Command - COMMAND_SCENE_ENHANCED_VIEW_RSP
+ *  Send a Scene Enhanced View Response Command - COMMAND_SCENES_ENHANCED_VIEW_SCENE_RESPONSE
  *  Use like:
  *      ZStatus_t zclGeneral_SendSceneEnhancedViewResponse( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t status, zclGeneral_Scene_t *scene, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendSceneEnhancedViewResponse(a,b,c,d,e,f) zclGeneral_SendSceneViewRsp( (a), (b), COMMAND_SCENE_ENHANCED_VIEW_RSP, (c), (d), (e), (f) )
+#define zclGeneral_SendSceneEnhancedViewResponse(a,b,c,d,e,f) zclGeneral_SendSceneViewRsp( (a), (b), COMMAND_SCENES_ENHANCED_VIEW_SCENE_RESPONSE, (c), (d), (e), (f) )
 #endif // ZCL_LIGHT_LINK_ENHANCE
 #endif // ZCL_SCENES
 
@@ -2405,36 +2623,36 @@ typedef struct
  *  Use like:
  *      ZStatus_t zclGeneral_SendOnOff_CmdOff( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendOnOff_CmdOff(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_ON_OFF, COMMAND_OFF, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclGeneral_SendOnOff_CmdOff(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_ON_OFF, COMMAND_ON_OFF_OFF, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 
 /*!
  *  Send an On Off Command - COMMAND_ONOFF_ON
  *  Use like:
  *      ZStatus_t zclGeneral_SendOnOff_CmdOn( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendOnOff_CmdOn(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_ON_OFF, COMMAND_ON, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclGeneral_SendOnOff_CmdOn(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_ON_OFF, COMMAND_ON_OFF_ON, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 
 /*!
  *  Send an On Off Command - COMMAND_ONOFF_TOGGLE
  *  Use like:
  *      ZStatus_t zclGeneral_SendOnOff_CmdToggle( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendOnOff_CmdToggle(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_ON_OFF, COMMAND_TOGGLE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclGeneral_SendOnOff_CmdToggle(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_ON_OFF, COMMAND_ON_OFF_TOGGLE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 
 /*!
  *  Send an On Off Command - COMMAND_ONOFF_ONDURATION
  *  Use like:
  *      ZStatus_t zclGeneral_SendOnOff_CmdOnDuration( uint16_t srcEP, afAddrType_t *dstAddr, uint16_t onDuration, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendOnOff_CmdOnDuration(a,b,c,d,e) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_ON_OFF, COMMAND_ON_DURATION, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (d), 0, (e), 2, (c) )
+#define zclGeneral_SendOnOff_CmdOnDuration(a,b,c,d,e) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_ON_OFF, COMMAND_ON_DURATION, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (d), 0, (e), 2, (c) )
 
 #ifdef ZCL_LIGHT_LINK_ENHANCE
 /*!
- *  Send an On With Recall Global Scene Command - COMMAND_ON_WITH_RECALL_GLOBAL_SCENE
+ *  Send an On With Recall Global Scene Command - COMMAND_ON_OFF_ON_WITH_RECALL_GLOBAL_SCENE
  *  Use like:
  *      ZStatus_t zclGeneral_SendOnOff_CmdOnWithRecallGlobalScene( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendOnOff_CmdOnWithRecallGlobalScene(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_ON_OFF, COMMAND_ON_WITH_RECALL_GLOBAL_SCENE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclGeneral_SendOnOff_CmdOnWithRecallGlobalScene(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_ON_OFF, COMMAND_ON_OFF_ON_WITH_RECALL_GLOBAL_SCENE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 #endif // ZCL_LIGHT_LINK_ENHANCE
 #endif // ZCL_ON_OFF
 
@@ -2466,7 +2684,7 @@ typedef struct
  *  Use like:
  *      ZStatus_t zclGeneral_SendLevelControlStop( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendLevelControlStop(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL, COMMAND_LEVEL_STOP, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclGeneral_SendLevelControlStop(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL, COMMAND_LEVEL_STOP, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 
 /*!
  *  Send a Level Control Move to Level with On/Off Command - COMMAND_LEVEL_MOVE_TO_LEVEL_WITH_ON_OFF
@@ -2495,31 +2713,31 @@ typedef struct
  *  Use like:
  *      ZStatus_t zclGeneral_SendLevelControlStopWithOnOff( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendLevelControlStopWithOnOff(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL, COMMAND_LEVEL_STOP_WITH_ON_OFF, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclGeneral_SendLevelControlStopWithOnOff(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL, COMMAND_LEVEL_STOP_WITH_ON_OFF, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 #endif // ZCL_LEVEL_CTRL
 
 #ifdef ZCL_ALARMS
 /*!
- *  Send an Alarm Reset ALL Command - COMMAND_ALARMS_RESET_ALL
+ *  Send an Alarm Reset ALL Command - COMMAND_ALARMS_RESET_ALL_ALARMS
  *  Use like:
  *      ZStatus_t zclGeneral_SendAlarmResetAll( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendAlarmResetAll(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_ALARMS, COMMAND_ALARMS_RESET_ALL, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclGeneral_SendAlarmResetAll(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_ALARMS, COMMAND_ALARMS_RESET_ALL_ALARMS, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 
 
 /*!
- *  Send an Alarm Get Command - COMMAND_ALARMS_GET
+ *  Send an Alarm Get Command - COMMAND_ALARMS_GET_ALARM
  *  Use like:
  *      ZStatus_t zclGeneral_SendAlarmGet uint16_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendAlarmGet(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_ALARMS, COMMAND_ALARMS_GET, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclGeneral_SendAlarmGet(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_ALARMS, COMMAND_ALARMS_GET_ALARM, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 
 /*!
- *  Send an Alarm Reset Log Command - COMMAND_ALARMS_RESET_LOG
+ *  Send an Alarm Reset Log Command - COMMAND_ALARMS_RESET_ALARM_LOG
  *  Use like:
  *      ZStatus_t zclGeneral_SendAlarmResetLog( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendAlarmResetLog(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_ALARMS, COMMAND_ALARMS_RESET_LOG, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclGeneral_SendAlarmResetLog(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_ALARMS, COMMAND_ALARMS_RESET_ALARM_LOG, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 #endif // ZCL_ALARMS
 
 #ifdef ZCL_LOCATION
@@ -2549,7 +2767,7 @@ typedef struct
  *  Use like:
  *      ZStatus_t zclGeneral_SendRSSIPing( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t locationType, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclGeneral_SendRSSIPing(a,b,c,d,e) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GEN_LOCATION, COMMAND_LOCATION_RSSI_PING, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR, (d), 0, (e), 1, (c) )
+#define zclGeneral_SendRSSIPing(a,b,c,d,e) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_GENERAL_LOCATION, COMMAND_LOCATION_RSSI_PING, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR, (d), 0, (e), 1, (c) )
 #endif // ZCL_LOCATION
 
 /*********************************************************************
@@ -2708,8 +2926,8 @@ extern ZStatus_t zclGeneral_SendSceneRequest( uint8_t srcEP, afAddrType_t *dstAd
                                               uint8_t disableDefaultRsp, uint8_t seqNum );
 
 /*!
- * Send Scene response messages for either COMMAND_SCENE_ADD_RSP,
- *         COMMAND_SCENE_REMOVE_RSP or COMMAND_SCENE_STORE_RSP
+ * Send Scene response messages for either COMMAND_SCENES_ADD_SCENE_RESPONSE,
+ *         COMMAND_SCENES_REMOVE_SCENE_RESPONSE or COMMAND_SCENES_STORE_SCENE_RESPONSE
  */
 extern ZStatus_t zclGeneral_SendSceneResponse( uint8_t srcEP, afAddrType_t *dstAddr,
                                                uint8_t cmd, uint8_t status, uint16_t groupID,

@@ -476,7 +476,7 @@ static uint32_t readOADHeader(uint8_t* pWriteBuffer)
                 {
                     RingBuf_peek(&gOadBlockCacheRingBuf, (uint8_t*)&readVal);
 
-                    if ((*(TOAD_MAGIC_WORD + i)) != readVal)
+                    if (TOAD_MAGIC_WORD[i] != readVal)
                     {
                         // Failed comparison. Search for the next start char
                         isMatch = false;

@@ -94,14 +94,16 @@
 #include "zstackmsg.h"
 #include "zcl_port.h"
 
+#include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Task.h>
 #include "zstackapi.h"
 #include "util_timer.h"
 
 #include <ti/drivers/apps/Button.h>
 #include <ti/drivers/apps/LED.h>
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 #include "zcl_sampleapps_ui.h"
 #include "zcl_sample_app_def.h"
 #endif
@@ -199,9 +201,9 @@ static Clock_Struct SyncAttrClkStruct;
 // Passed in function pointers to the NV driver
 static NVINTF_nvFuncts_t *pfnZdlNV = NULL;
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#if defined(USE_DMM) && defined(BLE_START) || !defined(CUI_DISABLE)
 static uint16_t zclSampleLight_BdbCommissioningModes;
-#endif
+#endif // defined(USE_DMM) && defined(BLE_START) || !defined(CUI_DISABLE)
 
 afAddrType_t zclSampleLight_DstAddr;
 
@@ -224,7 +226,7 @@ static uint16_t powerTestZEDAddr = 0xFFFE;
 #endif
 #endif // Z_POWER_TEST
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 CONST char zclSampleLight_appStr[] = APP_TITLE_STR;
 CUI_clientHandle_t gCuiHandle;
 static LED_Handle gRedLedHandle;
@@ -258,7 +260,7 @@ static void zclSampleLight_Init( void );
 
 static void zclSampleLight_BasicResetCB( void );
 static void zclSampleLight_IdentifyQueryRspCB(zclIdentifyQueryRsp_t *pRsp);
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 static void zclSampleLight_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleLight_RemoveAppNvmData(void);
 static void zclSampleLight_InitializeStatusLine(CUI_clientHandle_t gCuiHandle);
@@ -267,8 +269,8 @@ static void zclSampleLight_UpdateStatusLine(void);
 static uint8_t zclSampleLight_SceneStoreCB(zclSceneReq_t *pReq);
 static void  zclSampleLight_SceneRecallCB(zclSceneReq_t *pReq);
 static void  zclSampleLight_OnOffCB( uint8_t cmd );
-ZStatus_t zclSampleLight_ReadWriteAttrCB( uint8_t endpoint, zclAttrRec_t *pAttr,
-                                          uint8_t oper, uint8_t *pValue, uint16_t *pLen );
+ZStatus_t zclSampleLight_ReadWriteAttrCB( uint16_t clusterId, uint16_t attrId, uint8_t oper,
+                                          uint8_t *pValue, uint16_t *pLen );
 
 
 static void zclSampleLight_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *bdbCommissioningModeMsg);
@@ -278,7 +280,8 @@ static void zclSampleLight_ProcessCommissioningStatus(bdbCommissioningModeMsg_t 
 static void zclSampleLight_LevelControlMoveToLevelCB( zclLCMoveToLevel_t *pCmd );
 static void zclSampleLight_LevelControlMoveCB( zclLCMove_t *pCmd );
 static void zclSampleLight_LevelControlStepCB( zclLCStep_t *pCmd );
-static void zclSampleLight_LevelControlStopCB( void );
+static void zclSampleLight_LevelControlStopCB( zclLCStop_t *pCmd );
+static void zclSampleLight_LevelControlMoveToClosestFrequencyCB( zclLCMoveFreq_t *pCmd );
 static void zclSampleLight_DefaultMove( uint8_t OnOff );
 static uint32_t zclSampleLight_TimeRateHelper( uint8_t newLevel );
 static uint16_t zclSampleLight_GetTime ( uint8_t level, uint16_t time );
@@ -379,10 +382,11 @@ static zclGeneral_AppCallbacks_t zclSampleLight_CmdCallbacks =
   NULL,                                   // On/Off cluster enhanced command On with Timed Off
 #endif
 #ifdef ZCL_LEVEL_CTRL
-  zclSampleLight_LevelControlMoveToLevelCB, // Level Control Move to Level command
-  zclSampleLight_LevelControlMoveCB,        // Level Control Move command
-  zclSampleLight_LevelControlStepCB,        // Level Control Step command
-  zclSampleLight_LevelControlStopCB,        // Level Control Stop command
+  zclSampleLight_LevelControlMoveToLevelCB,             // Level Control Move to Level command
+  zclSampleLight_LevelControlMoveCB,                    // Level Control Move command
+  zclSampleLight_LevelControlStepCB,                    // Level Control Step command
+  zclSampleLight_LevelControlStopCB,                    // Level Control Stop command
+  zclSampleLight_LevelControlMoveToClosestFrequencyCB,  // Level Control Stop command
 #endif
 #ifdef ZCL_GROUPS
   NULL,                                   // Group Response commands
@@ -616,7 +620,7 @@ static void zclSampleLight_Init( void )
   zcl_registerAttrList( SAMPLELIGHT_ENDPOINT, zclSampleLight_NumAttributes, zclSampleLight_Attrs );
 
   // Register the Application to receive the unprocessed Foundation command/response messages
-  zclport_registerZclHandleExternal( SAMPLELIGHT_ENDPOINT, zclSampleLight_ProcessIncomingMsg );
+  zclport_registerZclHandleExternal(SAMPLELIGHT_ENDPOINT, zclSampleLight_ProcessIncomingMsg);
 
 #if !defined (DISABLE_GREENPOWER_BASIC_PROXY) && (ZG_BUILD_RTR_TYPE)
   gp_endpointInit(appServiceTaskId);
@@ -641,8 +645,8 @@ static void zclSampleLight_Init( void )
   //Default maxReportingInterval value is 10 seconds
   //Default minReportingInterval value is 3 seconds
   //Default reportChange value is 300 (3 degrees)
-  Req.attrID = ATTRID_ON_OFF;
-  Req.cluster = ZCL_CLUSTER_ID_GEN_ON_OFF;
+  Req.attrID = ATTRID_ON_OFF_ON_OFF;
+  Req.cluster = ZCL_CLUSTER_ID_GENERAL_ON_OFF;
   Req.endpoint = SAMPLELIGHT_ENDPOINT;
   Req.maxReportInt = 10;
   Req.minReportInt = 0;
@@ -652,7 +656,7 @@ static void zclSampleLight_Init( void )
 
 #ifdef ZCL_LEVEL_CTRL
   Req.attrID = ATTRID_LEVEL_CURRENT_LEVEL;
-  Req.cluster = ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL;
+  Req.cluster = ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL;
   Req.endpoint = SAMPLELIGHT_ENDPOINT;
   Req.maxReportInt = 10;
   Req.minReportInt = 0;
@@ -676,7 +680,7 @@ static void zclSampleLight_Init( void )
   RemoteDisplay_registerLightCbs(zclSwitch_LightCbs);
 #endif // defined(USE_DMM) && defined(BLE_START)
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#if !defined(CUI_DISABLE) || defined(USE_DMM) && defined(BLE_START)
   // set up default application BDB commissioning modes based on build type
   if(ZG_BUILD_COORDINATOR_TYPE && ZG_DEVICE_COORDINATOR_TYPE)
   {
@@ -686,8 +690,9 @@ static void zclSampleLight_Init( void )
   {
     zclSampleLight_BdbCommissioningModes = BDB_COMMISSIONING_MODE_NWK_STEERING | BDB_COMMISSIONING_MODE_FINDING_BINDING;
   }
+#endif // !defined(CUI_DISABLE) || defined(USE_DMM) && defined(BLE_START)
 
-
+#ifndef CUI_DISABLE
   gCuiHandle = UI_Init( appServiceTaskId,                     // Application Task ID
            &appServiceTaskEvents,                // The events processed by the sample application
            appSemHandle,                         // Semaphore to post the events in the application thread
@@ -721,7 +726,11 @@ static void zclSampleLight_Init( void )
 #endif
 
 #ifdef PER_TEST
-  PERTest_init(appSemHandle, appServiceTaskId, gCuiHandle);
+#ifndef CUI_DISABLE
+  PERTest_init( appSemHandle, appServiceTaskId, gCuiHandle );
+#else
+  PERTest_init( appSemHandle, appServiceTaskId, NULL );
+#endif
 #endif
 
   // Call BDB initialization. Should be called once from application at startup to restore
@@ -731,7 +740,7 @@ static void zclSampleLight_Init( void )
   Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
 }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 /*********************************************************************
  * @fn          zclSampleLight_RemoveAppNvmData
  *
@@ -749,7 +758,7 @@ static void zclSampleLight_RemoveAppNvmData(void)
     uint16_t groupList[APS_MAX_GROUPS];
     uint8_t i;
 
-    if ( numGroups = aps_FindAllGroupsForEndpoint( SAMPLELIGHT_ENDPOINT, groupList ) )
+    if ( 0 != ( numGroups = aps_FindAllGroupsForEndpoint( SAMPLELIGHT_ENDPOINT, groupList ) ) )
     {
       for ( i = 0; i < numGroups; i++ )
       {
@@ -806,14 +815,14 @@ static void zclSampleLight_initializeClocks(void)
 {
 #if ZG_BUILD_ENDDEVICE_TYPE
     // Initialize the timers needed for this application
-    EndDeviceRejoinClkHandle = Timer_construct(
+    EndDeviceRejoinClkHandle = UtilTimer_construct(
     &EndDeviceRejoinClkStruct,
     zclSampleLight_processEndDeviceRejoinTimeoutCallback,
     SAMPLEAPP_END_DEVICE_REJOIN_DELAY,
     0, false, 0);
 #endif
 #ifdef ZCL_LEVEL_CTRL
-    LevelControlClkHandle = Timer_construct(
+    LevelControlClkHandle = UtilTimer_construct(
     &LevelControlClkStruct,
     zclSampleLight_processLevelControlTimeoutCallback,
     100,
@@ -821,7 +830,7 @@ static void zclSampleLight_initializeClocks(void)
 #endif
 #if defined(USE_DMM) && defined(BLE_START)
     // Clock for synchronizing application configuration parameters for BLE
-    Timer_construct(
+    UtilTimer_construct(
     &SyncAttrClkStruct,
     zclSampleLight_processSyncAttrTimeoutCallback,
     SAMPLEAPP_CONFIG_SYNC_TIMEOUT,
@@ -829,7 +838,7 @@ static void zclSampleLight_initializeClocks(void)
 #endif // defined(USE_DMM) && defined(BLE_START)
 
     // Initialize the timers needed for this application
-    DiscoveryClkHandle = Timer_construct(
+    DiscoveryClkHandle = UtilTimer_construct(
     &DiscoveryClkStruct,
     zclSampleLight_processDiscoveryTimeoutCallback,
     DISCOVERY_IN_PROGRESS_TIMEOUT,
@@ -920,7 +929,7 @@ static void zclSampleLight_process_loop(void)
             PERTest_process();
 #endif
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             //Process the events that the UI may have
             zclsampleApp_ui_event_loop();
 #endif
@@ -1224,11 +1233,11 @@ static void setLightAttrCb(RemoteDisplayLightAttr_t lightAttr,
 #ifndef Z_POWER_TEST
             if(*((uint8_t*)value) == 0)
             {
-                zclSampleLight_OnOffCB(COMMAND_OFF);
+                zclSampleLight_OnOffCB(COMMAND_ON_OFF_OFF);
             }
             else
             {
-                zclSampleLight_OnOffCB(COMMAND_ON);
+                zclSampleLight_OnOffCB(COMMAND_ON_OFF_ON);
             }
 #endif
             break;
@@ -1317,7 +1326,7 @@ static void zclSampleLight_processSyncAttrTimeoutCallback(UArg a0)
 static void zclSampleLight_IdentifyQueryRspCB(zclIdentifyQueryRsp_t *pRsp)
 {
     zstack_zdoMatchDescReq_t Req;
-    uint16_t  OnOffCluster = ZCL_CLUSTER_ID_GEN_ON_OFF;
+    uint16_t  OnOffCluster = ZCL_CLUSTER_ID_GENERAL_ON_OFF;
 
     if(discoveryInprogress)
     {
@@ -1360,7 +1369,7 @@ static void zclSampleLight_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
         case zstackmsg_CmdIDs_BDB_IDENTIFY_TIME_CB:
             {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbIdentifyTimeoutInd_t *pInd;
                 pInd = (zstackmsg_bdbIdentifyTimeoutInd_t*) pMsg;
                 uiProcessIdentifyTimeChange(&(pInd->EndPoint));
@@ -1370,7 +1379,7 @@ static void zclSampleLight_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
         case zstackmsg_CmdIDs_BDB_BIND_NOTIFICATION_CB:
             {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbBindNotificationInd_t *pInd;
                 pInd = (zstackmsg_bdbBindNotificationInd_t*) pMsg;
                 uiProcessBindNotification(&(pInd->Req));
@@ -1414,13 +1423,15 @@ static void zclSampleLight_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 #endif
         case zstackmsg_CmdIDs_DEV_STATE_CHANGE_IND:
         {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#if !defined(CUI_DISABLE) || defined(USE_DMM) && defined(BLE_START)
             // The ZStack Thread is indicating a State change
             zstackmsg_devStateChangeInd_t *pInd =
                 (zstackmsg_devStateChangeInd_t *)pMsg;
-                  UI_DeviceStateUpdated(&(pInd->req));
-#endif
+#endif // !defined(CUI_DISABLE) || defined(USE_DMM) && defined(BLE_START)
 
+#ifndef CUI_DISABLE
+            UI_DeviceStateUpdated(&(pInd->req));
+#endif
 
 #if defined(USE_DMM) && defined(BLE_START)
             provState = pInd->req.state;
@@ -1469,7 +1480,7 @@ static void zclSampleLight_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
           case zstackmsg_CmdIDs_GP_COMMISSIONING_MODE_IND:
           {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             zstackmsg_gpCommissioningModeInd_t *pInd;
             pInd = (zstackmsg_gpCommissioningModeInd_t*)pMsg;
             UI_SetGPPCommissioningMode( &(pInd->Req) );
@@ -1554,7 +1565,7 @@ static void zclSampleLight_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
                 Req.bindInfo.dstAddr.addrMode = zstack_AFAddrMode_EXT;
                 OsalPort_memcpy(Req.bindInfo.dstAddr.addr.extAddr, pInd->rsp.ieeeAddr, Z_EXTADDR_LEN);
                 Req.bindInfo.dstAddr.endpoint = endPointDiscovered;
-                Req.bindInfo.clusterID = ZCL_CLUSTER_ID_GEN_ON_OFF;
+                Req.bindInfo.clusterID = ZCL_CLUSTER_ID_GENERAL_ON_OFF;
                 Req.bindInfo.srcEndpoint = SAMPLELIGHT_ENDPOINT;
 
                 //create the bind to that device
@@ -1722,13 +1733,13 @@ static void zclSampleLight_ProcessCommissioningStatus(bdbCommissioningModeMsg_t 
       else
       {
         //Parent not found, attempt to rejoin again after a fixed delay
-        Timer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
-        Timer_start(&EndDeviceRejoinClkStruct);
+        UtilTimer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
+        UtilTimer_start(&EndDeviceRejoinClkStruct);
       }
     break;
 #endif
   }
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   UI_UpdateBdbStatusLine(bdbCommissioningModeMsg);
 #endif
 }
@@ -1753,7 +1764,7 @@ static void zclSampleLight_BasicResetCB( void )
 
   zclSampleLight_UpdateLedState();
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   zclSampleLight_UpdateStatusLine();
 #endif
 }
@@ -1764,7 +1775,7 @@ static void zclSampleLight_BasicResetCB( void )
  * @brief   Callback from the ZCL General Cluster Library when
  *          it received an On/Off Command for this application.
  *
- * @param   cmd - COMMAND_ON, COMMAND_OFF or COMMAND_TOGGLE
+ * @param   cmd - COMMAND_ON_OFF_ON, COMMAND_ON_OFF_OFF or COMMAND_ON_OFF_TOGGLE
  *
  * @return  none
  */
@@ -1777,17 +1788,17 @@ static void zclSampleLight_OnOffCB( uint8_t cmd )
   zclSampleLight_DstAddr.addr.shortAddr = pPtr->srcAddr.addr.shortAddr;
 
   // Turn on the light
-  if ( cmd == COMMAND_ON )
+  if ( cmd == COMMAND_ON_OFF_ON )
   {
     OnOff = LIGHT_ON;
   }
   // Turn off the light
-  else if ( cmd == COMMAND_OFF )
+  else if ( cmd == COMMAND_ON_OFF_OFF )
   {
     OnOff = LIGHT_OFF;
   }
   // Toggle the light
-  else if ( cmd == COMMAND_TOGGLE )
+  else if ( cmd == COMMAND_ON_OFF_TOGGLE )
   {
 #ifdef ZCL_LEVEL_CTRL
     if (zclSampleLight_LevelRemainingTime > 0)
@@ -1837,7 +1848,7 @@ static void zclSampleLight_OnOffCB( uint8_t cmd )
   RemoteDisplay_updateLightProfData();
 #endif // defined(USE_DMM) && defined(BLE_START)
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   //Update status line
   zclSampleLight_UpdateStatusLine();
 #endif
@@ -1922,8 +1933,8 @@ static void zclSampleLight_MoveBasedOnRate( uint8_t newLevel, uint32_t rate )
     zclSampleLight_LevelRemainingTime = 1;
   }
 
-  Timer_setTimeout( LevelControlClkHandle, 100 );
-  Timer_start(&LevelControlClkStruct);
+  UtilTimer_setTimeout( LevelControlClkHandle, 100 );
+  UtilTimer_start(&LevelControlClkStruct);
 
 }
 
@@ -1946,8 +1957,8 @@ static void zclSampleLight_MoveBasedOnTime( uint8_t newLevel, uint16_t time )
   zclSampleLight_LevelRemainingTime = zclSampleLight_GetTime( newLevel, time );
   zclSampleLight_Rate32 = diff / time;
 
-  Timer_setTimeout( LevelControlClkHandle, 100 );
-  Timer_start(&LevelControlClkStruct);
+  UtilTimer_setTimeout( LevelControlClkHandle, 100 );
+  UtilTimer_start(&LevelControlClkStruct);
 }
 
 /*********************************************************************
@@ -2134,15 +2145,15 @@ static void zclSampleLight_AdjustLightLevel( void )
 
 
   zclSampleLight_UpdateLedState();
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   zclSampleLight_UpdateStatusLine();
 #endif
 
   // keep ticking away
   if ( zclSampleLight_LevelRemainingTime )
   {
-      Timer_setTimeout( LevelControlClkHandle, 100 );
-      Timer_start(&LevelControlClkStruct);
+      UtilTimer_setTimeout( LevelControlClkHandle, 100 );
+      UtilTimer_start(&LevelControlClkStruct);
   }
 }
 
@@ -2253,15 +2264,33 @@ static void zclSampleLight_LevelControlStepCB( zclLCStep_t *pCmd )
  *
  * @return  none
  */
-static void zclSampleLight_LevelControlStopCB( void )
+static void zclSampleLight_LevelControlStopCB( zclLCStop_t *pCmd )
 {
+  // TODO: process pCmd
+
   // stop immediately
-  if(Timer_isActive(&LevelControlClkStruct) == true)
+  if(UtilTimer_isActive(&LevelControlClkStruct) == true)
   {
-      Timer_stop(&LevelControlClkStruct);
+      UtilTimer_stop(&LevelControlClkStruct);
   }
 
   zclSampleLight_LevelRemainingTime = 0;
+}
+
+/*********************************************************************
+ * @fn      zclSampleLight_LevelControlMoveToClosestFrequencyCB
+ *
+ * @brief   Callback from the ZCL General Cluster Library when
+ *          it received an Level Control Move To
+ *          Closest Frequency Command for this application.
+ *
+ * @param   pCmd - ZigBee command parameters
+ *
+ * @return  none
+ */
+static void zclSampleLight_LevelControlMoveToClosestFrequencyCB( zclLCMoveFreq_t *pCmd )
+{
+  // TODO
 }
 #endif
 
@@ -2290,7 +2319,7 @@ static void zclSampleLight_SceneRecallCB( zclSceneReq_t *pReq )
     pBuf = pReq->scene->extField;
     extField.AttrLen = pBuf[2];
 
-     while(extLen < ZCL_GEN_SCENE_EXT_LEN)
+     while(extLen < ZCL_GENERAL_SCENE_EXT_LEN)
      {
          //Parse ExtField
          extField.ClusterID = BUILD_UINT16(pBuf[0],pBuf[1]);
@@ -2303,14 +2332,14 @@ static void zclSampleLight_SceneRecallCB( zclSceneReq_t *pReq )
          }
 
          //If On/Off then retrieve the attribute
-         if(extField.ClusterID == ZCL_CLUSTER_ID_GEN_ON_OFF)
+         if(extField.ClusterID == ZCL_CLUSTER_ID_GENERAL_ON_OFF)
          {
              uint8_t tempState = *extField.AttrBuf;
              zclSampleLight_updateOnOffAttribute(tempState);
          }
 #ifdef ZCL_LVL_CTRL
          //If Level Control then retrieve the attribute
-         else if(extField.ClusterID == ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL)
+         else if(extField.ClusterID == ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL)
          {
              uint8_t tempState = *extField.AttrBuf;
              zclSampleLight_updateCurrentLevelAttribute(tempState);
@@ -2351,7 +2380,7 @@ static uint8_t zclSampleLight_SceneStoreCB( zclSceneReq_t *pReq )
     pBuf = pReq->scene->extField;
     extField.AttrLen = pBuf[2];
 
-    while(extLen < ZCL_GEN_SCENE_EXT_LEN)
+    while(extLen < ZCL_GENERAL_SCENE_EXT_LEN)
     {
         //Parse ExtField
         extField.ClusterID = BUILD_UINT16(pBuf[0],pBuf[1]);
@@ -2364,7 +2393,7 @@ static uint8_t zclSampleLight_SceneStoreCB( zclSceneReq_t *pReq )
         }
 
         //If On/Off then store attribute
-        if(extField.ClusterID == ZCL_CLUSTER_ID_GEN_ON_OFF)
+        if(extField.ClusterID == ZCL_CLUSTER_ID_GENERAL_ON_OFF)
         {
             uint8_t tempState = zclSampleLight_getOnOffAttribute();
             if(*extField.AttrBuf != tempState )
@@ -2375,7 +2404,7 @@ static uint8_t zclSampleLight_SceneStoreCB( zclSceneReq_t *pReq )
         }
 #ifdef ZCL_LVL_CTRL
         //If Level Control then store attribute
-        else if(extField.ClusterID == ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL)
+        else if(extField.ClusterID == ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL)
         {
             uint8_t tempState = zclSampleLight_getCurrentLevelAttribute();
             if(*extField.AttrBuf != tempState )
@@ -2404,7 +2433,7 @@ static uint8_t zclSampleLight_SceneStoreCB( zclSceneReq_t *pReq )
 /*********************************************************************
  * @fn      zclSampleLight_ReadWriteAttrCB
  *
- * @brief   Handle ATTRID_SCENES_COUNT, ATTRID_ON_OFF and ATTRID_LEVEL_CURRENT_LEVEL.
+ * @brief   Handle ATTRID_SCENES_SCENE_COUNT, ATTRID_ON_OFF_ON_OFF and ATTRID_LEVEL_CURRENT_LEVEL.
  *          Only to be called if any of the attributes change.
  *
  * @param   clusterId - cluster that attribute belongs to
@@ -2415,19 +2444,17 @@ static uint8_t zclSampleLight_SceneStoreCB( zclSceneReq_t *pReq )
  *
  * @return  status
  */
-ZStatus_t zclSampleLight_ReadWriteAttrCB( uint8_t endpoint, zclAttrRec_t *pAttr,
-                                          uint8_t oper, uint8_t *pValue, uint16_t *pLen )
+ZStatus_t zclSampleLight_ReadWriteAttrCB( uint16_t clusterId, uint16_t attrId, uint8_t oper,
+                                         uint8_t *pValue, uint16_t *pLen )
 {
-  uint16_t clusterId = pAttr->clusterID;
-  uint16_t attrId = pAttr->attr.attrId;
-  if(clusterId == ZCL_CLUSTER_ID_GEN_SCENES)
-  {
-    if(attrId == ATTRID_SCENES_COUNT)
+    if(clusterId == ZCL_CLUSTER_ID_GENERAL_SCENES)
     {
-      return zclGeneral_ReadSceneCountCB(clusterId,attrId,oper,pValue,pLen);
+        if(attrId == ATTRID_SCENES_SCENE_COUNT)
+        {
+           return zclGeneral_ReadSceneCountCB(clusterId,attrId,oper,pValue,pLen);
+        }
     }
-  }
-  return ZSuccess;
+    return ZSuccess;
 }
 
 
@@ -2647,7 +2674,7 @@ static uint8_t zclSampleLight_ProcessInDiscAttrsExtRspCmd( zclIncoming_t *pInMsg
 
 void zclSampleLight_UiActionToggleLight(const int32_t _itemEntry)
 {
-  zclSampleLight_OnOffCB(COMMAND_TOGGLE);
+  zclSampleLight_OnOffCB(COMMAND_ON_OFF_TOGGLE);
 }
 
 
@@ -2661,8 +2688,8 @@ void zclSampleLight_UiActionSwitchDiscovery(const int32_t _itemEntry)
     discoveryInprogress = TRUE;
 
 
-    Timer_setTimeout( DiscoveryClkHandle, DISCOVERY_IN_PROGRESS_TIMEOUT );
-    Timer_start(&DiscoveryClkStruct);
+    UtilTimer_setTimeout( DiscoveryClkHandle, DISCOVERY_IN_PROGRESS_TIMEOUT );
+    UtilTimer_start(&DiscoveryClkStruct);
 
     destAddr.endPoint = 0xFF;
     destAddr.addrMode = afAddr16Bit;
@@ -2678,7 +2705,7 @@ void zclSampleLight_UiActionSwitchDiscovery(const int32_t _itemEntry)
 static void zclSampleLight_UpdateLedState(void)
 {
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   // set the LED1 based on light (on or off)
   if ( LIGHT_ON == zclSampleLight_getOnOffAttribute())
   {
@@ -2707,7 +2734,7 @@ static void zclSampleLight_UpdateLedState(void)
 ****************************************************************************/
 
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 /*********************************************************************
  * @fn      zclSampleLight_processKey
  *
@@ -2837,7 +2864,7 @@ static void zclSampleLight_GPSink_Identify(zclGpNotification_t *zclGpNotificatio
  */
 static void zclSampleLight_GPSink_Off(zclGpNotification_t *zclGpNotification)
 {
-  zclSampleLight_OnOffCB(COMMAND_OFF);
+  zclSampleLight_OnOffCB(COMMAND_ON_OFF_OFF);
 }
 
 /*********************************************************************
@@ -2851,7 +2878,7 @@ static void zclSampleLight_GPSink_Off(zclGpNotification_t *zclGpNotification)
  */
 static void zclSampleLight_GPSink_On(zclGpNotification_t *zclGpNotification)
 {
-  zclSampleLight_OnOffCB(COMMAND_ON);
+  zclSampleLight_OnOffCB(COMMAND_ON_OFF_ON);
 }
 
 /*********************************************************************
@@ -2865,7 +2892,7 @@ static void zclSampleLight_GPSink_On(zclGpNotification_t *zclGpNotification)
  */
 static void zclSampleLight_GPSink_Toggle(zclGpNotification_t *zclGpNotification)
 {
-  zclSampleLight_OnOffCB(COMMAND_TOGGLE);
+  zclSampleLight_OnOffCB(COMMAND_ON_OFF_TOGGLE);
 }
 #endif
 

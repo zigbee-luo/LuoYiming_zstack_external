@@ -246,14 +246,4 @@
 #define REJOIN_POLL_RATE              440
 #endif
 
-/* Rejoin retry backoff silent period timer duration in milliseconds - default 15 minutes according to HA test spec */
-#ifndef REJOIN_BACKOFF
-#define REJOIN_BACKOFF                900000
-#endif
-
-/* Rejoin retry backoff scan timer duration in milliseconds - default 15 minutes according to HA test spec */
-#ifndef REJOIN_SCAN
-#define REJOIN_SCAN                   900000
-#endif
-
 #endif /* ZSTACK_CONFIG_H */

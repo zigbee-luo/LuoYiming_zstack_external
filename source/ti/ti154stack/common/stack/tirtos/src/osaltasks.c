@@ -196,9 +196,7 @@ int stack_main( void *arg )
   // but must not repeat it every time the device wakes up
   // hence the call cannot be added to HalTRNG_InitTRNG();
 
-#if !defined( USE_FPGA )
   ICall_pwrRequire(ICALL_PWR_D_PERIPH_TRNG);
-#endif
 
   HalTRNG_InitTRNG();
 

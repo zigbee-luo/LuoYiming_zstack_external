@@ -51,6 +51,7 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
 
 /******************************************************************************
@@ -150,7 +151,7 @@ extern uint32_t zclDiagnostic_ClearStats( bool clearNV );
 
 extern ZStatus_t zclDiagnostic_GetStatsAttr( uint16_t attributeId, uint32_t *attrValue, uint16_t *dataLen );
 
-extern ZStatus_t zclDiagnostic_ReadWriteAttrCB( uint8_t endpoint, zclAttrRec_t *pAttr, uint8_t oper,
+extern ZStatus_t zclDiagnostic_ReadWriteAttrCB( uint16_t clusterId, uint16_t attrId, uint8_t oper,
                                                 uint8_t *pValue, uint16_t *pLen );
 
 extern uint8_t zclDiagnostic_RestoreStatsFromNV( void );

@@ -49,6 +49,7 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
 
 /*********************************************************************
@@ -174,7 +175,7 @@ extern "C"
  * MACROS
  */
 
-enum
+typedef enum
 {
   TELECOMMUNICATIONS_INFORMATION_INQUIRY_ID_REQUEST_BY_CONTENT_ID,
   TELECOMMUNICATIONS_INFORMATION_INQUIRY_ID_REQUEST_MULTIPLE_ID,

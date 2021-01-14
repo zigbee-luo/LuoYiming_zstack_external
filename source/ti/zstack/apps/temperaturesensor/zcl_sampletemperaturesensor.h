@@ -51,7 +51,9 @@ extern "C"
  */
 #include "zcl.h"
 #include "nvintf.h"
+#ifndef CUI_DISABLE
 #include "cui.h"
+#endif
 /*********************************************************************
  * CONSTANTS
  */

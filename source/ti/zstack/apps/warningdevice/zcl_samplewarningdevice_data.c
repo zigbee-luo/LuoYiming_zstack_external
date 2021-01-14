@@ -124,7 +124,7 @@ CONST zclAttrRec_t zclSampleWarningDevice_Attrs[] =
 {
   // *** General Basic Cluster Attributes ***
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_ZCL_VERSION,
       ZCL_DATATYPE_UINT8,
@@ -133,7 +133,7 @@ CONST zclAttrRec_t zclSampleWarningDevice_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
+    ZCL_CLUSTER_ID_GENERAL_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
     {  // Attribute record
       ATTRID_BASIC_HW_VERSION,            // Attribute ID - Found in Cluster Library header (ie. zcl_general.h)
       ZCL_DATATYPE_UINT8,                 // Data Type - found in zcl.h
@@ -142,7 +142,7 @@ CONST zclAttrRec_t zclSampleWarningDevice_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_MANUFACTURER_NAME,
       ZCL_DATATYPE_CHAR_STR,
@@ -151,7 +151,7 @@ CONST zclAttrRec_t zclSampleWarningDevice_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_POWER_SOURCE,
       ZCL_DATATYPE_ENUM8,
@@ -160,16 +160,16 @@ CONST zclAttrRec_t zclSampleWarningDevice_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
-      ATTRID_BASIC_PHYSICAL_ENV,
+      ATTRID_BASIC_PHYSICAL_ENVIRONMENT,
       ZCL_DATATYPE_ENUM8,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclSampleWarningDevice_PhysicalEnvironment
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -180,16 +180,16 @@ CONST zclAttrRec_t zclSampleWarningDevice_Attrs[] =
 
   // *** Identify Cluster Attribute ***
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     { // Attribute record
-      ATTRID_IDENTIFY_TIME,
+      ATTRID_IDENTIFY_IDENTIFY_TIME,
       ZCL_DATATYPE_UINT16,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclSampleWarningDevice_IdentifyTime
     }
   },
   {
-   ZCL_CLUSTER_ID_GEN_IDENTIFY,
+   ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -201,7 +201,7 @@ CONST zclAttrRec_t zclSampleWarningDevice_Attrs[] =
   {
     ZCL_CLUSTER_ID_SS_IAS_WD,
     { // Attribute record
-      ATTRID_SS_IAS_WD_MAXIMUM_DURATION,
+      ATTRID_IASWD_MAX_DURATION,
       ZCL_DATATYPE_UINT16,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclSampleWarningDevice_MaxDuration
@@ -220,7 +220,7 @@ CONST zclAttrRec_t zclSampleWarningDevice_Attrs[] =
   {
     ZCL_CLUSTER_ID_SS_IAS_ZONE,
     { // Attribute record
-      ATTRID_SS_IAS_ZONE_STATE,
+      ATTRID_IAS_ZONE_ZONE_STATE,
       ZCL_DATATYPE_ENUM8,
       ACCESS_CONTROL_READ,
       (void *)&zclSampleWarningDevice_ZoneState
@@ -229,7 +229,7 @@ CONST zclAttrRec_t zclSampleWarningDevice_Attrs[] =
   {
     ZCL_CLUSTER_ID_SS_IAS_ZONE,
     { // Attribute record
-      ATTRID_SS_IAS_ZONE_TYPE,
+      ATTRID_IAS_ZONE_ZONE_TYPE,
       ZCL_DATATYPE_ENUM16,
       ACCESS_CONTROL_READ,
       (void *)&zclSampleWarningDevice_ZoneType
@@ -238,7 +238,7 @@ CONST zclAttrRec_t zclSampleWarningDevice_Attrs[] =
   {
     ZCL_CLUSTER_ID_SS_IAS_ZONE,
     { // Attribute record
-      ATTRID_SS_IAS_ZONE_STATUS,
+      ATTRID_IAS_ZONE_ZONE_STATUS,
       ZCL_DATATYPE_BITMAP16,
       ACCESS_CONTROL_READ,
       (void *)&zclSampleWarningDevice_ZoneStatus
@@ -256,7 +256,7 @@ CONST zclAttrRec_t zclSampleWarningDevice_Attrs[] =
   {
     ZCL_CLUSTER_ID_SS_IAS_ZONE,
     { // Attribute record
-      ATTRID_SS_ZONE_ID,
+      ATTRID_IAS_ZONE_ZONE_ID,
       ZCL_DATATYPE_UINT8,
       ACCESS_CONTROL_READ,
       (void *)&zclSampleWarningDevice_ZoneId
@@ -283,8 +283,8 @@ uint8_t CONST zclSampleWarningDevice_NumAttributes = ( sizeof(zclSampleWarningDe
 // specific cluster IDs.
 const cId_t zclSampleWarningDevice_InClusterList[] =
 {
-  ZCL_CLUSTER_ID_GEN_BASIC,
-  ZCL_CLUSTER_ID_GEN_IDENTIFY,
+  ZCL_CLUSTER_ID_GENERAL_BASIC,
+  ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
   ZCL_CLUSTER_ID_SS_IAS_WD,
   ZCL_CLUSTER_ID_SS_IAS_ZONE
 };
@@ -296,7 +296,7 @@ SimpleDescriptionFormat_t zclSampleWarningDevice_SimpleDesc =
 {
   SAMPLEWARNINGDEVICE_ENDPOINT,                  //  int Endpoint;
   ZCL_HA_PROFILE_ID,                  //  uint16_t AppProfId[2];
-  ZCL_HA_DEVICEID_IAS_WARNING_DEVICE,//  uint16_t AppDeviceId[2];
+  ZCL_DEVICEID_IAS_WARNING,//  uint16_t AppDeviceId[2];
   SAMPLEWARNINGDEVICE_DEVICE_VERSION,            //  int   AppDevVer:4;
   SAMPLEWARNINGDEVICE_FLAGS,                     //  int   AppFlags:4;
   ZCLSAMPLEWARNINGDEVICE_MAX_INCLUSTERS,         //  byte  AppNumInClusters;

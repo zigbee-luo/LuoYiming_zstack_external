@@ -40,7 +40,6 @@
 #ifndef ZCL_POWER_PROFILE_H
 #define ZCL_POWER_PROFILE_H
 
-#ifdef ZCL_POWER_PROFILE
 
 #ifdef __cplusplus
 extern "C"
@@ -51,7 +50,9 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
+#ifdef ZCL_POWER_PROFILE
 /******************************************************************************
  * CONSTANTS
  */
@@ -61,43 +62,43 @@ extern "C"
 /*****************************************/
 
 // Server Attributes
-#define ATTRID_POWER_PROFILE_TOTAL_PROFILE_NUM                                  0x0000  // M, R, uint8_t
-#define ATTRID_POWER_PROFILE_MULTIPLE_SCHEDULING                                0x0001  // M, R, BOOLEAN
-#define ATTRID_POWER_PROFILE_ENERGY_FORMATTING                                  0x0002  // M, R, 8-BIT BITMAP
-#define ATTRID_POWER_PROFILE_ENERGY_REMOTE                                      0x0003  // M, R, BOOLEAN
-#define ATTRID_POWER_PROFILE_SCHEDULE_MODE                                      0x0004  // M, R/W, 8-BIT BITMAP
+#define ATTRID_POWER_PROFILE_TOTAL_PROFILE_NUM                                        0x0000  // M, R, uint8_t
+#define ATTRID_POWER_PROFILE_MULTIPLE_SCHEDULING                                      0x0001  // M, R, BOOLEAN
+#define ATTRID_POWER_PROFILE_ENERGY_FORMATTING                                        0x0002  // M, R, 8-BIT BITMAP
+#define ATTRID_POWER_PROFILE_ENERGY_REMOTE                                            0x0003  // M, R, BOOLEAN
+#define ATTRID_POWER_PROFILE_SCHEDULE_MODE                                            0x0004  // M, R/W, 8-BIT BITMAP
 
 // Server Attribute Defaults
-#define ATTR_DEFAULT_POWER_PROFILE_TOTAL_PROFILE_NUM                            1
-#define ATTR_DEFAULT_POWER_PROFILE_MULTIPLE_SCHEDULING                          0x00
-#define ATTR_DEFAULT_POWER_PROFILE_ENERGY_FORMATTING                            0x01
-#define ATTR_DEFAULT_POWER_PROFILE_ENERGY_REMOTE                                0x00
-#define ATTR_DEFAULT_POWER_PROFILE_SCHEDULE_MODE                                0x00
+#define ATTR_DEFAULT_POWER_PROFILE_TOTAL_PROFILE_NUM                                  1
+#define ATTR_DEFAULT_POWER_PROFILE_MULTIPLE_SCHEDULING                                0x00
+#define ATTR_DEFAULT_POWER_PROFILE_ENERGY_FORMATTING                                  0x01
+#define ATTR_DEFAULT_POWER_PROFILE_ENERGY_REMOTE                                      0x00
+#define ATTR_DEFAULT_POWER_PROFILE_SCHEDULE_MODE                                      0x00
 
 // Server commands received (Client-to-Server in ZCL Header)
-#define COMMAND_POWER_PROFILE_POWER_PROFILE_REQ                                 0x00  // M, powerProfileID
-#define COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_REQ                           0x01  // M, no payload
-#define COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_RSP                       0x02  // M, zclPowerProfileGetPowerProfilePriceRsp_t
-#define COMMAND_POWER_PROFILE_GET_OVERALL_SCHEDULE_PRICE_RSP                    0x03  // M, zclPowerProfileGetOverallSchedulePriceRsp_t
-#define COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_NOTIFICATION               0x04  // M, zclPowerProfileEnergyPhasesSchedule_t
-#define COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RSP                        0x05  // M, zclPowerProfileEnergyPhasesSchedule_t
-#define COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_REQ            0x06  // M, powerProfileID
-#define COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_REQ                  0x07  // M, powerProfileID
-#define COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_EXT_RSP                   0x08  // M, zclPowerProfileGetPowerProfilePriceExtRsp_t
+#define COMMAND_POWER_PROFILE_POWER_PROFILE_REQUEST                                   0x00  // M, powerProfileID
+#define COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_REQUEST                             0x01  // M, no payload
+#define COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_RESPONSE                        0x02  // M, zclPowerProfileGetPowerProfilePriceRsp_t
+#define COMMAND_POWER_PROFILE_GET_OVERALL_SCHEDULE_PRICE_RESPONSE                     0x03  // M, zclPowerProfileGetOverallSchedulePriceRsp_t
+#define COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_NOTIFICATION                     0x04  // M, zclPowerProfileEnergyPhasesSchedule_t
+#define COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RESPONSE                         0x05  // M, zclPowerProfileEnergyPhasesSchedule_t
+#define COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_REQUEST              0x06  // M, powerProfileID
+#define COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_REQUEST                    0x07  // M, powerProfileID
+#define COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_EXTENDED_RESPONSE               0x08  // M, zclPowerProfileGetPowerProfilePriceExtRsp_t
 
 // Server commands generated (Server-to-Client in ZCL Header)
-#define COMMAND_POWER_PROFILE_POWER_PROFILE_NOTIFICATION                        0x00  // M, zclPowerProfileNotification_t
-#define COMMAND_POWER_PROFILE_POWER_PROFILE_RSP                                 0x01  // M, zclPowerProfileRsp_t
-#define COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_RSP                           0x02  // M, zclPowerProfileStateRsp_t
-#define COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE                           0x03  // O, powerProfileID
-#define COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_NOTIFICATION                  0x04  // M, zclPowerProfileStateNotification_t
-#define COMMAND_POWER_PROFILE_GET_OVERALL_SCHEDULE_PRICE                        0x05  // O, no payload
-#define COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_REQ                        0x06  // M, powerProfileID
-#define COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RSP                  0x07  // M, zclPowerProfileEnergyPhasesSchedule_t
-#define COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_NOTIFICATION         0x08  // M, zclPowerProfileEnergyPhasesSchedule_t
-#define COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_NOTIFICATION   0x09  // M, zclPowerProfileScheduleConstraintsNotification_t
-#define COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_RSP            0x0A  // M, zclPowerProfileScheduleConstraintsRsp_t
-#define COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_EXT                       0x0B  // O, zclPowerProfileGetPowerProfilePriceExt_t
+#define COMMAND_POWER_PROFILE_POWER_PROFILE_NOTIFICATION                              0x00  // M, zclPowerProfileNotification_t
+#define COMMAND_POWER_PROFILE_POWER_PROFILE_RESPONSE                                  0x01  // M, zclPowerProfileRsp_t
+#define COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_RESPONSE                            0x02  // M, zclPowerProfileStateRsp_t
+#define COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE                                 0x03  // O, powerProfileID
+#define COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_NOTIFICATION                        0x04  // M, zclPowerProfileStateNotification_t
+#define COMMAND_POWER_PROFILE_GET_OVERALL_SCHEDULE_PRICE                              0x05  // O, no payload
+#define COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_REQUEST                          0x06  // M, powerProfileID
+#define COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RESPONSE                   0x07  // M, zclPowerProfileEnergyPhasesSchedule_t
+#define COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_NOTIFICATION               0x08  // M, zclPowerProfileEnergyPhasesSchedule_t
+#define COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_NOTIFICATION         0x09  // M, zclPowerProfileScheduleConstraintsNotification_t
+#define COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_RESPONSE             0x0A  // M, zclPowerProfileScheduleConstraintsRsp_t
+#define COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_EXTENDED                        0x0B  // O, zclPowerProfileGetPowerProfilePriceExt_t
 
 // PowerProfileState enumeration field
 #define POWER_PROFILE_IDLE                        0x00  // The PP is not defined in its parameters
@@ -280,7 +281,7 @@ typedef struct
 
 
 /*
- * Send Energy Phases Schedule Response cmd - COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RSP
+ * Send Energy Phases Schedule Response cmd - COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RESPONSE
  *
  * Use like:
  *  ZStatus_t zclPowerProfile_Send_EnergyPhasesScheduleRsp( uint8_t srcEP, afAddrType_t *dstAddr,
@@ -289,11 +290,11 @@ typedef struct
  */
 #define zclPowerProfile_Send_EnergyPhasesScheduleRsp(a, b, c, d, e) \
         zclPowerProfile_Send_EnergyPhasesSchedule( (a), (b), \
-                                                   COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RSP, \
+                                                   COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RESPONSE, \
                                                    (c), ZCL_FRAME_CLIENT_SERVER_DIR, (d), (e) )
 
 /*
- * Send Energy Phases Schedule State Response cmd - COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RSP
+ * Send Energy Phases Schedule State Response cmd - COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RESPONSE
  *
  * Use like:
  *  ZStatus_t zclPowerProfile_Send_EnergyPhasesScheduleStateRsp( uint8_t srcEP, afAddrType_t *dstAddr,
@@ -302,7 +303,7 @@ typedef struct
  */
 #define zclPowerProfile_Send_EnergyPhasesScheduleStateRsp(a, b, c, d, e) \
         zclPowerProfile_Send_EnergyPhasesSchedule( (a), (b), \
-                                                   COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RSP, \
+                                                   COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RESPONSE, \
                                                    (c), ZCL_FRAME_SERVER_CLIENT_DIR, (d), (e) )
 
 /*
@@ -412,8 +413,8 @@ extern ZStatus_t zclPowerProfile_Send_GetOverallSchedulePriceRsp( uint8_t srcEP,
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
  * @param   cmdID - COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_NOTIFICATION,
- *                  COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RSP,
- *                  COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RSP,
+ *                  COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RESPONSE,
+ *                  COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RESPONSE,
  *                  COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_NOTIFICATION
  * @param   pPayload:
  *          powerProfileID - specifies the Power Profile in question
@@ -683,9 +684,10 @@ extern ZStatus_t zclPowerProfile_Send_GetPowerProfilePriceExt( uint8_t srcEP, af
 
 /*********************************************************************
 *********************************************************************/
+#endif // ZCL_POWER_PROFILE
 
 #ifdef __cplusplus
 }
 #endif
-#endif // ZCL_POWER_PROFILE
+
 #endif /* ZCL_POWER_PROFILE_H */

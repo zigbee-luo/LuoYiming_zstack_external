@@ -69,7 +69,9 @@
 #include "util_timer.h"
 #include "mac_api.h"
 #include "icall_osal_rom_jt.h"
+#ifndef CUI_DISABLE
 #include "cui.h"
+#endif /* CUI_DISABLE */
 #include <ti/sysbios/knl/Clock.h>
 #include <ti/sysbios/knl/Semaphore.h>
 
@@ -214,6 +216,7 @@ static SM_callbacks_t *pSMCallbacks = (SM_callbacks_t *) NULL;
 static Clock_Struct smProcessTimeoutClkStruct;
 static Clock_Handle smProcessTimeoutClkHandle;
 
+#ifndef CUI_DISABLE
 CUI_clientHandle_t securityCuiHndl;
 uint32_t securityStatusLine;
 #ifdef SECURE_MANAGER_DEBUG
@@ -222,6 +225,7 @@ uint32_t securityDebugStatusLine;
 #ifdef SECURE_MANAGER_DEBUG_ADVANCED
 uint32_t securityDebugStatusLine2;
 #endif
+#endif /* CUI_DISABLE */
 
 /* semaphore in application */
 static Semaphore_Handle hSMappSem;
@@ -273,7 +277,11 @@ static void printErrorString(SMMsgs_errorCode_t errorCode);
 
  Public function defined in sm.h
  */
+#ifndef CUI_DISABLE
 void SM_init(void* sem, CUI_clientHandle_t cuiHndl)
+#else
+void SM_init(void* sem)
+#endif /* CUI_DISABLE */
 {
     SM_seedKey_Entry_t *pSeedKeyEnty;
 
@@ -288,6 +296,7 @@ void SM_init(void* sem, CUI_clientHandle_t cuiHndl)
     /* Save off the semaphore */
     hSMappSem = sem;
 
+#ifndef CUI_DISABLE
     /* Saveoff the CUI handle */
     securityCuiHndl = cuiHndl;
 
@@ -299,6 +308,8 @@ void SM_init(void* sem, CUI_clientHandle_t cuiHndl)
 #ifdef SECURE_MANAGER_DEBUG_ADVANCED
     CUI_statusLineResourceRequest(securityCuiHndl, "Security Debug 2", false, &securityDebugStatusLine2);
 #endif
+#endif /* CUI_DISABLE */
+
     /* Initialize commissioning timeout clock */
     initializeCommStatusClock();
 #ifdef FEATURE_FULL_FUNCTION_DEVICE
@@ -345,10 +356,10 @@ void SM_process(void)
         /* Clear the event */
         Util_clearEvent(&SM_events, SM_TIMEOUT_EVT);
 
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine,
                                     "Timeout Occurred !!!");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
 
         /* Security establishment failure due to procedure timeout */
         /* Send failure message to other party via SMMsgs_cmdIds_processFail */
@@ -365,7 +376,9 @@ void SM_process(void)
                 /*passkey timeout*/
                 pSMCallbacks->pfnRequestPasskeyCb(SM_passkeyEntryTimeout);
             }
+#ifndef CUI_DISABLE
             CUI_statusLinePrintf(securityCuiHndl, securityStatusLine, "Passkey Entry Timeout!");
+#endif /* CUI_DISABLE */
         }
     }
     else if (SM_events & SM_SENT_CM_FAIL_EVT)
@@ -385,10 +398,10 @@ void SM_process(void)
         /* Stop the timer */
         bool restartTimer = stopSMProcessTimeoutClock();
 
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine,
                                     "Will Retry Sending previous Packet");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
 
         /* Resend packet as fail status was seen for previous attempt */
         SMSendInfo((Smsgs_cmdIds_t)0, (SMMsgs_cmdIds_t)0, NULL, (uint8_t)0,
@@ -497,6 +510,7 @@ void SM_startKeyRefreshProcess(ApiMac_deviceDescriptor_t *pDevInfo, ApiMac_sec_t
     /* Verify security manager is not processing another device */
     if (currentSMState == SM_states_entry)
     {
+#ifndef CUI_DISABLE
         if (SM_type_coordinator == deviceType)
         {
              CUI_statusLinePrintf(securityCuiHndl, securityStatusLine,
@@ -509,6 +523,7 @@ void SM_startKeyRefreshProcess(ApiMac_deviceDescriptor_t *pDevInfo, ApiMac_sec_t
                                  "Key Refreshment Started: 0x%04x",
                                  SM_Sensor_SAddress);
         }
+#endif /* CUI_DISABLE */
 
         /* SM in key refreshment process */
         SM_Current_State = SM_CM_InProgress;
@@ -634,16 +649,20 @@ void SM_startCMProcess(ApiMac_deviceDescriptor_t *devInfo, ApiMac_sec_t *sec,
         /* Generate the starting event for collector */
         Util_setEvent(&SM_events, SM_COLLECTOR_CM_START_EVT);
 
+#ifndef CUI_DISABLE
         CUI_statusLinePrintf(securityCuiHndl, securityStatusLine,
                                  "Commissioning Started: 0x%04x",
                                  devInfo->shortAddress);
+#endif /* CUI_DISABLE */
     }
     /* Non-Coordinator device; sensor */
     else
     {
+#ifndef CUI_DISABLE
         CUI_statusLinePrintf(securityCuiHndl, securityStatusLine,
                                              "Commissioning Started: 0x%04x",
                                              SM_Sensor_SAddress);
+#endif /* CUI_DISABLE */
 
         /* Device association complete */
         switchState(SM_states_auth_method);
@@ -701,7 +720,9 @@ bool SM_removeEntryFromSeedKeyTable (ApiMac_sAddrExt_t *extAddress) {
     /* free the space */
     OsalPort_free(pSeedKey);
 
+#ifndef CUI_DISABLE
     CUI_statusLinePrintf(securityCuiHndl, securityStatusLine, "Decommissioned");
+#endif /* CUI_DISABLE */
     
     return(true);
 }
@@ -739,10 +760,10 @@ void SM_processCommData(ApiMac_mcpsDataInd_t *pDataInd)
     else if ((waitingForMsgID != SMMsgs_noMsg) && (waitingForMsgID != CMMsgId) &&
             (SMMsgs_cmdIds_processFail != CMMsgId))
     {
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine,
                              "Unexpected message received - Ignoring it!");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
         /* Do nothing and return */
         return;
     }
@@ -769,11 +790,11 @@ void SM_processCommData(ApiMac_mcpsDataInd_t *pDataInd)
         case SMMsgs_cmdIds_processFail:
         {
             /* Security establishment failure */
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
             CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine,
                                             "Rx'ed SMMsgs_cmdIds_processFail");
             printErrorString((SMMsgs_errorCode_t)*pBuf);
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
             errorCode = (SMMsgs_errorCode_t)*pBuf;
             switchState(SM_states_finish_fail);
             break;
@@ -877,7 +898,7 @@ void SM_processCommData(ApiMac_mcpsDataInd_t *pDataInd)
             /* Store foreign security constant */
             OsalPort_memcpy(&keyGenInfo.receivedE[0], pBuf, SM_KEY_GEN_DATA_SIZE);
 
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
             CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                                      "Key Gen - Security constant received:");
 
@@ -892,7 +913,7 @@ void SM_processCommData(ApiMac_mcpsDataInd_t *pDataInd)
                                         keyGenInfo.receivedE[i*8 + 4], keyGenInfo.receivedE[i*8 + 5],
                                         keyGenInfo.receivedE[i*8 + 6], keyGenInfo.receivedE[i*8 + 7]);
             }
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
             if ((SM_type_coordinator == deviceType) && (SM_states_authentication == currentSMState))
             {
                 switchState(SM_states_key_gen);
@@ -987,10 +1008,10 @@ static void processState(SM_states_t state)
                     authMethodFailBuf[0] = SMMsgs_errorCode_unsupportedAuthMethod;
                     authMethodFailBuf[SM_AUTH_METHOD_FAIL_BUF_SIZE - 1] = localSupportedAuthMethods;
 
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
                     CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine,
                                                     "Auth Method agreement failed");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
                     SMSendInfo(Smgs_cmdIds_CommissionMsg, SMMsgs_cmdIds_processFail,
                                authMethodFailBuf, SM_AUTH_METHOD_FAIL_BUF_SIZE, \
                                SM_FAIL_MSDU_HANDLE, false);
@@ -1083,7 +1104,7 @@ static void processState(SM_states_t state)
 
         case SM_states_authentication:
         {
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
            uint8_t i = 0;
 
             /* Print sharedSecretKey here as both device and coordinator create key in separate locations */
@@ -1099,7 +1120,7 @@ static void processState(SM_states_t state)
                     localSecDevice.sharedSecretKeyMaterial[i + 5], localSecDevice.sharedSecretKeyMaterial[i + 6],
                     localSecDevice.sharedSecretKeyMaterial[i + 7]);
             }
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
 
             /* prepare for doing authentication */
             SMProcessAuthState();
@@ -1187,6 +1208,7 @@ static void processState(SM_states_t state)
             /* clear the SM_cmAttempts count */
             SM_cmAttempts = 0;
 
+#ifndef CUI_DISABLE
             if (keyRefreshmentProcess == true)
             {
                 CUI_statusLinePrintf(securityCuiHndl, securityStatusLine,
@@ -1199,6 +1221,7 @@ static void processState(SM_states_t state)
                                      "Commissioned: 0x%04x",
                                      SM_Sensor_SAddress);
             }
+#endif /* CUI_DISABLE */
 
             /* if co-ordinator */
             if(deviceType == SM_type_coordinator)
@@ -1246,8 +1269,10 @@ static void processState(SM_states_t state)
 
             if (keyRefreshmentProcess)
             {
+#ifndef CUI_DISABLE
                 CUI_statusLinePrintf(securityCuiHndl, securityStatusLine,
                                      "Key Refresh Failed: 0x%04x", SM_Sensor_SAddress);
+#endif /* CUI_DISABLE */
             }
             else if ((errorCode == SMMsgs_errorCode_noMatchAuthVal) ||
                      (errorCode == SMMsgs_errorCode_noMatchKeyConfirm) ||
@@ -1259,11 +1284,14 @@ static void processState(SM_states_t state)
                   SM_cmAttempts = 0;
                 }
 
+#ifndef CUI_DISABLE
                 /* Device failed authentication, exceeded max commissioning attempts,
                  * or user has not allowed commissioning retry */
                 CUI_statusLinePrintf(securityCuiHndl, securityStatusLine,
                                          "Commissioning Failed: 0x%04x", SM_Sensor_SAddress);
+#endif /* CUI_DISABLE */
             }
+#ifndef CUI_DISABLE
             else
             {
 #ifdef FEATURE_FULL_FUNCTION_DEVICE
@@ -1281,6 +1309,7 @@ static void processState(SM_states_t state)
                                             "Commissioning being Re-attempted: Attempt %d, Sensor 0x%04x", SM_cmAttempts, SM_Sensor_SAddress);
                 }
             }
+#endif /* CUI_DISABLE */
 
             /* Notify application of failure */
            if(pSMCallbacks->pfnFailCMProcessCb)
@@ -1313,14 +1342,14 @@ static void switchState(SM_states_t newState)
         Util_setEvent(&SM_events, SM_STATE_CHANGE_EVT);
     }
 
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
     else
     {
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine,
                              "Invalid state attempted %d", newState);
     }
      printStateString(newState);
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
 
 }
 
@@ -1435,7 +1464,7 @@ static void clearSecurityVariables(void) {
 static void initializeCommStatusClock(void)
 {
     /* Initialize SM timeout timer */
-    smProcessTimeoutClkHandle = Timer_construct(&smProcessTimeoutClkStruct,
+    smProcessTimeoutClkHandle = UtilTimer_construct(&smProcessTimeoutClkStruct,
                                     processSMProcessTimeoutCallback,
                                     SM_COMMISIONING_STATUS_TIMEOUT_VALUE,
                                     0,
@@ -1462,10 +1491,10 @@ static void processSMProcessTimeoutCallback(UArg a0)
         Semaphore_post(hSMappSem);
     }
 
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
     CUI_statusLinePrintf(securityCuiHndl, securityStatusLine,
                          "Message timeout");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
 }
 
 /*!
@@ -1476,21 +1505,21 @@ static void processSMProcessTimeoutCallback(UArg a0)
 static void setSMProcessTimeoutClock(uint32_t timeout)
 {
     /* Stop the SM timeout timer */
-    if(Timer_isActive(&smProcessTimeoutClkStruct) == true)
+    if(UtilTimer_isActive(&smProcessTimeoutClkStruct) == true)
     {
-         Timer_stop(&smProcessTimeoutClkStruct);
+        UtilTimer_stop(&smProcessTimeoutClkStruct);
     }
 
     if(timeout != 0)
     {
         /* Setup timer */
-        Timer_setTimeout(smProcessTimeoutClkHandle, timeout);
-        Timer_start(&smProcessTimeoutClkStruct);
+        UtilTimer_setTimeout(smProcessTimeoutClkHandle, timeout);
+        UtilTimer_start(&smProcessTimeoutClkStruct);
 
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                              "Timer started");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
     }
 }
 
@@ -1506,16 +1535,16 @@ static bool stopSMProcessTimeoutClock(void)
     bool wasActive = false;
 
     /* Stop the SM timeout timer */
-    if(Timer_isActive(&smProcessTimeoutClkStruct) == true)
+    if(UtilTimer_isActive(&smProcessTimeoutClkStruct) == true)
     {
-        Timer_stop(&smProcessTimeoutClkStruct);
+        UtilTimer_stop(&smProcessTimeoutClkStruct);
         wasActive = true;
     }
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
     CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                         "Timer stopped");
 #endif
-
+ /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
     return wasActive;
 }
 
@@ -1546,15 +1575,15 @@ static bool isSupportedAuthType(uint8_t authMethods)
     }
     else /* nothing in common */
     {
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                              "Error - No common Auth Method!");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
         return (false);
     }
 }
 
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
 /*!
  * @brief       Debug helper function to print selected authentication method string
  *
@@ -1753,7 +1782,7 @@ void printErrorString(SMMsgs_errorCode_t errorCode)
             break;
     }
 }
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
 
 /******************************************************************************
  Message specific functions
@@ -1888,10 +1917,10 @@ static bool SMSendInfo(Smsgs_cmdIds_t msgID, SMMsgs_cmdIds_t smCmdID,
     /* Exceeded max failure attempts */
     if (sendMsgAttempts > SM_PKT_MAX_RETRY_ATTEMPTS)
     {
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine,
                                 "SM: Failed to send a packet: exceeded Max Attempts!");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
         if(SMMsgs_cmdIds_processRequest == smCmdIdToSend)
         {
             errorCode = SMMsgs_errorCode_reComm_sensor_notResp;
@@ -1915,10 +1944,10 @@ static bool SMSendInfo(Smsgs_cmdIds_t msgID, SMMsgs_cmdIds_t smCmdID,
         /* Set an event that failure status from previous packet sent is seen */
         Util_setEvent(&SM_events, SM_SEND_PKT_FB_EVT);
 
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine,
                                 "Failed to put pkt in MAC queue. Will retry!");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
 
     }
     else /* Was able to admit the packet into MAC */
@@ -1929,10 +1958,10 @@ static bool SMSendInfo(Smsgs_cmdIds_t msgID, SMMsgs_cmdIds_t smCmdID,
         /* increment the counter tracking number of retry attempts */
         sendMsgAttempts++;
 
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
         /* print the message that packet was sent */
         printCmdString(smCmdID, true, retryFlag); /* tony: logic wrt retry flag needs to be fixed */
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
     }
 
     return(retVal);
@@ -1943,10 +1972,10 @@ static bool SMSendInfo(Smsgs_cmdIds_t msgID, SMMsgs_cmdIds_t smCmdID,
  */
 static void startKeyGenProcess()
 {
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
     CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine,
                          "Beginning Key Generation");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
     /* Temporary storage for ConKey || Device Key (concatenated) */
     uint8_t concatKeys[APIMAC_KEY_MAX_LEN * 2];
     uint8_t passkeyBuf[SM_PASSKEY_BUF_SIZE];
@@ -2008,7 +2037,7 @@ static void startKeyGenProcess()
           passkeyBuf, agreedUponAuthMethodBuf, commissionDevInfo.extAddress,
           ApiMac_extAddr, keyGenInfo.expectedE);
 
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
     uint8_t i = 0;
 
     CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
@@ -2045,7 +2074,7 @@ static void startKeyGenProcess()
                             keyGenInfo.expectedE[i*8 + 4], keyGenInfo.expectedE[i*8 + 5],
                             keyGenInfo.expectedE[i*8 + 6], keyGenInfo.expectedE[i*8 + 7]);
     }
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
 
     /* Sensor sends local Es value */
     if (deviceType == SM_type_device)
@@ -2059,10 +2088,10 @@ static void startKeyGenProcess()
         /* Start timeout for commissioning response */
         setSMProcessTimeoutClock(SM_COMMISIONING_STATUS_TIMEOUT_VALUE);
 
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                              "Key Gen: Sensor Es sent");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
     }
     else // type coordinator
     {
@@ -2108,10 +2137,10 @@ static void processKeyGenState()
     }
     else //verification failed
     {
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine,
                             "Key Gen - Failed");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
         /* Send failure message to other party via SMMsgs_cmdIds_processFail */
         errorCode = SMMsgs_errorCode_noMatchKeyConfirm;
 
@@ -2213,14 +2242,14 @@ static void SMAuthStateGenCodeAndNonce(uint8_t itrNum, uint8_t curPassKey)
     /* Generate Nonce for this iteration */
     SM_ECC_genRandomPrivateKeyMaterial( &localAuthCodeNoncePairs[itrNum].Nonce[0], SM_AUTH_NONCE_LEN);
 
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
     CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
             "Authentication: Locally generated Nonce :0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x", \
             localAuthCodeNoncePairs[itrNum].Nonce[0], localAuthCodeNoncePairs[itrNum].Nonce[1],\
             localAuthCodeNoncePairs[itrNum].Nonce[2], localAuthCodeNoncePairs[itrNum].Nonce[3],\
             localAuthCodeNoncePairs[itrNum].Nonce[4], localAuthCodeNoncePairs[itrNum].Nonce[5],\
             localAuthCodeNoncePairs[itrNum].Nonce[6], localAuthCodeNoncePairs[itrNum].Nonce[7] );
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
 
     /* Calculate output of F1() i.e. Code for this iteration */
     /* SM_f1( local Public Key, foreign public key, Local Nonce, Passkey sub set, Output */
@@ -2229,14 +2258,14 @@ static void SMAuthStateGenCodeAndNonce(uint8_t itrNum, uint8_t curPassKey)
            curPassKey, \
            &localAuthCodeNoncePairs[itrNum].Code[0]);
 
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
     CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                 "Authentication: Locally generated Code :0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x", \
                 localAuthCodeNoncePairs[itrNum].Code[0], localAuthCodeNoncePairs[itrNum].Code[1],\
                 localAuthCodeNoncePairs[itrNum].Code[2], localAuthCodeNoncePairs[itrNum].Code[3],\
                 localAuthCodeNoncePairs[itrNum].Code[4], localAuthCodeNoncePairs[itrNum].Code[5],\
                 localAuthCodeNoncePairs[itrNum].Code[6], localAuthCodeNoncePairs[itrNum].Code[7] );
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
 
 }
 
@@ -2258,7 +2287,7 @@ static void SMProcessAuthState()
     /* skip it for device on 0th iteration */
     if(((SM_type_device == deviceType) && (-1 != SM_authItrVal)) || (SM_type_coordinator == deviceType))
     {
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                 "Authentication - Received Code : 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x", \
                 foreignAuthCodeNoncePairs[SM_authItrVal].Code[0], foreignAuthCodeNoncePairs[SM_authItrVal].Code[1],\
@@ -2272,7 +2301,7 @@ static void SMProcessAuthState()
                 foreignAuthCodeNoncePairs[SM_authItrVal].Nonce[2], foreignAuthCodeNoncePairs[SM_authItrVal].Nonce[3],\
                 foreignAuthCodeNoncePairs[SM_authItrVal].Nonce[4], foreignAuthCodeNoncePairs[SM_authItrVal].Nonce[5],\
                 foreignAuthCodeNoncePairs[SM_authItrVal].Nonce[6], foreignAuthCodeNoncePairs[SM_authItrVal].Nonce[7] );
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
 
         if((SM_type_coordinator == deviceType))
         {
@@ -2280,12 +2309,12 @@ static void SMProcessAuthState()
             mask = (((uint32_t)1<<PASSKEY_TEST_SIZE) -1) << (SM_authItrVal*PASSKEY_TEST_SIZE);
             itrPassKey = ((mask & SM_authPassKey) >> (SM_authItrVal*PASSKEY_TEST_SIZE));
 
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
             CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                                     "Authentication - Iteration Number = %d", SM_authItrVal);
             CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                                     "Authentication - Iteration Pass Key = %d", itrPassKey);
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
         }
 
         /* do calculations on received (code, nonce) pair */
@@ -2300,14 +2329,14 @@ static void SMProcessAuthState()
     /* skip it for device on 0th iteration */
     if(((SM_type_device == deviceType) && (-1 != SM_authItrVal)) || (SM_type_coordinator == deviceType))
     {
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                             "Authentication - Locally computed Foreign Code : 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x",
                             locallyCompForeignCode[0], locallyCompForeignCode[1],\
                             locallyCompForeignCode[2], locallyCompForeignCode[3],\
                             locallyCompForeignCode[4], locallyCompForeignCode[5],\
                             locallyCompForeignCode[6], locallyCompForeignCode[7] );
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
 
         /* verify results */
         if( FALSE == OsalPort_memcmp(&locallyCompForeignCode[0], \
@@ -2316,10 +2345,10 @@ static void SMProcessAuthState()
         {
             //switch state and get out
             /* If Authentication failed, switch states to finish fail */
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
             CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine,
                                  "Authentication Failed");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
             /* Send failure message to other party via SMMsgs_cmdIds_processFail */
             errorCode = SMMsgs_errorCode_noMatchAuthVal;
 
@@ -2347,10 +2376,10 @@ static void SMProcessAuthState()
          if(SM_authItrVal == SM_NUM_AUTH_ITERATIONS)
          {
              /* If Authentication successful, switch states to generate device key */
-#ifdef SECURE_MANAGER_DEBUG
+#if defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE)
             CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine,
                                  "Authentication Successful");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG) && !defined(CUI_DISABLE) */
             /* switch state for the SM state machine */
             switchState(SM_states_key_gen);
 
@@ -2362,21 +2391,21 @@ static void SMProcessAuthState()
         mask = (((uint32_t)1<<PASSKEY_TEST_SIZE) -1) << (SM_authItrVal*PASSKEY_TEST_SIZE);
         itrPassKey = ((mask & SM_authPassKey) >> (SM_authItrVal*PASSKEY_TEST_SIZE));
 
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                                 "Authentication Iteration Number = %d", SM_authItrVal);
         CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                                 "Authentication Iteration Pass Key = %d", itrPassKey);
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
     }
 
     /* generate Code and Nonce */
     SMAuthStateGenCodeAndNonce(SM_authItrVal, itrPassKey);
 
-#ifdef SECURE_MANAGER_DEBUG_ADVANCED
+#if defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE)
             CUI_statusLinePrintf(securityCuiHndl, securityDebugStatusLine2,
                                     "Authentication Sending Code and Nonce");
-#endif
+#endif /* defined(SECURE_MANAGER_DEBUG_ADVANCED) && !defined(CUI_DISABLE) */
 
     /* concatenate code and nonce to be sent */
     memcpy(&tempBuf[0], &localAuthCodeNoncePairs[SM_authItrVal].Code[0], SM_AUTH_CODE_LEN);
@@ -2539,7 +2568,7 @@ SM_AddResult_t addEntry2SeedKeyTable (ApiMac_sAddrExt_t extAddress, uint16_t sho
 static void initializeKeyRefreshClock(void)
 {
     /* Initialize SM timeout timer */
-    smKeyRefreshTimeoutClkHandle = Timer_construct(&smKeyRefreshTimeoutClkStruct,
+    smKeyRefreshTimeoutClkHandle = UtilTimer_construct(&smKeyRefreshTimeoutClkStruct,
                                     keyRefreshTimeoutCallback,
                                     keyRefreshTimeout,
                                     0,
@@ -2569,16 +2598,16 @@ static void keyRefreshTimeoutCallback(UArg a0)
 static void setKeyRefreshTimeoutClock(uint32_t timeout)
 {
     /* Stop the SM timeout timer */
-    if(Timer_isActive(&smKeyRefreshTimeoutClkStruct) == true)
+    if(UtilTimer_isActive(&smKeyRefreshTimeoutClkStruct) == true)
     {
-         Timer_stop(&smKeyRefreshTimeoutClkStruct);
+        UtilTimer_stop(&smKeyRefreshTimeoutClkStruct);
     }
 
     if(timeout != 0)
     {
         /* Setup timer */
-        Timer_setTimeout(smKeyRefreshTimeoutClkHandle, timeout);
-        Timer_start(&smKeyRefreshTimeoutClkStruct);
+        UtilTimer_setTimeout(smKeyRefreshTimeoutClkHandle, timeout);
+        UtilTimer_start(&smKeyRefreshTimeoutClkStruct);
     }
 }
 
@@ -2623,8 +2652,10 @@ static void keyRecoverProcess (void)
     {
         /* recovering key is done */
         fCommissionRequired = false;
+#ifndef CUI_DISABLE
         CUI_statusLinePrintf(securityCuiHndl, securityStatusLine,
                                  "Key Recovery is done");
+#endif /* CUI_DISABLE */
 
         /* turn back on commissioning if no more devices need to be re-commissioned */
         Cllc_setJoinPermit(duration);
@@ -2768,8 +2799,10 @@ void SM_recoverKeyInfo(ApiMac_deviceDescriptor_t devInfo, Llc_netInfo_t parentIn
     memcpy(commissionDevInfo.extAddress, parentInfo.devInfo.extAddress, sizeof(ApiMac_sAddrExt_t));
     addDeviceKey(pSeedKeyEnty,devKeyInfo.deviceKey, true);
 
+#ifndef CUI_DISABLE
     CUI_statusLinePrintf(securityCuiHndl, securityStatusLine,
                          "KeyInfo recovered", 6);
+#endif /* CUI_DISABLE */
 }
 
 #endif /*FEATURE_FULL_FUNCTION_DEVICE*/
@@ -2782,7 +2815,7 @@ void SM_recoverKeyInfo(ApiMac_deviceDescriptor_t devInfo, Llc_netInfo_t parentIn
 void SM_setPasskey (uint32_t passkey)
 {
     //Check if passkey is being requested
-    if ( (Timer_isActive(&smProcessTimeoutClkStruct)) &&
+    if ( (UtilTimer_isActive(&smProcessTimeoutClkStruct)) &&
          (SMMsgs_authMethod_passkey == agreedUponAuthMethod) )
     {
         SM_authPassKey = passkey;

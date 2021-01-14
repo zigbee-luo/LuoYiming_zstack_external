@@ -267,22 +267,11 @@ extern "C" {
 //  8192, // 13	8192 minutes
 // 16384 // 14	16384 minutes
 //
-// This value is used by the parent ROUTER
-#if !defined ( NWK_END_DEV_TIMEOUT_DEFAULT )
-  #define NWK_END_DEV_TIMEOUT_DEFAULT  8    // Default value per ZigBee core specification is 8
-#endif
-
 
 //Timeout after which an EndDevice will be removed from from the indirect MAC messages queue
    // NOTE: End devices which poll rate is slower than this will not receive the leave request
 #if !defined ( NWK_END_DEVICE_LEAVE_TIMEOUT )
   #define NWK_END_DEVICE_LEAVE_TIMEOUT 9
-#endif
-
-// Value used by END DEVICE when sending End Device Timeout Request
-// This is an index into table timeoutValue[] defined in nwk_globals.c
-#if !defined ( END_DEV_TIMEOUT_VALUE )
-  #define END_DEV_TIMEOUT_VALUE   8   // Default value per ZigBee core specification is 8
 #endif
 
 // Value used by END DEVICE when sending End Device Timeout Request
@@ -349,8 +338,6 @@ extern "C" {
 /*********************************************************************
  * NWK GLOBAL VARIABLES
  */
-extern uint32_t zgDefaultRejoinBackoff;
-extern uint32_t zgDefaultRejoinScan;
 // Variables for number of transmission retries
 extern uint8_t zgMaxDataRetries;
 extern uint8_t zgMaxMissingMacAckLinkFailure;

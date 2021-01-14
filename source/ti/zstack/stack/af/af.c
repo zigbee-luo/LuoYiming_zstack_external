@@ -41,6 +41,7 @@
  * INCLUDES
  */
 
+#include "ti_zstack_config.h"
 #include "rom_jt_154.h"
 #include "af.h"
 #include "nwk_globals.h"

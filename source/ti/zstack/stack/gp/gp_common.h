@@ -57,6 +57,7 @@ extern "C"
 
 #if (!defined (DISABLE_GREENPOWER_BASIC_PROXY) && (ZG_BUILD_RTR_TYPE))
 #include <ti/sysbios/knl/Clock.h>
+#include <ti/sysbios/knl/Semaphore.h>
 #include "zcomdef.h"
 #include "zmac.h"
 #include "af.h"

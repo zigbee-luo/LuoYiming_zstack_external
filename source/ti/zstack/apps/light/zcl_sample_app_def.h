@@ -40,7 +40,7 @@
 #define APPLICATION_UI_ZCL_SAMPLE_APP_DEF_H_
 
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 
 #if !defined (ENABLE_GREENPOWER_COMBO_BASIC)
 #define SAMPLE_APP_MENUS  2
@@ -59,7 +59,7 @@
 
 #define APP_TITLE_STR "TI Sample Light"
 
-#endif  // #ifdef USE_ZCL_SAMPLEAPP_UI
+#endif  // #ifndef CUI_DISABLE
 
 
 #endif /* APPLICATION_UI_ZCL_SAMPLEAPPDEF_H_ */

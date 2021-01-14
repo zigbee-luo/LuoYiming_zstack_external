@@ -74,12 +74,6 @@ extern void MT_SysResetInd( void );
  */
 extern void MT_SysOsalTimerExpired(uint8_t Id);
 
-#if defined ( MT_SYS_JAMMER_FEATURE )
-extern void MT_SysJammerInd( uint8_t jammerInd );
-extern void jammerInit( uint8_t taskId );
-extern uint16_t jammerEventLoop( uint8_t taskId, uint16_t events );
-#endif
-
 #ifdef __cplusplus
 }
 #endif

@@ -96,15 +96,8 @@
 #if defined( APP_TP2 )
  #include "testprofile2.h"
 #endif
-
-#if defined(APP_TGEN)
-  #include "trafficgenapp.h"
-#endif
 #if defined(APP_DEBUG)
 	#include "debugapp.h"
-#endif
-#if defined (NWK_TEST)
-	#include "hwttapp.h"
 #endif
 #if defined (MT_UBL_FUNC)
   extern uint8_t MT_UblCommandProcessing(uint8_t *pBuf);
@@ -121,10 +114,6 @@
 
 #if defined (MT_APP_CNF_FUNC)
   #include "mt_app_config.h"
-#endif
-
-#if defined (FEATURE_DUAL_MAC)
-  #include "dmmgr.h"
 #endif
 
 /**************************************************************************************************
@@ -302,14 +291,6 @@ void MT_BuildAndSendZToolResponse(uint8_t cmdType, uint8_t cmdId, uint8_t dataLe
 {
   uint8_t *msg_ptr;
 
-#ifdef FEATURE_DUAL_MAC
-  msg_ptr = DMMGR_BuildRspMsg( cmdType, cmdId, dataLen, pData );
-
-  if ( msg_ptr )
-  {
-    MT_TransportSend(msg_ptr);
-  }
-#else
   if ((msg_ptr = MT_TransportAlloc((mtRpcCmdType_t)(cmdType & 0xE0), dataLen)) != NULL)
   {
     msg_ptr[MT_RPC_POS_LEN] = dataLen;
@@ -319,7 +300,6 @@ void MT_BuildAndSendZToolResponse(uint8_t cmdType, uint8_t cmdId, uint8_t dataLe
 
     MT_TransportSend(msg_ptr);
   }
-#endif /* FEATURE_DUAL_MAC */
 }
 #endif /* NPI */
 /***************************************************************************************************
@@ -439,7 +419,7 @@ uint8_t *MT_Word2Buf( uint8_t *pBuf, uint16_t *pWord, uint8_t len )
 
   return pBuf;
 }
-#if !defined(NONWK)
+
 /***************************************************************************************************
  * @fn      MT_BuildEndpointDesc
  *
@@ -553,6 +533,6 @@ uint8_t MT_BuildEndpointDesc( uint8_t *pBuf, void *param )
 
   return ret;
 }
-#endif
+
 /***************************************************************************************************
 ***************************************************************************************************/

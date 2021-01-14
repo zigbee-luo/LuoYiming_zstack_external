@@ -95,7 +95,7 @@
 #include <ti/drivers/apps/Button.h>
 #include <ti/drivers/apps/LED.h>
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 #include "zcl_sampleapps_ui.h"
 #include "zcl_sample_app_def.h"
 #endif
@@ -104,7 +104,9 @@
 #include "zstackmsg.h"
 #include "zcl_port.h"
 
+#include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Task.h>
 #include "zstackapi.h"
 #include "util_timer.h"
 #include "mac_util.h"
@@ -163,7 +165,7 @@ static Clock_Struct EndDeviceRejoinClkStruct;
 static NVINTF_nvFuncts_t *pfnZdlNV = NULL;
 
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 static uint16_t zclSampleDoorLock_BdbCommissioningModes;
 #endif
 
@@ -184,7 +186,7 @@ static char aiDoorLockMasterPINCode[] = {4,0x31,0x32,0x33,0x34};
 
 static LED_Handle gRedLedHandle;
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 CONST char zclSampleDoorLock_appStr[] = APP_TITLE_STR;
 CUI_clientHandle_t gCuiHandle;
 static uint32_t gSampleDoorLockInfoLine;
@@ -211,7 +213,7 @@ static void zclSampleDoorLock_Init( void );
 
 
 static void zclSampleDoorLock_BasicResetCB( void );
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 static void zclSampleDoorLock_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleDoorLock_RemoveAppNvmData(void);
 static void zclSampleDoorLock_InitializeStatusLine(CUI_clientHandle_t gCuiHandle);
@@ -254,6 +256,7 @@ static zclGeneral_AppCallbacks_t zclSampleDoorLock_CmdCallbacks =
   NULL,                                               // Level Control Move command
   NULL,                                               // Level Control Step command
   NULL,                                               // Level Control Stop command
+  NULL,                                               // Level Control Move to Closest Frequency command
 #endif
 #ifdef ZCL_GROUPS
   NULL,                                   // Group Response commands
@@ -493,7 +496,7 @@ static void zclSampleDoorLock_Init( void )
   //Default maxReportingInterval value is 10 seconds
   //Default minReportingInterval value is 0 seconds
   //reportableChange is set to value 1, which would be any change
-  Req.attrID = ATTRID_CLOSURES_LOCK_STATE;
+  Req.attrID = ATTRID_DOOR_LOCK_LOCK_STATE;
   Req.cluster = ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK;
   Req.endpoint = SAMPLEDOORLOCK_ENDPOINT;
   Req.maxReportInt = 10;
@@ -506,7 +509,7 @@ static void zclSampleDoorLock_Init( void )
 #endif
 
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   // set up default application BDB commissioning modes based on build type
   if(ZG_BUILD_COORDINATOR_TYPE && ZG_DEVICE_COORDINATOR_TYPE)
   {
@@ -559,7 +562,7 @@ static void zclSampleDoorLock_Init( void )
   Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
 }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 /*********************************************************************
  * @fn          zclSampleDoorLock_RemoveAppNvmData
  *
@@ -577,14 +580,15 @@ static void zclSampleDoorLock_RemoveAppNvmData(void)
     uint16_t groupList[APS_MAX_GROUPS];
     uint8_t i;
 
-    if ( numGroups = aps_FindAllGroupsForEndpoint( SAMPLEDOORLOCK_ENDPOINT, groupList ) )
-    {
-      for ( i = 0; i < numGroups; i++ )
-      {
+    numGroups = aps_FindAllGroupsForEndpoint( SAMPLEDOORLOCK_ENDPOINT, groupList );
 #if defined ( ZCL_SCENES )
-        zclGeneral_RemoveAllScenes( SAMPLEDOORLOCK_ENDPOINT, groupList[i] );
+    for ( i = 0; i < numGroups; i++ )
+    {
+      zclGeneral_RemoveAllScenes( SAMPLEDOORLOCK_ENDPOINT, groupList[i] );
+    }
 #endif
-      }
+    if (numGroups > 0)
+    {
       aps_RemoveAllGroup( SAMPLEDOORLOCK_ENDPOINT );
     }
 #endif
@@ -646,7 +650,7 @@ static void zclSampleDoorLock_initializeClocks(void)
 {
 #if ZG_BUILD_ENDDEVICE_TYPE
     // Initialize the timers needed for this application
-    EndDeviceRejoinClkHandle = Timer_construct(
+    EndDeviceRejoinClkHandle = UtilTimer_construct(
     &EndDeviceRejoinClkStruct,
     zclSampleDoorLock_processEndDeviceRejoinTimeoutCallback,
     SAMPLEAPP_END_DEVICE_REJOIN_DELAY,
@@ -711,7 +715,7 @@ static void zclSampleDoorLock_process_loop(void)
                 OsalPort_msgDeallocate((uint8_t*)pMsg);
             }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             //Process the events that the UI may have
             zclsampleApp_ui_event_loop();
 #endif
@@ -786,7 +790,7 @@ static void zclSampleDoorLock_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
           case zstackmsg_CmdIDs_BDB_IDENTIFY_TIME_CB:
               {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbIdentifyTimeoutInd_t *pInd;
                 pInd = (zstackmsg_bdbIdentifyTimeoutInd_t*) pMsg;
                 uiProcessIdentifyTimeChange(&(pInd->EndPoint));
@@ -796,7 +800,7 @@ static void zclSampleDoorLock_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
           case zstackmsg_CmdIDs_BDB_BIND_NOTIFICATION_CB:
               {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbBindNotificationInd_t *pInd;
                 pInd = (zstackmsg_bdbBindNotificationInd_t*) pMsg;
                 uiProcessBindNotification(&(pInd->Req));
@@ -843,7 +847,7 @@ static void zclSampleDoorLock_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 #endif
           case zstackmsg_CmdIDs_DEV_STATE_CHANGE_IND:
           {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             // The ZStack Thread is indicating a State change
             zstackmsg_devStateChangeInd_t *pInd =
                 (zstackmsg_devStateChangeInd_t *)pMsg;
@@ -888,7 +892,7 @@ static void zclSampleDoorLock_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
 
           case zstackmsg_CmdIDs_GP_COMMISSIONING_MODE_IND:
           {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             zstackmsg_gpCommissioningModeInd_t *pInd;
             pInd = (zstackmsg_gpCommissioningModeInd_t*)pMsg;
             UI_SetGPPCommissioningMode( &(pInd->Req) );
@@ -1069,14 +1073,14 @@ static void zclSampleDoorLock_ProcessCommissioningStatus(bdbCommissioningModeMsg
       else
       {
         //Parent not found, attempt to rejoin again after a fixed delay
-        Timer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
-        Timer_start(&EndDeviceRejoinClkStruct);
+        UtilTimer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
+        UtilTimer_start(&EndDeviceRejoinClkStruct);
       }
     break;
 #endif
   }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   UI_UpdateBdbStatusLine(bdbCommissioningModeMsg);
 #endif
 }
@@ -1101,7 +1105,7 @@ static void zclSampleDoorLock_BasicResetCB( void )
 
   zclSampleDoorLock_UpdateLedState();
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   zclSampleDoorLock_UpdateStatusLine();
 #endif
 }
@@ -1126,7 +1130,7 @@ static void zclSampleDoorLock_SceneRecallCB( zclSceneReq_t *pReq )
     pBuf = pReq->scene->extField;
     extField.AttrLen = pBuf[2];
 
-    while(extLen < ZCL_GEN_SCENE_EXT_LEN)
+    while(extLen < ZCL_GENERAL_SCENE_EXT_LEN)
     {
         //Parse ExtField
         extField.ClusterID = BUILD_UINT16(pBuf[0],pBuf[1]);
@@ -1157,7 +1161,7 @@ static void zclSampleDoorLock_SceneRecallCB( zclSceneReq_t *pReq )
 
     //update the UI
     zclSampleDoorLock_UpdateLedState();
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   //Update status line
   zclSampleDoorLock_UpdateStatusLine();
 #endif
@@ -1184,7 +1188,7 @@ static uint8_t zclSampleDoorLock_SceneStoreCB( zclSceneReq_t *pReq )
     pBuf = pReq->scene->extField;
     extField.AttrLen = pBuf[2];
 
-    while(extLen < ZCL_GEN_SCENE_EXT_LEN)
+    while(extLen < ZCL_GENERAL_SCENE_EXT_LEN)
     {
         //Parse ExtField
         extField.ClusterID = BUILD_UINT16(pBuf[0],pBuf[1]);
@@ -1244,14 +1248,12 @@ static uint8_t zclSampleDoorLock_SceneStoreCB( zclSceneReq_t *pReq )
  *
  * @return  status
  */
-static ZStatus_t zclSampleDoorLock_ReadWriteAttrCB( uint8_t endpoint, zclAttrRec_t *pAttr,
-                                                    uint8_t oper, uint8_t *pValue, uint16_t *pLen )
+static ZStatus_t zclSampleDoorLock_ReadWriteAttrCB( uint16_t clusterId, uint16_t attrId, uint8_t oper,
+                                         uint8_t *pValue, uint16_t *pLen )
 {
-    uint16_t clusterId = pAttr->clusterID;
-    uint16_t attrId = pAttr->attr.attrId;
-    if(clusterId == ZCL_CLUSTER_ID_GEN_SCENES)
+    if(clusterId == ZCL_CLUSTER_ID_GENERAL_SCENES)
     {
-        if(attrId == ATTRID_SCENES_COUNT)
+        if(attrId == ATTRID_SCENES_SCENE_COUNT)
         {
            return zclGeneral_ReadSceneCountCB(clusterId,attrId,oper,pValue,pLen);
         }
@@ -1280,17 +1282,17 @@ static ZStatus_t zclSampleDoorLock_DoorLockCB ( zclIncoming_t *pInMsg, zclDoorLo
   if ( memcmp( aiDoorLockMasterPINCode, pInCmd->pPinRfidCode, 5 ) == SUCCESS )
   {
     // Lock the door
-    if ( pInMsg->hdr.commandID == COMMAND_CLOSURES_LOCK_DOOR )
+    if ( pInMsg->hdr.commandID == COMMAND_DOOR_LOCK_LOCK_DOOR )
     {
       newDoorLockState = CLOSURES_LOCK_STATE_LOCKED;
     }
     // Unlock the door
-    else if ( pInMsg->hdr.commandID == COMMAND_CLOSURES_UNLOCK_DOOR )
+    else if ( pInMsg->hdr.commandID == COMMAND_DOOR_LOCK_UNLOCK_DOOR )
     {
       newDoorLockState = CLOSURES_LOCK_STATE_UNLOCKED;
     }
     // Toggle the door
-    else if ( pInMsg->hdr.commandID == COMMAND_CLOSURES_TOGGLE_DOOR )
+    else if ( pInMsg->hdr.commandID == COMMAND_DOOR_LOCK_TOGGLE )
     {
       if (zclSampleDoorLock_getLockStateAttribute() == CLOSURES_LOCK_STATE_LOCKED)
       {
@@ -1323,7 +1325,7 @@ static ZStatus_t zclSampleDoorLock_DoorLockCB ( zclIncoming_t *pInMsg, zclDoorLo
                                             ZCL_STATUS_INVALID_VALUE, FALSE, pInMsg->hdr.transSeqNum );
 
     zclSampleDoorLock_UpdateLedState();
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   zclSampleDoorLock_UpdateStatusLine();
 #endif
     return ( ZCL_STATUS_CMD_HAS_RSP );
@@ -1342,17 +1344,32 @@ static ZStatus_t zclSampleDoorLock_DoorLockActuator ( uint8_t newDoorLockState )
   zclSampleDoorLock_updateLockStateAttribute(newDoorLockState);
 
 #ifdef BDB_REPORTING
-  bdb_RepChangedAttrValue(SAMPLEDOORLOCK_ENDPOINT, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK, ATTRID_CLOSURES_LOCK_STATE);
+  bdb_RepChangedAttrValue(SAMPLEDOORLOCK_ENDPOINT, ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK, ATTRID_DOOR_LOCK_LOCK_STATE);
 #endif
 
   zclSampleDoorLock_UpdateLedState();
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   zclSampleDoorLock_UpdateStatusLine();
 #endif
 
   return ZSuccess;
 }
 
+void zclSampleDoorLock_UpdateLedState(void)
+{
+  if ( zclSampleDoorLock_getLockStateAttribute() == CLOSURES_LOCK_STATE_LOCKED )
+  {
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
+  }
+  else if ( zclSampleDoorLock_getLockStateAttribute() == CLOSURES_LOCK_STATE_UNLOCKED )
+  {
+      LED_stopBlinking(gRedLedHandle);
+      LED_setOff(gRedLedHandle);
+  }
+}
+
+#ifndef CUI_DISABLE
 void zclSampleDoorLock_UiActionDoorLockDiscoverable(const int32_t _itemEntry)
 {
 
@@ -1381,20 +1398,6 @@ void zclSampleDoorLock_UiActionLock(const int32_t _itemEntry)
 void zclSampleDoorLock_UiActionUnlock(const int32_t _itemEntry)
 {
   zclSampleDoorLock_DoorLockActuator(CLOSURES_LOCK_STATE_UNLOCKED);
-}
-
-void zclSampleDoorLock_UpdateLedState(void)
-{
-  if ( zclSampleDoorLock_getLockStateAttribute() == CLOSURES_LOCK_STATE_LOCKED )
-  {
-      LED_stopBlinking(gRedLedHandle);
-      LED_setOn(gRedLedHandle, LED_BRIGHTNESS_MAX);
-  }
-  else if ( zclSampleDoorLock_getLockStateAttribute() == CLOSURES_LOCK_STATE_UNLOCKED )
-  {
-      LED_stopBlinking(gRedLedHandle);
-      LED_setOff(gRedLedHandle);
-  }
 }
 
 void zclSampleDoorLock_UiActionEnterPin(const char _input, char* _lines[3], CUI_cursorInfo_t * _curInfo)
@@ -1488,7 +1491,7 @@ void zclSampleDoorLock_UiActionEnterPin(const char _input, char* _lines[3], CUI_
 
 
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+// #ifndef CUI_DISABLE
 /*********************************************************************
  * @fn      zclSampleDoorLock_processKey
  *

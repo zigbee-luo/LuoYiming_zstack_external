@@ -36,6 +36,8 @@
 
 "use strict";
 
+let global_clusters = system.getScript("/ti/zstack/stack/zcl/ZDL.js").ZDL.globals;
+
 const TI154Common = system.getScript("/ti/ti154stack/ti154stack_common.js");
 
 /* Min poll period (ms) */
@@ -108,7 +110,9 @@ const deviceToBoard = {
     CC1352R: "CC1352R1_LAUNCHXL",
     CC1352P: "CC1352P1_LAUNCHXL",
     CC2652R1: "CC26X2R1_LAUNCHXL",
-    CC2652RB: "CC2652RB_LAUNCHXL"
+    CC2652RB: "CC2652RB_LAUNCHXL",
+    CC2652R1FSIP: "LP_CC2652RSIP",
+    CC2652P1FSIP: "LP_CC2652PSIP",
 };
 
 /*!
@@ -200,6 +204,85 @@ function getBoardPhySettings(inst)
     return(phySettings);
 }
 
+function addGlobalClusters(devices, clusters)
+{
+  let all = global_clusters[0];
+  let initiator = global_clusters[1];
+  let target = global_clusters[2];
+
+  /* add global clusters to devices */
+  for (let device of devices)
+  {
+    // check if server and client clusters exist for current device.
+    // if not, create each corresponding object
+    if( device.server )
+    {
+      if ( device.server.cluster )
+      {
+        // we good
+      }
+      else
+      {
+        device.server["cluster"] = [];
+      }
+    }
+    else
+    {
+      device["server"] = {};
+      device.server["cluster"] = [];
+    }
+
+    if( device.client )
+    {
+      if ( device.client.cluster )
+      {
+        // we good
+      }
+      else
+      {
+        device.client["cluster"] = [];
+      }
+    }
+    else
+    {
+      device["client"] = {};
+      device.client["cluster"] = [];
+    }
+
+    // all devices need these clusters
+    device.server.cluster = _.unionWith(device.server.cluster, all.server.cluster, _.isEqual);
+
+    for (let cluster of device.server.cluster)
+    {
+      let result = _.find(clusters, function(o) { return o._id == cluster._id; });
+      // device is target type
+      if ( result != undefined && result._primary_transaction == "1" )
+      {
+        device.server.cluster = _.unionWith(device.server.cluster, target.server.cluster, _.isEqual);
+      }
+      // device is initiator type
+      else if ( result != undefined && result._primary_transaction == "2" )
+      {
+        device.client.cluster = _.unionWith(device.client.cluster, initiator.client.cluster, _.isEqual);
+      }
+    }
+
+    for (let cluster of device.client.cluster)
+    {
+      let result = _.find(clusters, function(o) { return o._id == cluster._id; });
+      // device is target type
+      if ( result != undefined && result._primary_transaction == "1" )
+      {
+        device.server.cluster = _.unionWith(device.server.cluster, target.server.cluster, _.isEqual);
+      }
+      // device is initiator type
+      else if ( result != undefined && result._primary_transaction == "2" )
+      {
+        device.client.cluster = _.unionWith(device.client.cluster, initiator.client.cluster, _.isEqual);
+      }
+    }
+  }
+}
 
 // Settings for ti/devices/CCFG module
 const zstackCCFGSettings = {
@@ -231,5 +314,6 @@ exports = {
     chanArrToBitmask: chanArrToBitmask,
     getDeviceOrLaunchPadName: getDeviceOrLaunchPadName,
     ccfgSettings: ccfgSettings,
-    getBoardPhySettings: getBoardPhySettings
+    getBoardPhySettings: getBoardPhySettings,
+    addGlobalClusters: addGlobalClusters
 };

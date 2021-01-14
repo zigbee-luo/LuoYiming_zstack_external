@@ -62,11 +62,6 @@
 #endif
 #include "mac_api.h"
 
-#if defined( ZCL_KEY_ESTABLISH )
-  #include "ssp.h"
-#endif
-
-
 /********************************************************************************************************
  *                                                 MACROS
  ********************************************************************************************************/
@@ -482,11 +477,6 @@ uint32_t ZMacEventLoop(uint8_t taskId, uint32_t events)
 uint8_t ZMacInit( void )
 {
   uint8_t i;
-
-#if defined( ZCL_KEY_ESTABLISH )
-  /* Set the callback function for 16 byte random seed */
-  MAC_SetRandomSeedCB( SSP_StoreRandomSeedNV);
-#endif
 
   MAP_MAC_Init();
 

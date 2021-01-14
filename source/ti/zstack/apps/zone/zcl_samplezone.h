@@ -52,7 +52,9 @@ extern "C"
  */
 #include "zcl.h"
 #include "nvintf.h"
+#ifndef CUI_DISABLE
 #include "cui.h"
+#endif
 
 /*********************************************************************
  * CONSTANTS
@@ -123,10 +125,12 @@ extern uint8_t zclSampleZone_ZoneId;
  */
 extern void zclSampleZone_ResetAttributesToDefaultValues(void); //implemented in zcl_samplefiredetector_data.c
 
+#ifndef CUI_DISABLE
 extern void zclSampleZone_UiActionChangeEnrollmentMode(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
 extern void zclSampleZone_UiActionDiscoverCIE(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
 extern void zclSampleZone_UiActionSendEnroll(const int32_t _itemEntry);
 extern void zclSampleZone_UiActionToggleAlarm(const int32_t _itemEntry);
+#endif
 /*********************************************************************
 *********************************************************************/
 

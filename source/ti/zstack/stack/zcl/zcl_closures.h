@@ -58,6 +58,7 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
 /*********************************************************************
  * CONSTANTS
@@ -76,12 +77,12 @@ extern "C"
   // Shade information attributes set
 /// The PhysicalClosedLimit attribute indicates the most closed (numerically lowest)
 /// position that the shade can physically move to.
-#define ATTRID_CLOSURES_PHYSICAL_CLOSED_LIMIT                          0x0000 // O, R, uint16_t
+#define ATTRID_SHADE_CONFIGURATION_PHYSICAL_CLOSED_LIMIT                          0x0000 // O, R, uint16_t
 /// The MotorStepSize attribute indicates the angle the shade motor moves for
 /// one step, measured in 1/10ths of a degree.
-#define ATTRID_CLOSURES_MOTOR_STEP_SIZE                                0x0001 // O, R, uint8_t
+#define ATTRID_SHADE_CONFIGURATION_MOTOR_STEP_SIZE                                0x0001 // O, R, uint8_t
 /// The Status attribute indicates the status of a number of shade functions.
-#define ATTRID_CLOSURES_STATUS                                         0x0002 // M, R/W, BITMAP8
+#define ATTRID_SHADE_CONFIGURATION_STATUS                                         0x0002 // M, R/W, BITMAP8
 
 /*** Status attribute bit values ***/
 /// Shade operational if set
@@ -96,9 +97,9 @@ extern "C"
 // Shade settings attributes set
 /// The ClosedLimit attribute indicates the most closed position that the
 /// shade can move to.
-#define ATTRID_CLOSURES_CLOSED_LIMIT                                   0x0010
+#define ATTRID_SHADE_CONFIGURATION_CLOSED_LIMIT                                   0x0010
 /// The Mode attribute indicates the current operating mode of the shade.
-#define ATTRID_CLOSURES_MODE                                           0x0011
+#define ATTRID_SHADE_CONFIGURATION_MODE                                           0x0011
 
 /*** Mode attribute values ***/
 #define CLOSURES_MODE_NORMAL_MODE                                      0x00
@@ -128,112 +129,113 @@ extern "C"
 #ifdef ZCL_DOORLOCK
 
 /// Enum for lock state
-#define ATTRID_CLOSURES_LOCK_STATE                                          0x0000
+#define ATTRID_DOOR_LOCK_LOCK_STATE                                          0x0000
 /// Enum for lock type
-#define ATTRID_CLOSURES_LOCK_TYPE                                           0x0001
+#define ATTRID_DOOR_LOCK_LOCK_TYPE                                           0x0001
 /// Actuator enabled of set
-#define ATTRID_CLOSURES_ACTUATOR_ENABLED                                    0x0002
+#define ATTRID_DOOR_LOCK_ACTUATOR_ENABLED                                    0x0002
 /// Enum for door state
-#define ATTRID_CLOSURES_DOOR_STATE                                          0x0003
+#define ATTRID_DOOR_LOCK_DOOR_STATE                                          0x0003
 /// This attribute holds the number of door open events that have occurred
 /// since it was last zeroed.
-#define ATTRID_CLOSURES_NUM_OF_DOOR_OPEN_EVENTS                             0x0004
+#define ATTRID_DOOR_LOCK_DOOR_OPEN_EVENTS                             0x0004
 /// This attribute holds the number of door closed events that have occurred
 /// since it was last zeroed.
-#define ATTRID_CLOSURES_NUM_OF_DOOR_CLOSED_EVENTS                           0x0005
+#define ATTRID_DOOR_LOCK_DOOR_CLOSED_EVENTS                           0x0005
 /// This attribute holds the number of minutes the door has been open since
 /// the last time it transitioned from closed to open.
-#define ATTRID_CLOSURES_OPEN_PERIOD                                         0x0006
+#define ATTRID_DOOR_LOCK_OPEN_PERIOD                                         0x0006
 
 // User, PIN, Schedule, & Log Information Attributes
 /// The number of available log records.
-#define ATTRID_DOORLOCK_NUM_OF_LOCK_RECORDS_SUPPORTED                       0x0010  // O, R, uint16_t
+#define ATTRID_DOOR_LOCK_NUMBER_OF_LOG_RECORDS_SUPPORTED                       0x0010  // O, R, uint16_t
 /// Number of total users supported by the lock.
-#define ATTRID_DOORLOCK_NUM_OF_TOTAL_USERS_SUPPORTED                        0x0011  // O, R, uint16_t
+#define ATTRID_DOOR_LOCK_NUMBER_OF_TOTAL_USERS_SUPPORTED                        0x0011  // O, R, uint16_t
 /// The number of PIN users supported.
-#define ATTRID_DOORLOCK_NUM_OF_PIN_USERS_SUPPORTED                          0x0012  // O, R, uint16_t
+#define ATTRID_DOOR_LOCK_NUMBER_OF_PIN_USERS_SUPPORTED                          0x0012  // O, R, uint16_t
 /// The number of RFID users supported.
-#define ATTRID_DOORLOCK_NUM_OF_RFID_USERS_SUPPORTED                         0x0013  // O, R, uint16_t
+#define ATTRID_DOOR_LOCK_NUMBER_OF_RFID_USERS_SUPPORTED                         0x0013  // O, R, uint16_t
 /// number of configurable week day schedule supported per user.
-#define ATTRID_DOORLOCK_NUM_OF_WEEK_DAY_SCHEDULES_SUPPORTED_PER_USER        0x0014  // O, R, uint8_t
+#define ATTRID_DOOR_LOCK_NUMBER_OF_WEEK_DAY_SCHEDULES_SUPPORTED_PER_USER        0x0014  // O, R, uint8_t
 /// The number of configurable year day schedule supported per user.
-#define ATTRID_DOORLOCK_NUM_OF_YEAR_DAY_SCHEDULES_SUPPORTED_PER_USER        0x0015  // O, R, uint8_t
+#define ATTRID_DOOR_LOCK_NUMBER_OF_YEAR_DAY_SCHEDULES_SUPPORTED_PER_USER        0x0015  // O, R, uint8_t
 /// The number of holiday schedules supported for the entire door lock device.
-#define ATTRID_DOORLOCK_NUM_OF_HOLIDAY_SCHEDULEDS_SUPPORTED                 0x0016  // O, R, uint8_t
+#define ATTRID_DOOR_LOCK_NUMBER_OF_HOLIDAY_SCHEDULES_SUPPORTED                 0x0016  // O, R, uint8_t
 /// An 8 bit value indicates the maximum length in bytes of a PIN Code on this device.
-#define ATTRID_DOORLOCK_MAX_PIN_LEN                                         0x0017  // O, R, uint8_t
+#define ATTRID_DOOR_LOCK_MAX_PIN_CODE_LENGTH                                         0x0017  // O, R, uint8_t
 /// An 8 bit value indicates the minimum length in bytes of a PIN Code on this device.
-#define ATTRID_DOORLOCK_MIN_PIN_LEN                                         0x0018  // O, R, uint8_t
+#define ATTRID_DOOR_LOCK_MIN_PIN_CODE_LENGTH                                         0x0018  // O, R, uint8_t
 /// An 8 bit value indicates the maximum length in bytes of a RFID Code on this device.
-#define ATTRID_DOORLOCK_MAX_RFID_LEN                                        0x0019  // O, R, uint8_t
+#define ATTRID_DOOR_LOCK_MAX_RFID_CODE_LENGTH                                        0x0019  // O, R, uint8_t
 /// An 8 bit value indicates the minimum length in bytes of a RFID Code on this device.
-#define ATTRID_DOORLOCK_MIN_RFID_LEN                                        0x001A  // O, R, uint8_t
+#define ATTRID_DOOR_LOCK_MIN_RFID_CODE_LENGTH                                        0x001A  // O, R, uint8_t
 
 // Operational Settings Attributes
 /// Enable/disable event logging.
-#define ATTRID_DOORLOCK_ENABLE_LOGGING                                      0x0020  // O, R/W, BOOLEAN
+#define ATTRID_DOOR_LOCK_ENABLE_LOGGING                                      0x0020  // O, R/W, BOOLEAN
 /// Modifies the language for the on-screen or audible user interface using three bytes from ISO-639-1.
-#define ATTRID_DOORLOCK_LANGUAGE                                            0x0021  // O, R/W, CHAR STRING
+#define ATTRID_DOOR_LOCK_LANGUAGE                                            0x0021  // O, R/W, CHAR STRING
 /// Configuration for LED events
-#define ATTRID_DOORLOCK_LED_SETTINGS                                        0x0022  // O, R/W, uint8_t
+#define ATTRID_DOOR_LOCK_LED_SETTINGS                                        0x0022  // O, R/W, uint8_t
 /// The number of seconds to wait after unlocking a lock before it automatically
 /// locks again.
-#define ATTRID_DOORLOCK_AUTO_RELOCK_TIME                                    0x0023  // O, R/W, uint32_t
+#define ATTRID_DOOR_LOCK_AUTO_RELOCK_TIME                                    0x0023  // O, R/W, uint32_t
 /// The sound volume on a door lock has three possible settings: silent, low
 /// and high volumes.
-#define ATTRID_DOORLOCK_SOUND_VOLUME                                        0x0024  // O, R/W, uint8_t
+#define ATTRID_DOOR_LOCK_SOUND_VOLUME                                        0x0024  // O, R/W, uint8_t
 /// shows the current operating mode and which interfaces are enabled during
 /// each of the operating mode.
-#define ATTRID_DOORLOCK_OPERATING_MODE                                      0x0025  // O, R/W, ENUM8
+#define ATTRID_DOOR_LOCK_OPERATING_MODE                                      0x0025  // O, R/W, ENUM8
 /// This bitmap contains all operating bits of the Operating Mode Attribute
 /// supported by the lock.
-#define ATTRID_DOORLOCK_SUPPORTED_OPERATING_MODES                           0x0026  // O, R, BITMAP16
+#define ATTRID_DOOR_LOCK_SUPPORTED_OPERATING_MODES                           0x0026  // O, R, BITMAP16
 /// This attribute represents the default configurations as they are physically
 /// set on the device.
-#define ATTRID_DOORLOCK_DEFAULT_CONFIGURATION_REGISTER                      0x0027  // O, R, BITMAP16
+#define ATTRID_DOOR_LOCK_DEFAULT_CONFIGURATION_REGISTER                      0x0027  // O, R, BITMAP16
 /// Enable/disable local programming on the door lock.
-#define ATTRID_DOORLOCK_ENABLE_LOCAL_PROGRAMMING                            0x0028  // O, R/W, BOOLEAN
+#define ATTRID_DOOR_LOCK_ENABLE_LOCAL_PROGRAMMING                            0x0028  // O, R/W, BOOLEAN
 /// Enable/disable the ability to lock the door lock with a single touch on the door lock.
-#define ATTRID_DOORLOCK_ENABLE_ONE_TOUCH_LOCKING                            0x0029  // O, R/W, BOOLEAN
+#define ATTRID_DOOR_LOCK_ENABLE_ONE_TOUCH_LOCKING                            0x0029  // O, R/W, BOOLEAN
 /// Enable/disable an inside LED that allows the user to see at a glance if the door is locked.
-#define ATTRID_DOORLOCK_ENABLE_INSIDE_STATUS_LED                            0x002A  // O, R/W, BOOLEAN
+#define ATTRID_DOOR_LOCK_ENABLE_INSIDE_STATUS_LED                            0x002A  // O, R/W, BOOLEAN
 /// Enable/disable a button inside the door that is used to put the lock into
 /// privacy mode. When the lock is in privacy mode it cannot be manipulated from the outside.
-#define ATTRID_DOORLOCK_ENABLE_PRIVACY_MODE_BUTTON                          0x002B  // O, R/W, BOOLEAN
+#define ATTRID_DOOR_LOCK_ENABLE_PRIVACY_MODE_BUTTON                          0x002B  // O, R/W, BOOLEAN
 
 // Security Settings Attributes
 /// The number of incorrect codes or RFID presentment attempts a user is allowed
 /// to enter before the door will enter a lockout state.
-#define ATTRID_DOORLOCK_WRONG_CODE_ENTRY_LIMIT                              0x0030  // O, R/W, uint8_t
+#define ATTRID_DOOR_LOCK_WRONG_CODE_ENTRY_LIMIT                              0x0030  // O, R/W, uint8_t
 /// The number of seconds that the lock shuts down following wrong code entry.
-#define ATTRID_DOORLOCK_USER_CODE_TEMPORARY_DISABLE_TIME                    0x0031  // O, R/W, uint8_t
+#define ATTRID_DOOR_LOCK_USER_CODE_TEMPORARY_DISABLE_TIME                    0x0031  // O, R/W, uint8_t
 /// Boolean set to True if it is ok for the door lock server to send PINs over the air.
-#define ATTRID_DOORLOCK_SEND_PIN_OTA                                        0x0032  // O, R/W, BOOLEAN
+#define ATTRID_DOOR_LOCK_SEND_PIN_OVER_THE_AIR                                        0x0032  // O, R/W, BOOLEAN
 /// Boolean set to True if the door lock server requires that an optional PINs
 /// be included in the payload of RF lock operation events like Lock, Unlock
 /// and Toggle in order to function.
 #define ATTRID_DOORLOCK_REQUIRE_PIN_FOR_RF_OPERATION                        0x0033  // O, R/W, BOOLEAN
+#define ATTRID_DOOR_LOCK_REQUIRE_PI_NFOR_RF_OPERATION                        0x0033  // O, R/W, BOOLEAN
 /// Door locks MAY sometimes wish to implement a higher level of security
 /// within the application protocol in addition to the default network security.
-#define ATTRID_DOORLOCK_ZIGBEE_SECURITY_LEVEL                               0x0034  // O, R, uint8_t
+#define ATTRID_DOOR_LOCK_SECURITY_LEVEL                               0x0034  // O, R, uint8_t
 
 // Alarm and Event Masks Attributes
 /// The alarm mask is used to turn on/off alarms for particular functions.
-#define ATTRID_DOORLOCK_ALARM_MASK                                          0x0040  // O, R/W, BITMAP16
+#define ATTRID_DOOR_LOCK_ALARM_MASK                                          0x0040  // O, R/W, BITMAP16
 /// Event mask used to turn on and off the transmission of keypad operation events.
-#define ATTRID_DOORLOCK_KEYPAD_OPERATION_EVENT_MASK                         0x0041  // O, R/W, BITMAP16
+#define ATTRID_DOOR_LOCK_KEYPAD_OPERATION_EVENT_MASK                         0x0041  // O, R/W, BITMAP16
 /// Event mask used to turn on and off the transmission of RF operation events.
-#define ATTRID_DOORLOCK_RF_OPERATION_EVENT_MASK                             0x0042  // O, R/W, BITMAP16
+#define ATTRID_DOOR_LOCK_RF_OPERATION_EVENT_MASK                             0x0042  // O, R/W, BITMAP16
 /// Event mask used to turn on and off manual operation events.
-#define ATTRID_DOORLOCK_MANUAL_OPERATION_EVENT_MASK                         0x0043  // O, R/W, BITMAP16
+#define ATTRID_DOOR_LOCK_MANUAL_OPERATION_EVENT_MASK                         0x0043  // O, R/W, BITMAP16
 /// Event mask used to turn on and off RFID operation events.
-#define ATTRID_DOORLOCK_RFID_OPERATION_EVENT_MASK                           0x0044  // O, R/W, BITMAP16
+#define ATTRID_DOOR_LOCK_RFID_OPERATION_EVENT_MASK                           0x0044  // O, R/W, BITMAP16
 /// Event mask used to turn on and off keypad programming events.
-#define ATTRID_DOORLOCK_KEYPAD_PROGRAMMING_EVENT_MASK                       0x0045  // O, R/W, BITMAP16
+#define ATTRID_DOOR_LOCK_KEYPAD_PROGRAMMING_EVENT_MASK                       0x0045  // O, R/W, BITMAP16
 /// Event mask used to turn on and off RF programming events.
-#define ATTRID_DOORLOCK_RF_PROGRAMMING_EVENT_MASK                           0x0046  // O, R/W, BITMAP16
+#define ATTRID_DOOR_LOCK_RF_PROGRAMMING_EVENT_MASK                           0x0046  // O, R/W, BITMAP16
 /// Event mask used to turn on and off RFID programming events.
-#define ATTRID_DOORLOCK_RFID_PROGRAMMING_EVENT_MASK                         0x0047  // O, R/W, BITMAP16
+#define ATTRID_DOOR_LOCK_RFID_PROGRAMMING_EVENT_MASK                         0x0047  // O, R/W, BITMAP16
 
 // User, PIN, Schedule, & Log Information Attribute Defaults
 /// User, PIN, Schedule, Log Information Attribute Set default values
@@ -340,119 +342,119 @@ extern "C"
 /**********************************/
   // Server Commands Received
 /// This command causes the lock device to lock the door.
-#define COMMAND_CLOSURES_LOCK_DOOR                         0x00 // M  zclDoorLock_t
+#define COMMAND_DOOR_LOCK_LOCK_DOOR                         0x00 // M  zclDoorLock_t
 /// This command causes the lock device to unlock the door.
-#define COMMAND_CLOSURES_UNLOCK_DOOR                       0x01 // M  zclDoorLock_t
+#define COMMAND_DOOR_LOCK_UNLOCK_DOOR                       0x01 // M  zclDoorLock_t
 /// Request the status of the lock.
-#define COMMAND_CLOSURES_TOGGLE_DOOR                       0x02 // O  zclDoorLock_t
+#define COMMAND_DOOR_LOCK_TOGGLE                       0x02 // O  zclDoorLock_t
 /// This command causes the lock device to unlock the door with a timeout parameter.
-#define COMMAND_CLOSURES_UNLOCK_WITH_TIMEOUT               0x03 // O  zclDoorLockUnlockTimeout_t
+#define COMMAND_DOOR_LOCK_UNLOCK_WITH_TIMEOUT               0x03 // O  zclDoorLockUnlockTimeout_t
 /// Request a log record.
-#define COMMAND_CLOSURES_GET_LOG_RECORD                    0x04 // O  zclDoorLockGetLogRecord_t
+#define COMMAND_DOOR_LOCK_GET_LOG_RECORD                    0x04 // O  zclDoorLockGetLogRecord_t
 /// Set a PIN into the lock.
-#define COMMAND_CLOSURES_SET_PIN_CODE                      0x05 // O  zclDoorLockSetPINCode_t
+#define COMMAND_DOOR_LOCK_SET_PIN_CODE                      0x05 // O  zclDoorLockSetPINCode_t
 /// Retrieve a PIN Code.
-#define COMMAND_CLOSURES_GET_PIN_CODE                      0x06 // O  zclDoorLockUserID_t
+#define COMMAND_DOOR_LOCK_GET_PIN_CODE                      0x06 // O  zclDoorLockUserID_t
 /// Delete a PIN.
-#define COMMAND_CLOSURES_CLEAR_PIN_CODE                    0x07 // O  zclDoorLockUserID_t
+#define COMMAND_DOOR_LOCK_CLEAR_PIN_CODE                    0x07 // O  zclDoorLockUserID_t
 /// Clear out all PINs on the lock.
-#define COMMAND_CLOSURES_CLEAR_ALL_PIN_CODES               0x08 // O  no payload
+#define COMMAND_DOOR_LOCK_CLEAR_ALL_PIN_CODES               0x08 // O  no payload
 /// Set the status of a user ID.
-#define COMMAND_CLOSURES_SET_USER_STATUS                   0x09 // O  zclDoorLockSetUserStatus_t
+#define COMMAND_DOOR_LOCK_SET_USER_STATUS                   0x09 // O  zclDoorLockSetUserStatus_t
 /// Get the status of a user.
-#define COMMAND_CLOSURES_GET_USER_STATUS                   0x0A // O  zclDoorLockUserID_t
+#define COMMAND_DOOR_LOCK_GET_USER_STATUS                   0x0A // O  zclDoorLockUserID_t
 /// Set a weekly repeating schedule for a specified user.
-#define COMMAND_CLOSURES_SET_WEEK_DAY_SCHEDULE             0x0B // O  zclDoorLockSetWeekDaySchedule_t
+#define COMMAND_DOOR_LOCK_SET_WEEKDAY_SCHEDULE             0x0B // O  zclDoorLockSetWeekDaySchedule_t
 /// Retrieve the specific weekly schedule for the specific user.
-#define COMMAND_CLOSURES_GET_WEEK_DAY_SCHEDULE             0x0C // O  zclDoorLockSchedule_t
+#define COMMAND_DOOR_LOCK_GET_WEEKDAY_SCHEDULE             0x0C // O  zclDoorLockSchedule_t
 /// Clear the specific weekly schedule for the specific user.
-#define COMMAND_CLOSURES_CLEAR_WEEK_DAY_SCHEDULE           0x0D // O  zclDoorLockSchedule_t
+#define COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE           0x0D // O  zclDoorLockSchedule_t
 /// Set a time-specific schedule ID for a specified user.
-#define COMMAND_CLOSURES_SET_YEAR_DAY_SCHEDULE             0x0E // O  zclDoorLockSetYearDaySchedule_t
+#define COMMAND_DOOR_LOCK_SET_YEAR_DAY_SCHEDULE             0x0E // O  zclDoorLockSetYearDaySchedule_t
 /// Retrieve the specific year day schedule for the specific user.
-#define COMMAND_CLOSURES_GET_YEAR_DAY_SCHEDULE             0x0F // O  zclDoorLockSchedule_t
+#define COMMAND_DOOR_LOCK_GET_YEAR_DAY_SCHEDULE             0x0F // O  zclDoorLockSchedule_t
 /// Clears the specific year day schedule for the specific user.
-#define COMMAND_CLOSURES_CLEAR_YEAR_DAY_SCHEDULE           0x10 // O  zclDoorLockSchedule_t
+#define COMMAND_DOOR_LOCK_CLEAR_YEAR_DAY_SCHEDULE           0x10 // O  zclDoorLockSchedule_t
 /// Set the holiday Schedule by specifying local start time and local end time
 /// with respect to any Lock Operating Mode.
-#define COMMAND_CLOSURES_SET_HOLIDAY_SCHEDULE              0x11 // O  zclDoorLockSetHolidaySchedule_t
+#define COMMAND_DOOR_LOCK_SET_HOLIDAY_SCHEDULE              0x11 // O  zclDoorLockSetHolidaySchedule_t
 /// Get the holiday Schedule by specifying Holiday ID.
-#define COMMAND_CLOSURES_GET_HOLIDAY_SCHEDULE              0x12 // O  zclDoorLockHolidayScheduleID_t
+#define COMMAND_DOOR_LOCK_GET_HOLIDAY_SCHEDULE              0x12 // O  zclDoorLockHolidayScheduleID_t
 /// Clear the holiday Schedule by specifying Holiday ID.
-#define COMMAND_CLOSURES_CLEAR_HOLIDAY_SCHEDULE            0x13 // O  zclDoorLockHolidayScheduleID_t
+#define COMMAND_DOOR_LOCK_CLEAR_HOLIDAY_SCHEDULE            0x13 // O  zclDoorLockHolidayScheduleID_t
 /// Set the type byte for a specified user.
-#define COMMAND_CLOSURES_SET_USER_TYPE                     0x14 // O  zclDoorLockSetUserType_t
+#define COMMAND_DOOR_LOCK_SET_USER_TYPE                     0x14 // O  zclDoorLockSetUserType_t
 /// Retrieve the type byte for a specific user.
-#define COMMAND_CLOSURES_GET_USER_TYPE                     0x15 // O  zclDoorLockUserID_t
+#define COMMAND_DOOR_LOCK_GET_USER_TYPE                     0x15 // O  zclDoorLockUserID_t
 /// Set an ID for RFID access into the lock.
-#define COMMAND_CLOSURES_SET_RFID_CODE                     0x16 // O  zclDoorLockSetRFIDCode_t
+#define COMMAND_DOOR_LOCK_SET_RFID_CODE                     0x16 // O  zclDoorLockSetRFIDCode_t
 /// Retrieve an ID.
-#define COMMAND_CLOSURES_GET_RFID_CODE                     0x17 // O  zclDoorLockUserID_t
+#define COMMAND_DOOR_LOCK_GET_RFID_CODE                     0x17 // O  zclDoorLockUserID_t
 /// Delete an ID.
-#define COMMAND_CLOSURES_CLEAR_RFID_CODE                   0x18 // O  zclDoorLockUserID_t
+#define COMMAND_DOOR_LOCK_CLEAR_RFID_CODE                   0x18 // O  zclDoorLockUserID_t
 /// Clear out all RFIDs on the lock.
-#define COMMAND_CLOSURES_CLEAR_ALL_RFID_CODES              0x19 // O  no payload
+#define COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES              0x19 // O  no payload
 
 // Server Commands Generated
 /// This command is sent in response to a Lock command with one status byte payload.
-#define COMMAND_CLOSURES_LOCK_DOOR_RSP                     0x00 // M  status field
+#define COMMAND_DOOR_LOCK_LOCK_DOOR_RESPONSE                     0x00 // M  status field
 /// This command is sent in response to a Toggle command with one status byte payload.
-#define COMMAND_CLOSURES_UNLOCK_DOOR_RSP                   0x01 // M  status field
+#define COMMAND_DOOR_LOCK_UNLOCK_DOOR_RESPONSE                   0x01 // M  status field
 /// This command is sent in response to a Toggle command with one status byte payload.
-#define COMMAND_CLOSURES_TOGGLE_DOOR_RSP                   0x02 // O  status field
+#define COMMAND_DOOR_LOCK_TOGGLE_RESPONSE                   0x02 // O  status field
 /// This command is sent in response to an Unlock with Timeout command with
 /// one status byte payload.
-#define COMMAND_CLOSURES_UNLOCK_WITH_TIMEOUT_RSP           0x03 // O  status field
+#define COMMAND_DOOR_LOCK_UNLOCK_WITH_TIMEOUT_RESPONSE           0x03 // O  status field
 /// Returns the specified log record.
-#define COMMAND_CLOSURES_GET_LOG_RECORD_RSP                0x04 // O  zclDoorLockGetLogRecordRsp_t
+#define COMMAND_DOOR_LOCK_GET_LOG_RECORD_RESPONSE                0x04 // O  zclDoorLockGetLogRecordRsp_t
 /// Returns status of the PIN set command.
-#define COMMAND_CLOSURES_SET_PIN_CODE_RSP                  0x05 // O  status field
+#define COMMAND_DOOR_LOCK_SET_PIN_CODE_RESPONSE                  0x05 // O  status field
 /// Returns the PIN for the specified user ID.
-#define COMMAND_CLOSURES_GET_PIN_CODE_RSP                  0x06 // O  zclDoorLockGetPINCodeRsp_t
+#define COMMAND_DOOR_LOCK_GET_PIN_CODE_RESPONSE                  0x06 // O  zclDoorLockGetPINCodeRsp_t
 /// Returns pass/fail of the command.
-#define COMMAND_CLOSURES_CLEAR_PIN_CODE_RSP                0x07 // O  status field
+#define COMMAND_DOOR_LOCK_CLEAR_PIN_CODE_RESPONSE                0x07 // O  status field
 /// Returns pass/fail of the command.
-#define COMMAND_CLOSURES_CLEAR_ALL_PIN_CODES_RSP           0x08 // O  status field
+#define COMMAND_DOOR_LOCK_CLEAR_ALL_PIN_CODES_RESPONSE           0x08 // O  status field
 /// Returns the pass or fail value for the setting of the user status.
-#define COMMAND_CLOSURES_SET_USER_STATUS_RSP               0x09 // O  status field
+#define COMMAND_DOOR_LOCK_SET_USER_STATUS_RESPONSE               0x09 // O  status field
 /// Returns the user status for the specified user ID.
-#define COMMAND_CLOSURES_GET_USER_STATUS_RSP               0x0A // O  zclDoorLockGetUserStateRsp_t
+#define COMMAND_DOOR_LOCK_GET_USER_STATUS_RESPONSE               0x0A // O  zclDoorLockGetUserStateRsp_t
 /// Returns pass/fail of the command.
-#define COMMAND_CLOSURES_SET_WEEK_DAY_SCHEDULE_RSP         0x0B // O  status field
+#define COMMAND_DOOR_LOCK_SET_WEEKDAY_SCHEDULE_RESPONSE         0x0B // O  status field
 /// Returns the weekly repeating schedule data for the specified schedule ID.
-#define COMMAND_CLOSURES_GET_WEEK_DAY_SCHEDULE_RSP         0x0C // O  zclDoorLockGetWeekDayScheduleRsp_t
+#define COMMAND_DOOR_LOCK_GET_WEEKDAY_SCHEDULE_RESPONSE         0x0C // O  zclDoorLockGetWeekDayScheduleRsp_t
 /// Returns pass/fail of the command.
-#define COMMAND_CLOSURES_CLEAR_WEEK_DAY_SCHEDULE_RSP       0x0D // O  status field
+#define COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE_RESPONSE       0x0D // O  status field
 /// Returns pass/fail of the command.
-#define COMMAND_CLOSURES_SET_YEAR_DAY_SCHEDULE_RSP         0x0E // O  status field
+#define COMMAND_DOOR_LOCK_SET_YEAR_DAY_SCHEDULE_RESPONSE         0x0E // O  status field
 /// Returns the weekly repeating schedule data for the specified schedule ID.
-#define COMMAND_CLOSURES_GET_YEAR_DAY_SCHEDULE_RSP         0x0F // O  zclDoorLockGetYearDayScheduleRsp_t
+#define COMMAND_DOOR_LOCK_GET_YEAR_DAY_SCHEDULE_RESPONSE         0x0F // O  zclDoorLockGetYearDayScheduleRsp_t
 /// Returns pass/fail of the command.
-#define COMMAND_CLOSURES_CLEAR_YEAR_DAY_SCHEDULE_RSP       0x10 // O  status field
+#define COMMAND_DOOR_LOCK_CLEAR_YEAR_DAY_SCHEDULE_RESPONSE       0x10 // O  status field
 /// Returns pass/fail of the command.
-#define COMMAND_CLOSURES_SET_HOLIDAY_SCHEDULE_RSP          0x11 // O  status field
+#define COMMAND_DOOR_LOCK_SET_HOLIDAY_SCHEDULE_RESPONSE          0x11 // O  status field
 /// Returns the Holiday Schedule Entry for the specified Holiday ID.
-#define COMMAND_CLOSURES_GET_HOLIDAY_SCHEDULE_RSP          0x12 // O  zclDoorLockGetHolidayScheduleRsp_t
+#define COMMAND_DOOR_LOCK_GET_HOLIDAY_SCHEDULE_RESPONSE          0x12 // O  zclDoorLockGetHolidayScheduleRsp_t
 /// Returns pass/fail of the command.
-#define COMMAND_CLOSURES_CLEAR_HOLIDAY_SCHEDULE_RSP        0x13 // O  status field
+#define COMMAND_DOOR_LOCK_CLEAR_HOLIDAY_SCHEDULE_RESPONSE        0x13 // O  status field
 /// Returns the pass or fail value for the setting of the user type.
-#define COMMAND_CLOSURES_SET_USER_TYPE_RSP                 0x14 // O  status field
+#define COMMAND_DOOR_LOCK_SET_USER_TYPE_RESPONSE                 0x14 // O  status field
 /// Returns the user type for the specified user ID.
-#define COMMAND_CLOSURES_GET_USER_TYPE_RSP                 0x15 // O  zclDoorLockGetUserTypeRsp_t
+#define COMMAND_DOOR_LOCK_GET_USER_TYPE_RESPONSE                 0x15 // O  zclDoorLockGetUserTypeRsp_t
 /// Returns status of the Set RFID Code command.
-#define COMMAND_CLOSURES_SET_RFID_CODE_RSP                 0x16 // O  status field
+#define COMMAND_DOOR_LOCK_SET_RFID_CODE_RESPONSE                 0x16 // O  status field
 /// Returns the RFID code for the specified user ID.
-#define COMMAND_CLOSURES_GET_RFID_CODE_RSP                 0x17 // O  zclDoorLockGetRFIDCodeRsp_t
+#define COMMAND_DOOR_LOCK_GET_RFID_CODE_RESPONSE                 0x17 // O  zclDoorLockGetRFIDCodeRsp_t
 /// Returns pass/fail of the command.
-#define COMMAND_CLOSURES_CLEAR_RFID_CODE_RSP               0x18 // O  status field
+#define COMMAND_DOOR_LOCK_CLEAR_RFID_CODE_RESPONSE               0x18 // O  status field
 /// Returns pass/fail of the command.
-#define COMMAND_CLOSURES_CLEAR_ALL_RFID_CODES_RSP          0x19 // O  status field
+#define COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES_RESPONSE          0x19 // O  status field
 /// The door lock server sends out operation event notification when the event
 /// is triggered by the various event sources.
-#define COMMAND_CLOSURES_OPERATION_EVENT_NOTIFICATION      0x20 // O  zclDoorLockOperationalEventNotification_t
+#define COMMAND_DOOR_LOCK_OPERATING_EVENT_NOTIFICATION      0x20 // O  zclDoorLockOperationalEventNotification_t
 /// The door lock optionally sends out notifications (if they are enabled)
 /// whenever there is a significant operational event on the lock.
-#define COMMAND_CLOSURES_PROGRAMMING_EVENT_NOTIFICATION    0x21 // O  zclDoorLockProgrammingEventNotification_t
+#define COMMAND_DOOR_LOCK_PROGRAMMING_EVENT_NOTIFICATION    0x21 // O  zclDoorLockProgrammingEventNotification_t
 
 
 /*** User Status Value enums ***/
@@ -552,73 +554,73 @@ extern "C"
 //Window Covering Information
 /// The WindowCoveringType attribute identifies the type of window covering
 /// being controlled by this endpoint
-#define ATTRID_CLOSURES_WINDOW_COVERING_TYPE                ( ATTRSET_WINDOW_COVERING_INFO + 0x0000 )
+#define ATTRID_WINDOW_COVERING_WINDOW_COVERING_TYPE                                                0x0000
 /// The PhysicalClosedLimitLift attribute identifies the maximum possible encoder
 /// position possible (in centimeters) to position the height of the window
 /// covering - this is ignored if the device is running in Open Loop Control.
-#define ATTRID_CLOSURES_PHYSICAL_CLOSE_LIMIT_LIFT_CM        ( ATTRSET_WINDOW_COVERING_INFO + 0x0001 )
+#define ATTRID_WINDOW_COVERING_PHYSICAL_CLOSED_LIMIT_LIFT                                          0x0001
 /// The PhysicalClosedLimitTilt attribute identifies the maximum possible
 /// encoder position possible (tenth of a degrees) to position the angle of the
 /// window covering - this is ignored if the device is running in Open Loop Control.
-#define ATTRID_CLOSURES_PHYSICAL_CLOSE_LIMIT_TILT_DDEGREE   ( ATTRSET_WINDOW_COVERING_INFO + 0x0002 )
+#define ATTRID_WINDOW_COVERING_PHYSICAL_CLOSED_LIMIT_TILT                                          0x0002
 /// The CurrentPositionLift attribute identifies the actual position (in centimeters)
 /// of the window covering from the top of the shade if Closed Loop Control is
 /// enabled. This attribute is ignored if the device is running in Open Loop Control.
-#define ATTRID_CLOSURES_CURRENT_POSITION_LIFT_CM            ( ATTRSET_WINDOW_COVERING_INFO + 0x0003 )
+#define ATTRID_WINDOW_COVERING_CURRENT_POSITION_LIFT                                               0x0003
 /// The NumberOfActuationsTilt attribute identifies the total number of tilt
 /// actuations applied to the Window Covering since the device was installed.
-#define ATTRID_CLOSURES_CURRENT_POSITION_TILT_DDEGREE       ( ATTRSET_WINDOW_COVERING_INFO + 0x0004 )
+#define ATTRID_WINDOW_COVERING_CURRENT_POSITION_TILT                                               0x0004
 /// The NumberOfActuationsLift attribute identifies the total number of lift
 /// actuations applied to the Window Covering since the device was installed.
-#define ATTRID_CLOSURES_NUM_OF_ACTUATION_LIFT               ( ATTRSET_WINDOW_COVERING_INFO + 0x0005 )
+#define ATTRID_WINDOW_COVERING_NUMBER_OF_ACTUATIONS_LIFT                                           0x0005
 /// The NumberOfActuationsTilt attribute identifies the total number of tilt
 /// actuations applied to the Window Covering since the device was installed.
-#define ATTRID_CLOSURES_NUM_OF_ACTUATION_TILT               ( ATTRSET_WINDOW_COVERING_INFO + 0x0006 )
+#define ATTRID_WINDOW_COVERING_NUMBER_OF_ACTUATIONS_TILT                                           0x0006
 /// The ConfigStatus attribute makes configuration and status information available.
-#define ATTRID_CLOSURES_CONFIG_STATUS                       ( ATTRSET_WINDOW_COVERING_INFO + 0x0007 )
+#define ATTRID_WINDOW_COVERING_CONFIG_OR_STATUS                                                    0x0007
 /// The CurrentPositionLiftPercentage attribute identifies the actual position as
 /// a percentage between the InstalledOpenLimitLift attribute and the
 /// InstalledClosedLimitLift attribute of the window covering from the up/open
 /// position if Closed Loop Control is enabled.
-#define ATTRID_CLOSURES_CURRENT_POSITION_LIFT_PERCENTAGE    ( ATTRSET_WINDOW_COVERING_INFO + 0x0008 )
+#define ATTRID_WINDOW_COVERING_CURRENT_POSITION_LIFT_PERCENTAGE                                    0x0008
 /// The CurrentPositionTiltPercentage attribute identifies the actual position as
 /// a percentage between the  InstalledOpenLimitTilt attribute and the
 /// InstalledClosedLimitTilt attribute of the window covering from the up/open
 /// position if Closed Loop Control is enabled.
-#define ATTRID_CLOSURES_CURRENT_POSITION_TILT_PERCENTAGE    ( ATTRSET_WINDOW_COVERING_INFO + 0x0009 )
+#define ATTRID_WINDOW_COVERING_CURRENT_POSITION_TILT_PERCENTAGE                                    0x0009
 
 //Window Covering Setting
 /// The InstalledOpenLimitLift attribute identifies the Open Limit for Lifting
 /// the Window Covering whether position (in centimeters) is encoded or timed.
-#define ATTRID_CLOSURES_INSTALLED_OPEN_LIMIT_LIFT_CM        ( ATTRSET_WINDOW_COVERING_SETTINGS + 0x0000 )
+#define ATTRID_WINDOW_COVERING_INSTALLED_OPEN_LIMIT_LIFT                                               0x0010
 /// The InstalledClosedLimitLift attribute identifies the Closed Limit for
 /// Lifting the Window Covering whether position (in centimeters) is encoded or timed.
-#define ATTRID_CLOSURES_INSTALLED_CLOSED_LIMIT_LIFT_CM      ( ATTRSET_WINDOW_COVERING_SETTINGS + 0x0001 )
+#define ATTRID_WINDOW_COVERING_INSTALLED_CLOSED_LIMIT_LIFT                                             0x0011
 /// The InstalledOpenLimitTilt attribute identifies the Open Limit for Tilting
 /// the Window Covering whether position (in  tenth of a degree) is encoded or timed.
-#define ATTRID_CLOSURES_INSTALLED_OPEN_LIMIT_TILT_DDEGREE   ( ATTRSET_WINDOW_COVERING_SETTINGS + 0x0002 )
+#define ATTRID_WINDOW_COVERING_INSTALLED_OPEN_LIMIT_TILT                                               0x0012
 /// The InstalledClosedLimitTilt attribute identifies the Closed Limit for Tilting
 /// the Window Covering whether position (in tenth of a degree) is encoded or timed.
-#define ATTRID_CLOSURES_INSTALLED_CLOSED_LIMIT_TILT_DDEGREE ( ATTRSET_WINDOW_COVERING_SETTINGS + 0x0003 )
+#define ATTRID_WINDOW_COVERING_INSTALLED_CLOSED_LIMIT_TILT                                             0x0013
 /// The VelocityLift attribute identifies the velocity (in centimeters per second)
 /// associated with Lifting the Window Covering.
-#define ATTRID_CLOSURES_VELOCITY_LIFT                       ( ATTRSET_WINDOW_COVERING_SETTINGS + 0x0004 )
+#define ATTRID_WINDOW_COVERING_VELOCITY_LIFT                                                           0x0014
 /// The AccelerationTimeLift attribute identifies any ramp up times to reaching
 /// the velocity setting (in tenth of a second) for positioning the Window Covering.
-#define ATTRID_CLOSURES_ACCELERATION_TIME_LIFT              ( ATTRSET_WINDOW_COVERING_SETTINGS + 0x0005 )
+#define ATTRID_WINDOW_COVERING_ACCELERATION_TIME_LIFT                                                  0x0015
 /// The DecelerationTimeLift attribute identifies any ramp down times associated
 /// with stopping the positioning (in tenth of a second) of the Window Covering.
-#define ATTRID_CLOSURES_DECELERATION_TIME_LIFT              ( ATTRSET_WINDOW_COVERING_SETTINGS + 0x0006 )
+#define ATTRID_WINDOW_COVERING_DECELERATION_TIME_LIFT                                                  0x0016
 /// The Mode attribute allows configuration of the Window Covering.
-#define ATTRID_CLOSURES_WINDOW_COVERING_MODE                ( ATTRSET_WINDOW_COVERING_SETTINGS + 0x0007 )
+#define ATTRID_WINDOW_COVERING_MODE                                                                    0x0017
 /// Identifies the number of Intermediate Setpoints supported by the Window Covering
 /// for Lift and then identifies the position settings for those Intermediate
 /// Setpoints if Closed Loop Control is supported.
-#define ATTRID_CLOSURES_INTERMEDIATE_SETPOINTS_LIFT         ( ATTRSET_WINDOW_COVERING_SETTINGS + 0x0008 )
+#define ATTRID_WINDOW_COVERING_INTERMEDIATE_SETPOINTS_LIFT                                             0x0018
 /// Identifies the number of Intermediate Setpoints supported by the Window
 /// Covering for Tilt and then identifies the position settings for those
 /// Intermediate Setpoints if Closed Loop Control is supported.
-#define ATTRID_CLOSURES_INTERMEDIATE_SETPOINTS_TILT         ( ATTRSET_WINDOW_COVERING_SETTINGS + 0x0009 )
+#define ATTRID_WINDOW_COVERING_INTERMEDIATE_SETPOINTS_TILT                                             0x0019
 
 /*** Window Covering Type Attribute types ***/
 /// Window Covering Type enum
@@ -640,30 +642,30 @@ extern "C"
 /// Upon receipt of this command, the Window Covering will adjust the window so
 /// the physical lift is at the  InstalledOpenLimit - Lift and the tilt is at the
 /// InstalledOpenLimit - Tilt. This will happen as fast as possible.
-#define COMMAND_CLOSURES_UP_OPEN                            ( 0x00 )
+#define COMMAND_WINDOW_COVERING_UP_OR_OPEN                            ( 0x00 )
 /// Upon receipt of this command, the Window Covering will adjust the window so
 /// the physical lift is at the InstalledClosedLimit - Lift and the tilt is at the
 /// InstalledClosedLimit - Tilt. This will happen as fast as possible.
-#define COMMAND_CLOSURES_DOWN_CLOSE                         ( 0x01 )
+#define COMMAND_WINDOW_COVERING_DOWN_OR_CLOSE                         ( 0x01 )
 /// Upon receipt of this command, the Window Covering will stop any adjusting to
 /// the physical tilt and lift that is currently  occurring.
-#define COMMAND_CLOSURES_STOP                               ( 0x02 )
+#define COMMAND_WINDOW_COVERING_STOP                               ( 0x02 )
 /// Upon receipt of this command, the Window Covering will adjust the window so
 /// the physical lift is at the lift value specified in the payload of this command
 /// as long as that value is not larger than InstalledOpenLimit - Lift and not
 /// smaller than InstalledClosedLimit - Lift.
-#define COMMAND_CLOSURES_GO_TO_LIFT_VALUE                   ( 0x04 )
+#define COMMAND_WINDOW_COVERING_GO_TO_LIFT_VALUE                   ( 0x04 )
 /// Upon receipt of this command, the Window Covering will adjust the window so
 /// the physical lift is at the lift percentage specified in the payload of this command.
-#define COMMAND_CLOSURES_GO_TO_LIFT_PERCENTAGE              ( 0x05 )
+#define COMMAND_WINDOW_COVERING_GO_TO_LIFT_PERCENTAGE              ( 0x05 )
 /// Upon receipt of this command, the Window Covering will adjust the window so
 /// the physical tilt is at the tilt value specified in the payload of this command
 /// as long as that value is not larger than InstalledOpenLimit - Tilt and not
 /// smaller than InstalledClosedLimit - Tilt.
-#define COMMAND_CLOSURES_GO_TO_TILT_VALUE                   ( 0x07 )
+#define COMMAND_WINDOW_COVERING_GO_TO_TILT_VALUE                   ( 0x07 )
 /// Upon receipt of this command, the Window Covering will adjust the window so
 /// the physical tilt is at the tilt percentage specified in the payload of this command.
-#define COMMAND_CLOSURES_GO_TO_TILT_PERCENTAGE              ( 0x08 )
+#define COMMAND_WINDOW_COVERING_GO_TO_TILT_PERCENTAGE              ( 0x08 )
 
 #define ZCL_WC_GOTOVALUEREQ_PAYLOADLEN                      ( 2 )
 #define ZCL_WC_GOTOPERCENTAGEREQ_PAYLOADLEN                 ( 1 )
@@ -1171,105 +1173,105 @@ typedef uint8_t (*zclClosures_WindowCoveringGotoSetpoint_t) ( uint8_t index );
 typedef struct
 {
   //!< #zclClosures_DoorLock_t
-  zclClosures_DoorLock_t                             pfnDoorLock;
+  zclClosures_DoorLock_t                             pfnDoorLock;                               //!< (COMMAND_DOOR_LOCK_LOCK_DOOR)
   //!< #zclClosures_DoorLockRsp_t
-  zclClosures_DoorLockRsp_t                          pfnDoorLockRsp;
+  zclClosures_DoorLockRsp_t                          pfnDoorLockRsp;                            //!< (COMMAND_DOOR_LOCK_LOCK_DOOR_RESPONSE)
   //!< #zclClosures_DoorLockUnlockWithTimeout_t
-  zclClosures_DoorLockUnlockWithTimeout_t            pfnDoorLockUnlockWithTimeout;
+  zclClosures_DoorLockUnlockWithTimeout_t            pfnDoorLockUnlockWithTimeout;              //!< (COMMAND_DOOR_LOCK_UNLOCK_WITH_TIMEOUT)
   //!< #zclClosures_DoorLockGetLogRecord_t
-  zclClosures_DoorLockGetLogRecord_t                 pfnDoorLockGetLogRecord;
+  zclClosures_DoorLockGetLogRecord_t                 pfnDoorLockGetLogRecord;                   //!< (COMMAND_DOOR_LOCK_GET_LOG_RECORD)
   //!< #zclClosures_DoorLockSetPINCode_t
-  zclClosures_DoorLockSetPINCode_t                   pfnDoorLockSetPINCode;
+  zclClosures_DoorLockSetPINCode_t                   pfnDoorLockSetPINCode;                     //!< (COMMAND_DOOR_LOCK_SET_PIN_CODE)
   //!< #zclClosures_DoorLockGetPINCode_t
-  zclClosures_DoorLockGetPINCode_t                   pfnDoorLockGetPINCode;
+  zclClosures_DoorLockGetPINCode_t                   pfnDoorLockGetPINCode;                     //!< (COMMAND_DOOR_LOCK_GET_PIN_CODE)
   //!< #zclClosures_DoorLockClearPINCode_t
-  zclClosures_DoorLockClearPINCode_t                 pfnDoorLockClearPINCode;
+  zclClosures_DoorLockClearPINCode_t                 pfnDoorLockClearPINCode;                   //!< (COMMAND_DOOR_LOCK_CLEAR_PIN_CODE)
   //!< #zclClosures_DoorLockClearAllPINCodes_t
-  zclClosures_DoorLockClearAllPINCodes_t             pfnDoorLockClearAllPINCodes;
+  zclClosures_DoorLockClearAllPINCodes_t             pfnDoorLockClearAllPINCodes;               //!< (COMMAND_DOOR_LOCK_CLEAR_ALL_PIN_CODES)
   //!< #zclClosures_DoorLockSetUserStatus_t
-  zclClosures_DoorLockSetUserStatus_t                pfnDoorLockSetUserStatus;
+  zclClosures_DoorLockSetUserStatus_t                pfnDoorLockSetUserStatus;                  //!< (COMMAND_DOOR_LOCK_SET_USER_STATUS)
   //!< #zclClosures_DoorLockGetUserStatus_t
-  zclClosures_DoorLockGetUserStatus_t                pfnDoorLockGetUserStatus;
+  zclClosures_DoorLockGetUserStatus_t                pfnDoorLockGetUserStatus;                  //!< (COMMAND_DOOR_LOCK_GET_USER_STATUS)
   //!< #zclClosures_DoorLockSetWeekDaySchedule_t
-  zclClosures_DoorLockSetWeekDaySchedule_t           pfnDoorLockSetWeekDaySchedule;
+  zclClosures_DoorLockSetWeekDaySchedule_t           pfnDoorLockSetWeekDaySchedule;             //!< (COMMAND_DOOR_LOCK_SET_WEEKDAY_SCHEDULE)
   //!< #zclClosures_DoorLockGetWeekDaySchedule_t
-  zclClosures_DoorLockGetWeekDaySchedule_t           pfnDoorLockGetWeekDaySchedule;
+  zclClosures_DoorLockGetWeekDaySchedule_t           pfnDoorLockGetWeekDaySchedule;             //!< (COMMAND_DOOR_LOCK_GET_WEEKDAY_SCHEDULE)
   //!< #zclClosures_DoorLockClearWeekDaySchedule_t
-  zclClosures_DoorLockClearWeekDaySchedule_t         pfnDoorLockClearWeekDaySchedule;
+  zclClosures_DoorLockClearWeekDaySchedule_t         pfnDoorLockClearWeekDaySchedule;           //!< (COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE)
   //!< #zclClosures_DoorLockSetYearDaySchedule_t
-  zclClosures_DoorLockSetYearDaySchedule_t           pfnDoorLockSetYearDaySchedule;
+  zclClosures_DoorLockSetYearDaySchedule_t           pfnDoorLockSetYearDaySchedule;             //!< (COMMAND_DOOR_LOCK_SET_YEAR_DAY_SCHEDULE)
   //!< #zclClosures_DoorLockGetYearDaySchedule_t
-  zclClosures_DoorLockGetYearDaySchedule_t           pfnDoorLockGetYearDaySchedule;
+  zclClosures_DoorLockGetYearDaySchedule_t           pfnDoorLockGetYearDaySchedule;             //!< (COMMAND_DOOR_LOCK_GET_YEAR_DAY_SCHEDULE)
   //!< #zclClosures_DoorLockClearYearDaySchedule_t
-  zclClosures_DoorLockClearYearDaySchedule_t         pfnDoorLockClearYearDaySchedule;
+  zclClosures_DoorLockClearYearDaySchedule_t         pfnDoorLockClearYearDaySchedule;           //!< (COMMAND_DOOR_LOCK_CLEAR_YEAR_DAY_SCHEDULE)
   //!< #zclClosures_DoorLockSetHolidaySchedule_t
-  zclClosures_DoorLockSetHolidaySchedule_t           pfnDoorLockSetHolidaySchedule;
+  zclClosures_DoorLockSetHolidaySchedule_t           pfnDoorLockSetHolidaySchedule;             //!< (COMMAND_DOOR_LOCK_SET_HOLIDAY_SCHEDULE)
   //!< #zclClosures_DoorLockGetHolidaySchedule_t
-  zclClosures_DoorLockGetHolidaySchedule_t           pfnDoorLockGetHolidaySchedule;
+  zclClosures_DoorLockGetHolidaySchedule_t           pfnDoorLockGetHolidaySchedule;             //!< (COMMAND_DOOR_LOCK_GET_HOLIDAY_SCHEDULE)
   //!< #zclClosures_DoorLockClearHolidaySchedule_t
-  zclClosures_DoorLockClearHolidaySchedule_t         pfnDoorLockClearHolidaySchedule;
+  zclClosures_DoorLockClearHolidaySchedule_t         pfnDoorLockClearHolidaySchedule;           //!< (COMMAND_DOOR_LOCK_CLEAR_HOLIDAY_SCHEDULE)
   //!< #zclClosures_DoorLockSetUserType_t
-  zclClosures_DoorLockSetUserType_t                  pfnDoorLockSetUserType;
+  zclClosures_DoorLockSetUserType_t                  pfnDoorLockSetUserType;                    //!< (COMMAND_DOOR_LOCK_SET_USER_TYPE)
   //!< #zclClosures_DoorLockGetUserType_t
-  zclClosures_DoorLockGetUserType_t                  pfnDoorLockGetUserType;
+  zclClosures_DoorLockGetUserType_t                  pfnDoorLockGetUserType;                    //!< (COMMAND_DOOR_LOCK_GET_USER_TYPE)
   //!< #zclClosures_DoorLockSetRFIDCode_t
-  zclClosures_DoorLockSetRFIDCode_t                  pfnDoorLockSetRFIDCode;
+  zclClosures_DoorLockSetRFIDCode_t                  pfnDoorLockSetRFIDCode;                    //!< (COMMAND_DOOR_LOCK_SET_RFID_CODE)
   //!< #zclClosures_DoorLockGetRFIDCode_t
-  zclClosures_DoorLockGetRFIDCode_t                  pfnDoorLockGetRFIDCode;
+  zclClosures_DoorLockGetRFIDCode_t                  pfnDoorLockGetRFIDCode;                    //!< (COMMAND_DOOR_LOCK_GET_RFID_CODE)
   //!< #zclClosures_DoorLockClearRFIDCode_t
-  zclClosures_DoorLockClearRFIDCode_t                pfnDoorLockClearRFIDCode;
+  zclClosures_DoorLockClearRFIDCode_t                pfnDoorLockClearRFIDCode;                  //!< (COMMAND_DOOR_LOCK_CLEAR_RFID_CODE)
   //!< #zclClosures_DoorLockClearAllRFIDCodes_t
-  zclClosures_DoorLockClearAllRFIDCodes_t            pfnDoorLockClearAllRFIDCodes;
+  zclClosures_DoorLockClearAllRFIDCodes_t            pfnDoorLockClearAllRFIDCodes;              //!< (COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES)
   //!< #zclClosures_DoorLockUnlockWithTimeoutRsp_t
-  zclClosures_DoorLockUnlockWithTimeoutRsp_t         pfnDoorLockUnlockWithTimeoutRsp;
+  zclClosures_DoorLockUnlockWithTimeoutRsp_t         pfnDoorLockUnlockWithTimeoutRsp;           //!< (COMMAND_DOOR_LOCK_UNLOCK_WITH_TIMEOUT_RESPONSE)
   //!< #zclClosures_DoorLockGetLogRecordRsp_t
-  zclClosures_DoorLockGetLogRecordRsp_t              pfnDoorLockGetLogRecordRsp;
+  zclClosures_DoorLockGetLogRecordRsp_t              pfnDoorLockGetLogRecordRsp;                //!< (COMMAND_DOOR_LOCK_GET_LOG_RECORD_RESPONSE)
   //!< #zclClosures_DoorLockSetPINCodeRsp_t
-  zclClosures_DoorLockSetPINCodeRsp_t                pfnDoorLockSetPINCodeRsp;
+  zclClosures_DoorLockSetPINCodeRsp_t                pfnDoorLockSetPINCodeRsp;                  //!< (COMMAND_DOOR_LOCK_SET_PIN_CODE_RESPONSE)
   //!< #zclClosures_DoorLockGetPINCodeRsp_t
-  zclClosures_DoorLockGetPINCodeRsp_t                pfnDoorLockGetPINCodeRsp;
+  zclClosures_DoorLockGetPINCodeRsp_t                pfnDoorLockGetPINCodeRsp;                  //!< (COMMAND_DOOR_LOCK_GET_PIN_CODE_RESPONSE)
   //!< #zclClosures_DoorLockClearPINCodeRsp_t
-  zclClosures_DoorLockClearPINCodeRsp_t              pfnDoorLockClearPINCodeRsp;
+  zclClosures_DoorLockClearPINCodeRsp_t              pfnDoorLockClearPINCodeRsp;                //!< (COMMAND_DOOR_LOCK_CLEAR_PIN_CODE_RESPONSE)
   //!< #zclClosures_DoorLockClearAllPINCodesRsp_t
-  zclClosures_DoorLockClearAllPINCodesRsp_t          pfnDoorLockClearAllPINCodesRsp;
+  zclClosures_DoorLockClearAllPINCodesRsp_t          pfnDoorLockClearAllPINCodesRsp;            //!< (COMMAND_DOOR_LOCK_CLEAR_ALL_PIN_CODES_RESPONSE)
   //!< #zclClosures_DoorLockSetUserStatusRsp_t
-  zclClosures_DoorLockSetUserStatusRsp_t             pfnDoorLockSetUserStatusRsp;
+  zclClosures_DoorLockSetUserStatusRsp_t             pfnDoorLockSetUserStatusRsp;               //!< (COMMAND_DOOR_LOCK_SET_USER_STATUS_RESPONSE)
   //!< #zclClosures_DoorLockGetUserStatusRsp_t
-  zclClosures_DoorLockGetUserStatusRsp_t             pfnDoorLockGetUserStatusRsp;
+  zclClosures_DoorLockGetUserStatusRsp_t             pfnDoorLockGetUserStatusRsp;               //!< (COMMAND_DOOR_LOCK_GET_USER_STATUS_RESPONSE)
   //!< #zclClosures_DoorLockSetWeekDayScheduleRsp_t
-  zclClosures_DoorLockSetWeekDayScheduleRsp_t        pfnDoorLockSetWeekDayScheduleRsp;
+  zclClosures_DoorLockSetWeekDayScheduleRsp_t        pfnDoorLockSetWeekDayScheduleRsp;          //!< (COMMAND_DOOR_LOCK_SET_WEEKDAY_SCHEDULE_RESPONSE)
   //!< #zclClosures_DoorLockGetWeekDayScheduleRsp_t
-  zclClosures_DoorLockGetWeekDayScheduleRsp_t        pfnDoorLockGetWeekDayScheduleRsp;
+  zclClosures_DoorLockGetWeekDayScheduleRsp_t        pfnDoorLockGetWeekDayScheduleRsp;          //!< (COMMAND_DOOR_LOCK_GET_WEEKDAY_SCHEDULE_RESPONSE)
   //!< #zclClosures_DoorLockClearWeekDayScheduleRsp_t
-  zclClosures_DoorLockClearWeekDayScheduleRsp_t      pfnDoorLockClearWeekDayScheduleRsp;
+  zclClosures_DoorLockClearWeekDayScheduleRsp_t      pfnDoorLockClearWeekDayScheduleRsp;        //!< (COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE_RESPONSE)
   //!< #zclClosures_DoorLockSetYearDayScheduleRsp_t
-  zclClosures_DoorLockSetYearDayScheduleRsp_t        pfnDoorLockSetYearDayScheduleRsp;
+  zclClosures_DoorLockSetYearDayScheduleRsp_t        pfnDoorLockSetYearDayScheduleRsp;          //!< (COMMAND_DOOR_LOCK_SET_YEAR_DAY_SCHEDULE_RESPONSE)
   //!< #zclClosures_DoorLockGetYearDayScheduleRsp_t
-  zclClosures_DoorLockGetYearDayScheduleRsp_t        pfnDoorLockGetYearDayScheduleRsp;
+  zclClosures_DoorLockGetYearDayScheduleRsp_t        pfnDoorLockGetYearDayScheduleRsp;          //!< (COMMAND_DOOR_LOCK_GET_YEAR_DAY_SCHEDULE_RESPONSE)
   //!< #zclClosures_DoorLockClearYearDayScheduleRsp_t
-  zclClosures_DoorLockClearYearDayScheduleRsp_t      pfnDoorLockClearYearDayScheduleRsp;
+  zclClosures_DoorLockClearYearDayScheduleRsp_t      pfnDoorLockClearYearDayScheduleRsp;        //!< (COMMAND_DOOR_LOCK_CLEAR_YEAR_DAY_SCHEDULE_RESPONSE)
   //!< #zclClosures_DoorLockSetHolidayScheduleRsp_t
-  zclClosures_DoorLockSetHolidayScheduleRsp_t        pfnDoorLockSetHolidayScheduleRsp;
+  zclClosures_DoorLockSetHolidayScheduleRsp_t        pfnDoorLockSetHolidayScheduleRsp;          //!< (COMMAND_DOOR_LOCK_SET_HOLIDAY_SCHEDULE_RESPONSE)
   //!< #zclClosures_DoorLockGetHolidayScheduleRsp_t
-  zclClosures_DoorLockGetHolidayScheduleRsp_t        pfnDoorLockGetHolidayScheduleRsp;
+  zclClosures_DoorLockGetHolidayScheduleRsp_t        pfnDoorLockGetHolidayScheduleRsp;          //!< (COMMAND_DOOR_LOCK_GET_HOLIDAY_SCHEDULE_RESPONSE)
   //!< #zclClosures_DoorLockClearHolidayScheduleRsp_t
-  zclClosures_DoorLockClearHolidayScheduleRsp_t      pfnDoorLockClearHolidayScheduleRsp;
+  zclClosures_DoorLockClearHolidayScheduleRsp_t      pfnDoorLockClearHolidayScheduleRsp;        //!< (COMMAND_DOOR_LOCK_CLEAR_HOLIDAY_SCHEDULE_RESPONSE)
   //!< #zclClosures_DoorLockSetUserTypeRsp_t
-  zclClosures_DoorLockSetUserTypeRsp_t               pfnDoorLockSetUserTypeRsp;
+  zclClosures_DoorLockSetUserTypeRsp_t               pfnDoorLockSetUserTypeRsp;                 //!< (COMMAND_DOOR_LOCK_SET_USER_TYPE_RESPONSE)
   //!< #zclClosures_DoorLockGetUserTypeRsp_t
-  zclClosures_DoorLockGetUserTypeRsp_t               pfnDoorLockGetUserTypeRsp;
+  zclClosures_DoorLockGetUserTypeRsp_t               pfnDoorLockGetUserTypeRsp;                 //!< (COMMAND_DOOR_LOCK_GET_USER_TYPE_RESPONSE)
   //!< #zclClosures_DoorLockSetRFIDCodeRsp_t
-  zclClosures_DoorLockSetRFIDCodeRsp_t               pfnDoorLockSetRFIDCodeRsp;
+  zclClosures_DoorLockSetRFIDCodeRsp_t               pfnDoorLockSetRFIDCodeRsp;                 //!< (COMMAND_DOOR_LOCK_SET_RFID_CODE_RESPONSE)
   //!< #zclClosures_DoorLockGetRFIDCodeRsp_t
-  zclClosures_DoorLockGetRFIDCodeRsp_t               pfnDoorLockGetRFIDCodeRsp;
+  zclClosures_DoorLockGetRFIDCodeRsp_t               pfnDoorLockGetRFIDCodeRsp;                 //!< (COMMAND_DOOR_LOCK_GET_RFID_CODE_RESPONSE)
   //!< #zclClosures_DoorLockClearRFIDCodeRsp_t
-  zclClosures_DoorLockClearRFIDCodeRsp_t             pfnDoorLockClearRFIDCodeRsp;
+  zclClosures_DoorLockClearRFIDCodeRsp_t             pfnDoorLockClearRFIDCodeRsp;               //!< (COMMAND_DOOR_LOCK_CLEAR_RFID_CODE_RESPONSE)
   //!< #zclClosures_DoorLockClearAllRFIDCodesRsp_t
-  zclClosures_DoorLockClearAllRFIDCodesRsp_t         pfnDoorLockClearAllRFIDCodesRsp;
+  zclClosures_DoorLockClearAllRFIDCodesRsp_t         pfnDoorLockClearAllRFIDCodesRsp;           //!< (COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES_RESPONSE)
   //!< #zclClosures_DoorLockOperationEventNotification_t
-  zclClosures_DoorLockOperationEventNotification_t   pfnDoorLockOperationEventNotification;
+  zclClosures_DoorLockOperationEventNotification_t   pfnDoorLockOperationEventNotification;     //!< (COMMAND_DOOR_LOCK_OPERATING_EVENT_NOTIFICATION)
   //!< #zclClosures_DoorLockProgrammingEventNotification_t
-  zclClosures_DoorLockProgrammingEventNotification_t pfnDoorLockProgrammingEventNotification;
+  zclClosures_DoorLockProgrammingEventNotification_t pfnDoorLockProgrammingEventNotification;   //!< (COMMAND_DOOR_LOCK_PROGRAMMING_EVENT_NOTIFICATION)
 } zclClosures_DoorLockAppCallbacks_t;
 #endif  // ZCL_DOORLOCK
 
@@ -1281,19 +1283,19 @@ typedef struct
 typedef struct
 {
   //!< #zclClosures_WindowCoveringSimple_t
-  zclClosures_WindowCoveringSimple_t          pfnWindowCoveringUpOpen;
+  zclClosures_WindowCoveringSimple_t          pfnWindowCoveringUpOpen;                //!< (COMMAND_WINDOW_COVERING_UP_OR_OPEN)
   //!< #zclClosures_WindowCoveringSimple_t
-  zclClosures_WindowCoveringSimple_t          pfnWindowCoveringDownClose;
+  zclClosures_WindowCoveringSimple_t          pfnWindowCoveringDownClose;             //!< (COMMAND_WINDOW_COVERING_DOWN_OR_CLOSE)
   //!< #zclClosures_WindowCoveringSimple_t
-  zclClosures_WindowCoveringSimple_t          pfnWindowCoveringStop;
+  zclClosures_WindowCoveringSimple_t          pfnWindowCoveringStop;                  //!< (COMMAND_WINDOW_COVERING_STOP)
   //!< #zclClosures_WindowCoveringGotoValue_t
-  zclClosures_WindowCoveringGotoValue_t       pfnWindowCoveringGotoLiftValue;
+  zclClosures_WindowCoveringGotoValue_t       pfnWindowCoveringGotoLiftValue;         //!< (COMMAND_WINDOW_COVERING_GO_TO_LIFT_VALUE)
   //!< #zclClosures_WindowCoveringGotoPercentage_t
-  zclClosures_WindowCoveringGotoPercentage_t  pfnWindowCoveringGotoLiftPercentage;
+  zclClosures_WindowCoveringGotoPercentage_t  pfnWindowCoveringGotoLiftPercentage;    //!< (COMMAND_WINDOW_COVERING_GO_TO_LIFT_PERCENTAGE)
   //!< #zclClosures_WindowCoveringGotoValue_t
-  zclClosures_WindowCoveringGotoValue_t       pfnWindowCoveringGotoTiltValue;
+  zclClosures_WindowCoveringGotoValue_t       pfnWindowCoveringGotoTiltValue;         //!< (COMMAND_WINDOW_COVERING_GO_TO_TILT_VALUE)
   //!< #zclClosures_WindowCoveringGotoPercentage_t
-  zclClosures_WindowCoveringGotoPercentage_t  pfnWindowCoveringGotoTiltPercentage;
+  zclClosures_WindowCoveringGotoPercentage_t  pfnWindowCoveringGotoTiltPercentage;    //!< (COMMAND_WINDOW_COVERING_GO_TO_TILT_PERCENTAGE)
 } zclClosures_WindowCoveringAppCallbacks_t;
 #endif // ZCL_WINDOWCOVERING
 /** @} End ZCL_CLOSURE_TYPEDEFS */
@@ -1335,7 +1337,7 @@ extern void zclClosures_RegisterDoorLockUnsupportCallback( ZStatus_t (*callback)
 /*!
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - COMMAND_CLOSURES_LOCK_DOOR, COMMAND_CLOSURES_UNLOCK_DOOR, COMMAND_CLOSURES_TOGGLE_DOOR
+ * @param   cmd - COMMAND_DOOR_LOCK_LOCK_DOOR, COMMAND_DOOR_LOCK_UNLOCK_DOOR, COMMAND_DOOR_LOCK_TOGGLE
  * @param   pPayload:
  *           aPinRfidCode - PIN/RFID code in ZCL Octet String Format
  * @param   disableDefaultRsp - decides default response is necessary or not
@@ -1394,9 +1396,9 @@ extern ZStatus_t zclClosures_SendDoorLockSetPINCodeRequest( uint8_t srcEP, afAdd
 /*!
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - COMMAND_CLOSURES_GET_PIN_CODE, COMMAND_CLOSURES_CLEAR_PIN_CODE,
- *                COMMAND_CLOSURES_GET_USER_STATUS, COMMAND_CLOSURES_GET_USER_TYPE,
- *                COMMAND_CLOSURES_GET_RFID_CODE, COMMAND_CLOSURES_CLEAR_RFID_CODE
+ * @param   cmd - COMMAND_DOOR_LOCK_GET_PIN_CODE, COMMAND_DOOR_LOCK_CLEAR_PIN_CODE,
+ *                COMMAND_DOOR_LOCK_GET_USER_STATUS, COMMAND_DOOR_LOCK_GET_USER_TYPE,
+ *                COMMAND_DOOR_LOCK_GET_RFID_CODE, COMMAND_DOOR_LOCK_CLEAR_RFID_CODE
  * @param   userID - User ID is between 0 - [# PINs User supported attribute]
  * @param   disableDefaultRsp - decides default response is necessary or not
  * @param   seqNum - sequence number of the command packet
@@ -1409,7 +1411,7 @@ extern ZStatus_t zclClosures_SendDoorLockUserIDRequest( uint8_t srcEP, afAddrTyp
 /*!
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - COMMAND_CLOSURES_CLEAR_ALL_PIN_CODES, COMMAND_CLOSURES_CLEAR_ALL_RFID_CODES
+ * @param   cmd - COMMAND_DOOR_LOCK_CLEAR_ALL_PIN_CODES, COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES
  * @param   disableDefaultRsp - decides default response is necessary or not
  * @param   seqNum - sequence number of the command packet
  *
@@ -1456,8 +1458,8 @@ extern ZStatus_t zclClosures_SendDoorLockSetWeekDayScheduleRequest( uint8_t srcE
 /*!
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - COMMAND_CLOSURES_GET_WEEK_DAY_SCHEDULE, COMMAND_CLOSURES_CLEAR_WEEK_DAY_SCHEDULE,
- *                COMMAND_CLOSURES_GET_YEAR_DAY_SCHEDULE, COMMAND_CLOSURES_CLEAR_YEAR_DAY_SCHEDULE
+ * @param   cmd - COMMAND_DOOR_LOCK_GET_WEEKDAY_SCHEDULE, COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE,
+ *                COMMAND_DOOR_LOCK_GET_YEAR_DAY_SCHEDULE, COMMAND_DOOR_LOCK_CLEAR_YEAR_DAY_SCHEDULE
  * @param   scheduleID - The Schedule ID # is between 0 - [# Schedule IDs per user attribute]
  * @param   userID - User ID is between 0 - [# PINs User supported attribute]
  * @param   disableDefaultRsp - decides default response is necessary or not
@@ -1506,7 +1508,7 @@ extern ZStatus_t zclClosures_SendDoorLockSetHolidayScheduleRequest( uint8_t srcE
 /*!
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - COMMAND_CLOSURES_GET_HOLIDAY_SCHEDULE, COMMAND_CLOSURES_CLEAR_HOLIDAY_SCHEDULE
+ * @param   cmd - COMMAND_DOOR_LOCK_GET_HOLIDAY_SCHEDULE, COMMAND_DOOR_LOCK_CLEAR_HOLIDAY_SCHEDULE
  * @param   holidayScheduleID - A unique ID for given Holiday Schedule (0 to 254)
  * @param   disableDefaultRsp - decides default response is necessary or not
  * @param   seqNum - sequence number of the command packet
@@ -1551,15 +1553,15 @@ extern ZStatus_t zclClosures_SendDoorLockSetRFIDCodeRequest( uint8_t srcEP, afAd
 /*!
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - COMMAND_CLOSURES_LOCK_DOOR_RSP, COMMAND_CLOSURES_UNLOCK_DOOR_RSP
- *                COMMAND_CLOSURES_TOGGLE_RSP, COMMAND_CLOSURES_UNLOCK_WITH_TIMEOUT_RSP,
- *                COMMAND_CLOSURES_SET_PIN_CODE_RSP, COMMAND_CLOSURES_CLEAR_PIN_CODE_RSP,
- *                COMMAND_CLOSURES_CLEAR_ALL_PIN_CODES_RSP, COMMAND_CLOSURES_SET_USER_STATUS_RSP,
- *                COMMAND_CLOSURES_SET_WEEK_DAY_SCHEDULE_RSP, COMMAND_CLOSURES_CLEAR_WEEK_DAY_SCHEDULE_RSP,
- *                COMMAND_CLOSURES_SET_YEAR_DAY_SCHEDULE_RSP, COMMAND_CLOSURES_CLEAR_YEAR_DAY_SCHEDULE_RSP,
- *                COMMAND_CLOSURES_SET_HOLIDAY_SCHEDULE_RSP, COMMAND_CLOSURES_CLEAR_HOLIDAY_SCHEDULE_RSP,
- *                COMMAND_CLOSURES_SET_USER_TYPE_RSP, COMMAND_CLOSURES_SET_RFID_CODE_RSP,
- *                COMMAND_CLOSURES_CLEAR_RFID_CODE_RSP, COMMAND_CLOSURES_CLEAR_ALL_RFID_CODES_RSP
+ * @param   cmd - COMMAND_DOOR_LOCK_LOCK_DOOR_RESPONSE, COMMAND_DOOR_LOCK_UNLOCK_DOOR_RESPONSE
+ *                COMMAND_DOOR_LOCK_TOGGLE_RSP, COMMAND_DOOR_LOCK_UNLOCK_WITH_TIMEOUT_RESPONSE,
+ *                COMMAND_DOOR_LOCK_SET_PIN_CODE_RESPONSE, COMMAND_DOOR_LOCK_CLEAR_PIN_CODE_RESPONSE,
+ *                COMMAND_DOOR_LOCK_CLEAR_ALL_PIN_CODES_RESPONSE, COMMAND_DOOR_LOCK_SET_USER_STATUS_RESPONSE,
+ *                COMMAND_DOOR_LOCK_SET_WEEKDAY_SCHEDULE_RESPONSE, COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE_RESPONSE,
+ *                COMMAND_DOOR_LOCK_SET_YEAR_DAY_SCHEDULE_RESPONSE, COMMAND_DOOR_LOCK_CLEAR_YEAR_DAY_SCHEDULE_RESPONSE,
+ *                COMMAND_DOOR_LOCK_SET_HOLIDAY_SCHEDULE_RESPONSE, COMMAND_DOOR_LOCK_CLEAR_HOLIDAY_SCHEDULE_RESPONSE,
+ *                COMMAND_DOOR_LOCK_SET_USER_TYPE_RESPONSE, COMMAND_DOOR_LOCK_SET_RFID_CODE_RESPONSE,
+ *                COMMAND_DOOR_LOCK_CLEAR_RFID_CODE_RESPONSE, COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES_RESPONSE
  * @param   status - Returns the state due to the requesting command
  * @param   disableDefaultRsp - decides default response is necessary or not
  * @param   seqNum - sequence number of the command packet
@@ -1786,7 +1788,7 @@ extern ZStatus_t zclClosures_WindowCoveringSimpleReq( uint8_t srcEP, afAddrType_
 /*!
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - Command ID for COMMAND_CLOSURES_GO_TO_LIFT_VALUE
+ * @param   cmd - Command ID for COMMAND_WINDOW_COVERING_GO_TO_LIFT_VALUE
  * @param   value - where you want the window covering to go
  * @param   disableDefaultRsp - decides default response is necessary or not
  * @param   seqNum - sequence number of the command packet
@@ -1800,7 +1802,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToValueReq( uint8_t srcEP, afAd
 /*!
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - Command ID e.g. COMMAND_CLOSURES_GO_TO_LIFT_PERCENTAGE
+ * @param   cmd - Command ID e.g. COMMAND_WINDOW_COVERING_GO_TO_LIFT_PERCENTAGE
  * @param   percentageValue - what percentage you want the window to cover
  * @param   disableDefaultRsp - decides default response is necessary or not
  * @param   seqNum - sequence number of the command packet
@@ -1821,7 +1823,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockLockDoor( uint8_t srcEP, afAddrType_t *dstAddr, zclDoorLock_t *pPayload, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockLockDoor(a, b, c, d, e) zclClosures_SendDoorLockRequest( (a), (b), COMMAND_CLOSURES_LOCK_DOOR, (c), (d), (e) )
+#define zclClosures_SendDoorLockLockDoor(a, b, c, d, e) zclClosures_SendDoorLockRequest( (a), (b), COMMAND_DOOR_LOCK_LOCK_DOOR, (c), (d), (e) )
 
 /*!
  *  @brief Send a Door Lock Unlock Command
@@ -1829,7 +1831,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockUnlockDoor( uint8_t srcEP, afAddrType_t *dstAddr, zclDoorLock_t *pPayload, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockUnlockDoor(a, b, c, d, e) zclClosures_SendDoorLockRequest( (a), (b), COMMAND_CLOSURES_UNLOCK_DOOR, (c), (d), (e) )
+#define zclClosures_SendDoorLockUnlockDoor(a, b, c, d, e) zclClosures_SendDoorLockRequest( (a), (b), COMMAND_DOOR_LOCK_UNLOCK_DOOR, (c), (d), (e) )
 
 /*!
  *  @brief Send a Door Lock Toggle Command
@@ -1837,7 +1839,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockToggleDoor( uint8_t srcEP, afAddrType_t *dstAddr, zclDoorLock_t *pPayload, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockToggleDoor(a, b, c, d, e) zclClosures_SendDoorLockRequest( (a), (b), COMMAND_CLOSURES_TOGGLE_DOOR, (c), (d), (e) )
+#define zclClosures_SendDoorLockToggleDoor(a, b, c, d, e) zclClosures_SendDoorLockRequest( (a), (b), COMMAND_DOOR_LOCK_TOGGLE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Get PIN Code Command
@@ -1845,7 +1847,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockGetPINCode( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t userID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockGetPINCode(a, b, c, d, e) zclClosures_SendDoorLockUserIDRequest( (a), (b), COMMAND_CLOSURES_GET_PIN_CODE, (c), (d), (e) )
+#define zclClosures_SendDoorLockGetPINCode(a, b, c, d, e) zclClosures_SendDoorLockUserIDRequest( (a), (b), COMMAND_DOOR_LOCK_GET_PIN_CODE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Clear PIN Code Command
@@ -1853,7 +1855,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearPINCode( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t userID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockClearPINCode(a, b, c, d, e) zclClosures_SendDoorLockUserIDRequest( (a), (b), COMMAND_CLOSURES_CLEAR_PIN_CODE, (c), (d), (e) )
+#define zclClosures_SendDoorLockClearPINCode(a, b, c, d, e) zclClosures_SendDoorLockUserIDRequest( (a), (b), COMMAND_DOOR_LOCK_CLEAR_PIN_CODE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Clear All PIN Codes Command
@@ -1861,7 +1863,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearAllPINCodes( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockClearAllPINCodes(a, b, c, d) zclClosures_SendDoorLockClearAllCodesRequest( (a), (b), COMMAND_CLOSURES_CLEAR_ALL_PIN_CODES, (c), (d) )
+#define zclClosures_SendDoorLockClearAllPINCodes(a, b, c, d) zclClosures_SendDoorLockClearAllCodesRequest( (a), (b), COMMAND_DOOR_LOCK_CLEAR_ALL_PIN_CODES, (c), (d) )
 
 /*!
  *  @brief Send a Get User Status Command
@@ -1869,7 +1871,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockGetUserStatus( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t userID, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-#define zclClosures_SendDoorLockGetUserStatus(a, b, c, d, e) zclClosures_SendDoorLockUserIDRequest( (a), (b), COMMAND_CLOSURES_GET_USER_STATUS, (c), (d), (e) )
+#define zclClosures_SendDoorLockGetUserStatus(a, b, c, d, e) zclClosures_SendDoorLockUserIDRequest( (a), (b), COMMAND_DOOR_LOCK_GET_USER_STATUS, (c), (d), (e) )
 
 /*!
  *  @brief Send a Get Week Day Schedule Command
@@ -1877,7 +1879,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockGetWeekDaySchedule( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t scheduleID, uint16_t userID, uint8_t disableDefaultRsp, uint8_t seqNum);
  */
-#define zclClosures_SendDoorLockGetWeekDaySchedule(a, b, c, d, e, f) zclClosures_SendDoorLockScheduleRequest( (a), (b), COMMAND_CLOSURES_GET_WEEK_DAY_SCHEDULE, (c), (d), (e), (f) )
+#define zclClosures_SendDoorLockGetWeekDaySchedule(a, b, c, d, e, f) zclClosures_SendDoorLockScheduleRequest( (a), (b), COMMAND_DOOR_LOCK_GET_WEEKDAY_SCHEDULE, (c), (d), (e), (f) )
 
 /*!
  *  @brief Send a Clear Week Day Schedule Command
@@ -1885,8 +1887,8 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearWeekDaySchedule( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t scheduleID, uint16_t userID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-/// This is a redefinition of zclClosures_SendDoorLockScheduleRequest with the parameter cmd set to @ref COMMAND_CLOSURES_CLEAR_WEEK_DAY_SCHEDULE
-#define zclClosures_SendDoorLockClearWeekDaySchedule(a, b, c, d, e, f) zclClosures_SendDoorLockScheduleRequest( (a), (b), COMMAND_CLOSURES_CLEAR_WEEK_DAY_SCHEDULE, (c), (d), (e), (f) )
+/// This is a redefinition of zclClosures_SendDoorLockScheduleRequest with the parameter cmd set to @ref COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE
+#define zclClosures_SendDoorLockClearWeekDaySchedule(a, b, c, d, e, f) zclClosures_SendDoorLockScheduleRequest( (a), (b), COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE, (c), (d), (e), (f) )
 
 /*!
  *  @brief Send a Get Year Day Schedule Command
@@ -1894,7 +1896,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockGetYearDaySchedule( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t scheduleID, uint16_t userID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockGetYearDaySchedule(a, b, c, d, e, f) zclClosures_SendDoorLockScheduleRequest( (a), (b), COMMAND_CLOSURES_GET_YEAR_DAY_SCHEDULE, (c), (d), (e), (f) )
+#define zclClosures_SendDoorLockGetYearDaySchedule(a, b, c, d, e, f) zclClosures_SendDoorLockScheduleRequest( (a), (b), COMMAND_DOOR_LOCK_GET_YEAR_DAY_SCHEDULE, (c), (d), (e), (f) )
 
 /*!
  *  @brief Send a Clear Year Day Schedule Command
@@ -1902,7 +1904,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearYearDaySchedule( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t scheduleID, uint16_t userID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockClearYearDaySchedule(a, b, c, d, e, f) zclClosures_SendDoorLockScheduleRequest( (a), (b), COMMAND_CLOSURES_CLEAR_YEAR_DAY_SCHEDULE, (c), (d), (e), (f) )
+#define zclClosures_SendDoorLockClearYearDaySchedule(a, b, c, d, e, f) zclClosures_SendDoorLockScheduleRequest( (a), (b), COMMAND_DOOR_LOCK_CLEAR_YEAR_DAY_SCHEDULE, (c), (d), (e), (f) )
 
 /*!
  *  @brief Send a Get Holiday Schedule Command
@@ -1910,7 +1912,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockGetHolidaySchedule( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t holidayScheduleID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockGetHolidaySchedule(a, b, c, d, e) zclClosures_SendDoorLockHolidayScheduleRequest( (a), (b), COMMAND_CLOSURES_GET_HOLIDAY_SCHEDULE, (c), (d), (e) )
+#define zclClosures_SendDoorLockGetHolidaySchedule(a, b, c, d, e) zclClosures_SendDoorLockHolidayScheduleRequest( (a), (b), COMMAND_DOOR_LOCK_GET_HOLIDAY_SCHEDULE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Clear Holiday Schedule Command
@@ -1918,7 +1920,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearHolidaySchedule( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t holidayScheduleID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockClearHolidaySchedule(a, b, c, d, e) zclClosures_SendDoorLockHolidayScheduleRequest( (a), (b), COMMAND_CLOSURES_CLEAR_HOLIDAY_SCHEDULE, (c), (d), (e) )
+#define zclClosures_SendDoorLockClearHolidaySchedule(a, b, c, d, e) zclClosures_SendDoorLockHolidayScheduleRequest( (a), (b), COMMAND_DOOR_LOCK_CLEAR_HOLIDAY_SCHEDULE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Get User Type Command
@@ -1926,7 +1928,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockGetUserType( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t userID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockGetUserType(a, b, c, d, e) zclClosures_SendDoorLockUserIDRequest( (a), (b), COMMAND_CLOSURES_GET_USER_TYPE, (c), (d), (e) )
+#define zclClosures_SendDoorLockGetUserType(a, b, c, d, e) zclClosures_SendDoorLockUserIDRequest( (a), (b), COMMAND_DOOR_LOCK_GET_USER_TYPE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Get RFID Code Command
@@ -1934,7 +1936,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockGetRFIDCode( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t userID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockGetRFIDCode(a, b, c, d, e) zclClosures_SendDoorLockUserIDRequest( (a), (b), COMMAND_CLOSURES_GET_RFID_CODE, (c), (d), (e) )
+#define zclClosures_SendDoorLockGetRFIDCode(a, b, c, d, e) zclClosures_SendDoorLockUserIDRequest( (a), (b), COMMAND_DOOR_LOCK_GET_RFID_CODE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Clear RFID Code Command
@@ -1942,7 +1944,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearRFIDCode( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t userID, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockClearRFIDCode(a, b, c, d, e) zclClosures_SendDoorLockUserIDRequest( (a), (b), COMMAND_CLOSURES_CLEAR_RFID_CODE, (c), (d), (e) )
+#define zclClosures_SendDoorLockClearRFIDCode(a, b, c, d, e) zclClosures_SendDoorLockUserIDRequest( (a), (b), COMMAND_DOOR_LOCK_CLEAR_RFID_CODE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Clear All RFID Codes Command
@@ -1950,8 +1952,8 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearAllRFIDCodes( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-/// This is a redefinition of zclClosures_SendDoorLockClearAllCodesRequest with the parameter cmd set to @ref COMMAND_CLOSURES_CLEAR_ALL_RFID_CODES
-#define zclClosures_SendDoorLockClearAllRFIDCodes(a, b, c, d) zclClosures_SendDoorLockClearAllCodesRequest( (a), (b), COMMAND_CLOSURES_CLEAR_ALL_RFID_CODES, (c), (d) )
+/// This is a redefinition of zclClosures_SendDoorLockClearAllCodesRequest with the parameter cmd set to @ref COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES
+#define zclClosures_SendDoorLockClearAllRFIDCodes(a, b, c, d) zclClosures_SendDoorLockClearAllCodesRequest( (a), (b), COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES, (c), (d) )
 
 /*!
  *  @brief Send a Door Lock Lock Response
@@ -1959,7 +1961,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockLockDoorRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-#define zclClosures_SendDoorLockLockDoorRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_LOCK_DOOR_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockLockDoorRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_LOCK_DOOR_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Door Lock Unlock Response
@@ -1967,7 +1969,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockUnlockDoorRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-#define zclClosures_SendDoorLockUnlockDoorRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_UNLOCK_DOOR_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockUnlockDoorRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_UNLOCK_DOOR_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Toggle Response
@@ -1975,7 +1977,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockToggleDoorRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockToggleDoorRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_TOGGLE_DOOR_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockToggleDoorRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_TOGGLE_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Unlock With Timeout Response
@@ -1983,7 +1985,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockUnlockWithTimeoutRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockUnlockWithTimeoutRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_UNLOCK_WITH_TIMEOUT_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockUnlockWithTimeoutRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_UNLOCK_WITH_TIMEOUT_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Set PIN Code Response
@@ -1991,7 +1993,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockSetPINCodeRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockSetPINCodeRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_SET_PIN_CODE_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockSetPINCodeRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_SET_PIN_CODE_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Clear PIN Code Response
@@ -1999,7 +2001,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearPINCodeRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockClearPINCodeRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_CLEAR_PIN_CODE_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockClearPINCodeRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_CLEAR_PIN_CODE_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Clear All PIN Codes Response
@@ -2007,7 +2009,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearAllPINCodesRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockClearAllPINCodesRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_CLEAR_ALL_PIN_CODES_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockClearAllPINCodesRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_CLEAR_ALL_PIN_CODES_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Set User Status Response
@@ -2015,7 +2017,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockSetUserStatusRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockSetUserStatusRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_SET_USER_STATUS_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockSetUserStatusRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_SET_USER_STATUS_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Set Week Day Schedule Response
@@ -2023,7 +2025,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockSetWeekDayScheduleRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockSetWeekDayScheduleRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_SET_WEEK_DAY_SCHEDULE_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockSetWeekDayScheduleRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_SET_WEEKDAY_SCHEDULE_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Clear Week Day Schedule Response
@@ -2031,7 +2033,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearWeekDayScheduleRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockClearWeekDayScheduleRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_CLEAR_WEEK_DAY_SCHEDULE_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockClearWeekDayScheduleRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_CLEAR_WEEKDAY_SCHEDULE_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Set Year Day Schedule Response
@@ -2039,7 +2041,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockSetYearDayScheduleRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockSetYearDayScheduleRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_SET_YEAR_DAY_SCHEDULE_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockSetYearDayScheduleRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_SET_YEAR_DAY_SCHEDULE_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Clear Year Day Schedule Response
@@ -2047,7 +2049,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearYearDayScheduleRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockClearYearDayScheduleRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_CLEAR_YEAR_DAY_SCHEDULE_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockClearYearDayScheduleRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_CLEAR_YEAR_DAY_SCHEDULE_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Set Holiday Schedule Response
@@ -2055,7 +2057,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockSetHolidayScheduleRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockSetHolidayScheduleRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_SET_HOLIDAY_SCHEDULE_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockSetHolidayScheduleRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_SET_HOLIDAY_SCHEDULE_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Clear Holiday Schedule Response
@@ -2063,7 +2065,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearHolidayScheduleRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockClearHolidayScheduleRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_CLEAR_HOLIDAY_SCHEDULE_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockClearHolidayScheduleRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_CLEAR_HOLIDAY_SCHEDULE_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Set User Type Response
@@ -2071,7 +2073,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockSetUserTypeRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockSetUserTypeRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_SET_USER_TYPE_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockSetUserTypeRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_SET_USER_TYPE_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Set RFID Code Response
@@ -2079,7 +2081,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockSetRFIDCodeRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockSetRFIDCodeRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_SET_RFID_CODE_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockSetRFIDCodeRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_SET_RFID_CODE_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Clear RFID Code Response
@@ -2087,7 +2089,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearRFIDCodeRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockClearRFIDCodeRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_CLEAR_RFID_CODE_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockClearRFIDCodeRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_CLEAR_RFID_CODE_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Clear All RFID Codes Response
@@ -2095,7 +2097,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDoorLockClearAllRFIDCodesRsp( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t status, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclClosures_SendDoorLockClearAllRFIDCodesRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_CLOSURES_CLEAR_ALL_RFID_CODES_RSP, (c), (d), (e) )
+#define zclClosures_SendDoorLockClearAllRFIDCodesRsp(a, b, c, d, e) zclClosures_SendDoorLockStatusResponse( (a), (b), COMMAND_DOOR_LOCK_CLEAR_ALL_RFID_CODES_RESPONSE, (c), (d), (e) )
 
 /*!
  *  @brief Send a Up/Open Request Command
@@ -2103,7 +2105,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendUpOpen( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-#define zclClosures_SendUpOpen(a, b, c, d) zclClosures_WindowCoveringSimpleReq( (a), (b), COMMAND_CLOSURES_UP_OPEN, (c), (d) )
+#define zclClosures_SendUpOpen(a, b, c, d) zclClosures_WindowCoveringSimpleReq( (a), (b), COMMAND_WINDOW_COVERING_UP_OR_OPEN, (c), (d) )
 
 /*!
  *  @brief Send a Down/Close Request Command
@@ -2111,7 +2113,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendDownClose( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-#define zclClosures_SendDownClose(a, b, c, d) zclClosures_WindowCoveringSimpleReq( (a), (b), COMMAND_CLOSURES_DOWN_CLOSE, (c), (d) )
+#define zclClosures_SendDownClose(a, b, c, d) zclClosures_WindowCoveringSimpleReq( (a), (b), COMMAND_WINDOW_COVERING_DOWN_OR_CLOSE, (c), (d) )
 
 /*!
  *  @brief Send a Stop Request Command
@@ -2119,7 +2121,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendStop( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-#define zclClosures_SendStop(a, b, c, d) zclClosures_WindowCoveringSimpleReq( (a), (b), COMMAND_CLOSURES_STOP, (c), (d) )
+#define zclClosures_SendStop(a, b, c, d) zclClosures_WindowCoveringSimpleReq( (a), (b), COMMAND_WINDOW_COVERING_STOP, (c), (d) )
 
 /*!
  *  @brief Send a GoToLiftValue Request Command
@@ -2127,7 +2129,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendGoToLiftValue( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t liftValue, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-#define zclClosures_SendGoToLiftValue(a, b, c, d, e) zclClosures_WindowCoveringSendGoToValueReq( (a), (b), COMMAND_CLOSURES_GO_TO_LIFT_VALUE, (c), (d), (e))
+#define zclClosures_SendGoToLiftValue(a, b, c, d, e) zclClosures_WindowCoveringSendGoToValueReq( (a), (b), COMMAND_WINDOW_COVERING_GO_TO_LIFT_VALUE, (c), (d), (e))
 
 /*!
  *  @brief Send a GoToLiftPercentage Request Command
@@ -2135,7 +2137,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendGoToLiftPercentage( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t percentageLiftValue, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-#define zclClosures_SendGoToLiftPercentage(a, b, c, d, e) zclClosures_WindowCoveringSendGoToPercentageReq( (a), (b), COMMAND_CLOSURES_GO_TO_LIFT_PERCENTAGE, (c), (d), (e))
+#define zclClosures_SendGoToLiftPercentage(a, b, c, d, e) zclClosures_WindowCoveringSendGoToPercentageReq( (a), (b), COMMAND_WINDOW_COVERING_GO_TO_LIFT_PERCENTAGE, (c), (d), (e))
 
 /*!
  *  @brief Send a GoToTiltValue Request Command
@@ -2143,7 +2145,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendGoToTiltValue( uint8_t srcEP, afAddrType_t *dstAddr, uint16_t tiltValue, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-#define zclClosures_SendGoToTiltValue(a, b, c, d, e) zclClosures_WindowCoveringSendGoToValueReq( (a), (b), COMMAND_CLOSURES_GO_TO_TILT_VALUE, (c), (d), (e))
+#define zclClosures_SendGoToTiltValue(a, b, c, d, e) zclClosures_WindowCoveringSendGoToValueReq( (a), (b), COMMAND_WINDOW_COVERING_GO_TO_TILT_VALUE, (c), (d), (e))
 
 /*!
  *  @brief Send a GoToTiltPercentage Request Command
@@ -2151,7 +2153,7 @@ extern ZStatus_t zclClosures_WindowCoveringSendGoToPercentageReq( uint8_t srcEP,
  *  Use like:
  *      ZStatus_t zclClosures_SendGoToTiltPercentage( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t percentageTiltValue, uint8_t disableDefaultRsp, uint8_t seqNum )
  */
-#define zclClosures_SendGoToTiltPercentage(a, b, c, d, e) zclClosures_WindowCoveringSendGoToPercentageReq( (a), (b), COMMAND_CLOSURES_GO_TO_TILT_PERCENTAGE, (c), (d), (e))
+#define zclClosures_SendGoToTiltPercentage(a, b, c, d, e) zclClosures_WindowCoveringSendGoToPercentageReq( (a), (b), COMMAND_WINDOW_COVERING_GO_TO_TILT_PERCENTAGE, (c), (d), (e))
 /** @} End ZCL_CLOSURE_FUNCTIONS */
 
 #ifdef __cplusplus

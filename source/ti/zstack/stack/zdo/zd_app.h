@@ -84,7 +84,6 @@ extern "C"
 #if defined ( ZDP_BIND_VALIDATION )
 #define ZDO_PENDING_BIND_REQ_EVT      0x1000
 #endif
-#define ZDO_REJOIN_BACKOFF        0x2000
 #define ZDO_PARENT_ANNCE_EVT      0x4000
 
 // Incoming to ZDO
@@ -207,7 +206,6 @@ typedef enum
   DEV_ZB_COORD,                            // Started as Zigbee Coordinator
   DEV_NWK_ORPHAN,                          // Device has lost information about its parent..
   DEV_NWK_KA,                              // Device is sending KeepAlive message to its parent
-  DEV_NWK_BACKOFF,                         // Device is waiting before trying to rejoin
   DEV_NWK_SEC_REJOIN_ALL_CHANNEL,          // ReJoining a PAN in secure mode scanning in all channels, only for end devices
   DEV_NWK_TC_REJOIN_CURR_CHANNEL,          // ReJoining a PAN in Trust center mode scanning in current channel, only for end devices
   DEV_NWK_TC_REJOIN_ALL_CHANNEL            // ReJoining a PAN in Trust center mode scanning in all channels, only for end devices
@@ -645,23 +643,6 @@ extern void ZDApp_SaveNwkKey( void );
 extern void ZDApp_ResetNwkKey( void );
 
 /*
- * ZDApp_StartJoiningCycle
- *    - Starts the joining cycle of a device.  This will only continue an
- *      already started (or stopped) joining cycle.
- *
- *    returns  TRUE if joining started, FALSE if not in joining or rejoining
- */
-extern uint8_t ZDApp_StartJoiningCycle( void );
-
-/*
- * ZDApp_StopJoiningCycle
- *    - Stops the joining or rejoining process of a device.
- *
- *    returns  TRUE if joining stopped, FALSE if joining or rejoining
- */
-extern uint8_t ZDApp_StopJoiningCycle( void );
-
-/*
  * ZDApp_AnnounceNewAddress
  *   - Announce a new address
  */
@@ -786,22 +767,6 @@ extern ZStatus_t ZDO_DeregisterForZdoCB( uint8_t indID );
  * @return      none
  */
 extern void ZDApp_ChangeState( devStates_t state );
-
-/*
- * ZDApp_SetRejoinScanDuration
- *    - Sets scan duration for rejoin for an end device
- *
- *    returns  none
- */
-extern void ZDApp_SetRejoinScanDuration ( uint32_t rejoinScanDuration);
-
-/*
- * ZDApp_SetRejoinScanDuration
- *    - Sets rejoin backoff duration for rejoin for an end device
- *
- *    returns  none
- */
-extern void ZDApp_SetRejoinBackoffDuration ( uint32_t rejoinBackoffDuration);
 
 /*
  * @brief   Restore the network frame counter associated to this ExtPanID and

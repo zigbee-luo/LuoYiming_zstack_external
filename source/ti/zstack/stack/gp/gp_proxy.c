@@ -478,13 +478,13 @@ void zclGp_GpResponseCommandCB(zclGpResponse_t *pCmd)
     {
       //did we got permission to attend channel request?
 #if (defined (USE_ICALL) || defined (OSAL_PORT2TIRTOS))
-      if(Timer_getTimeout(gpAppTempMasterTimeoutClkHandle) == 0)
+      if(UtilTimer_getTimeout(gpAppTempMasterTimeoutClkHandle) == 0)
 #else
       if(OsalPortTimers_getTimerTimeout(gp_TaskID, GP_CHANNEL_CONFIGURATION_TIMEOUT))
 #endif
       {
-        Timer_setTimeout(gpAppTempMasterTimeoutClkHandle, gpBirectionalCommissioningChangeChannelTimeout);
-        Timer_start(&gpAppTempMasterTimeoutClk);
+        UtilTimer_setTimeout(gpAppTempMasterTimeoutClkHandle, gpBirectionalCommissioningChangeChannelTimeout);
+        UtilTimer_start(&gpAppTempMasterTimeoutClk);
       }
       _NIB.nwkLogicalChannel = pCmd->tempMasterTxChannel + 11;
       ZMacSetReq( ZMacChannel, &(_NIB.nwkLogicalChannel) );
@@ -796,11 +796,11 @@ void gp_dataIndProxy(gp_DataInd_t *gp_DataInd)
      //Frame is pending to send in less than 20ms, so wait 200 to be sure that
      //it got send before changing channel.
 
-     if(Timer_isActive(&gpAppTempMasterTimeoutClk) == TRUE)
+     if(UtilTimer_isActive(&gpAppTempMasterTimeoutClk) == TRUE)
      {
-         Timer_stop(&gpAppTempMasterTimeoutClk);
-         Timer_setTimeout(gpAppTempMasterTimeoutClkHandle, 200);
-         Timer_start(&gpAppTempMasterTimeoutClk);
+         UtilTimer_stop(&gpAppTempMasterTimeoutClk);
+         UtilTimer_setTimeout(gpAppTempMasterTimeoutClkHandle, 200);
+         UtilTimer_start(&gpAppTempMasterTimeoutClk);
          return;
      }
 
@@ -808,7 +808,7 @@ void gp_dataIndProxy(gp_DataInd_t *gp_DataInd)
   gp_DataInd->SecReqHandling.timeout = gpDuplicateTimeout;
   //Consider the current time elapsed to the next timeout
 #if (defined (USE_ICALL) || defined (OSAL_PORT2TIRTOS))
-  timeout =  Timer_getTimeout(gpAppExpireDuplicateClkHandle);
+  timeout =  UtilTimer_getTimeout(gpAppExpireDuplicateClkHandle);
 #else
   timeout = OsalPortTimers_getTimerTimeout(gp_TaskID, GP_DUPLICATE_FILTERING_TIMEOUT_EVENT);
 #endif
@@ -820,8 +820,8 @@ void gp_dataIndProxy(gp_DataInd_t *gp_DataInd)
   else
   {
 #if (defined (USE_ICALL) || defined (OSAL_PORT2TIRTOS))
-  Timer_setTimeout(gpAppExpireDuplicateClkHandle, gp_DataInd->SecReqHandling.timeout);
-  Timer_start(&gpAppExpireDuplicateClk);
+  UtilTimer_setTimeout(gpAppExpireDuplicateClkHandle, gp_DataInd->SecReqHandling.timeout);
+  UtilTimer_start(&gpAppExpireDuplicateClk);
 #else
   OsalPortTimers_startTimer(gp_TaskID,
                          GP_DUPLICATE_FILTERING_TIMEOUT_EVENT,
@@ -1160,9 +1160,9 @@ void gp_returnOperationalChannel(void)
 {
   gp_DataReq_t gp_DataReq;
 #if (defined (USE_ICALL) || defined (OSAL_PORT2TIRTOS))
-  if(Timer_isActive(&gpAppTempMasterTimeoutClk) == TRUE)
+  if(UtilTimer_isActive(&gpAppTempMasterTimeoutClk) == TRUE)
   {
-    Timer_stop(&gpAppTempMasterTimeoutClk);
+    UtilTimer_stop(&gpAppTempMasterTimeoutClk);
   }
 #else
   OsalPortTimers_stopTimer(gp_TaskID, GP_CHANNEL_CONFIGURATION_TIMEOUT);
@@ -1305,11 +1305,11 @@ static ZStatus_t zclGp_CommissioningModeDataIndParse( gp_DataInd_t *pInd, gpComm
   pGpNotification->gppShortAddr = _NIB.nwkDevAddress;
 
   RSSI = pInd->Rssi;
-  (RSSI > 8) ?RSSI = 8 : (RSSI < -109) ?RSSI = -109 : NULL;
+  (RSSI > 8) ?RSSI = 8 : (RSSI < -109) ?RSSI = -109 : 0;
   RSSI += 110;
   RSSI /= 2;
 
-  (pInd->LinkQuality == 0) ?LQI = 0 : (pInd->LinkQuality > 0) ?LQI = 2 : NULL;
+  (pInd->LinkQuality == 0) ?LQI = 0 : (pInd->LinkQuality > 0) ?LQI = 2 : 0;
 
   pGpNotification->gppGpdLink = RSSI;
   pGpNotification->gppGpdLink |= (LQI<<6);
@@ -1413,10 +1413,10 @@ static ZStatus_t zclGp_DataIndParse( gp_DataInd_t *pInd, gpNotificationCmd_t *pG
 
       pGpNotification->gppShortAddr = _NIB.nwkDevAddress;
       RSSI = pInd->Rssi;
-      (RSSI > 8) ?RSSI = 8 : (RSSI < -109) ?RSSI = -109 : NULL;
+      (RSSI > 8) ?RSSI = 8 : (RSSI < -109) ?RSSI = -109 : 0;
       RSSI += 110;
       RSSI /= 2;
-      (pInd->LinkQuality == 0) ?LQI = 0 : (pInd->LinkQuality > 0) ?LQI = 2 : NULL;
+      (pInd->LinkQuality == 0) ?LQI = 0 : (pInd->LinkQuality > 0) ?LQI = 2 : 0;
       pGpNotification->gppGpdLink = RSSI;
       pGpNotification->gppGpdLink |= (LQI<<6);
   }

@@ -112,9 +112,6 @@ SECTIONS
     } > FLASH_LAST
 */
     .text           :   >> FLASH_LAST | FLASH
-
-    config_const { mac_user_config.obj(.const) } > FLASH
-
     .const          :   > FLASH
     .constdata      :   > FLASH
     .rodata         :   > FLASH

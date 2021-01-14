@@ -40,6 +40,7 @@
 /*********************************************************************
  * INCLUDES
  */
+#include "ti_zstack_config.h"
 #include "zcl.h"
 #include "zcl_general.h"
 #include "zcl_ms.h"
@@ -48,6 +49,7 @@
   #include "stub_aps.h"
 #endif
 
+#ifdef ZCL_MS
 /*********************************************************************
  * MACROS
  */
@@ -461,4 +463,6 @@ static ZStatus_t zclMS_ProcessIn_OccupancySensingCmds( zclIncoming_t *pInMsg )
 
 /****************************************************************************
 ****************************************************************************/
+
+#endif // ZCL_MS
 

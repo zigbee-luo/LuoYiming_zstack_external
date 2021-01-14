@@ -101,7 +101,7 @@
 #define NPITASK_STACK_SIZE 1024
 
 //! \brief Task priority for NPI RTOS task
-#define NPITASK_PRIORITY 2
+#define NPITASK_PRIORITY 4
 
 
 // ****************************************************************************
@@ -775,6 +775,11 @@ static void NPITask_processStackMsg(uint8_t *pMsg)
             {
                 // Pass the message along to the application
                 incomingTXEventAppCBFunc(pMsg);
+                break;
+            }
+            case NONE:
+            default:
+            {
                 break;
             }
         }

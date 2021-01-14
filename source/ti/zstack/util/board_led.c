@@ -147,7 +147,7 @@ void Board_Led_initialize(void)
         PIN_setOutputValue(ledPinHandle, index, value);
     }
 
-    Timer_construct(&blinkClkStruct, board_led_blinkTimeoutCB,
+    UtilTimer_construct(&blinkClkStruct, board_led_blinkTimeoutCB,
     BOARD_LED_BLINK_PERIOD,
                         0, false, 0);
 }
@@ -198,16 +198,16 @@ void Board_Led_control(board_led_type led, board_led_state state)
     /* Are any LEDs are blinking? */
     if(board_led_anyBlinking())
     {
-        if(Timer_isActive(&blinkClkStruct) == false)
+        if(UtilTimer_isActive(&blinkClkStruct) == false)
         {
-            Timer_start(&blinkClkStruct);
+            UtilTimer_start(&blinkClkStruct);
         }
     }
     else
     {
-        if(Timer_isActive(&blinkClkStruct) == true)
+        if(UtilTimer_isActive(&blinkClkStruct) == true)
         {
-            Timer_stop(&blinkClkStruct);
+            UtilTimer_stop(&blinkClkStruct);
         }
     }
 }
@@ -252,7 +252,7 @@ static void board_led_blinkTimeoutCB(UArg a0)
     if(board_led_anyBlinking())
     {
         /* Setup for next time */
-        Timer_start(&blinkClkStruct);
+        UtilTimer_start(&blinkClkStruct);
     }
 }
 

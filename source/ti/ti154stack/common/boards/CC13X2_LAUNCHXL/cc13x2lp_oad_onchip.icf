@@ -77,10 +77,10 @@ else
   define symbol FLASH_MEM_ALIGN     = WORD_SIZE;
 }
 
+define symbol OAD_HDR_SIZE          = 0xA8; // linker needs word alignment.
+define symbol IMAG_A_FLASH_START    = 0x0002A000;
 
-define symbol OAD_HDR_SIZE    = 0xA8; // linker needs word alignment.
-
-if ( isdefinedsymbol(OAD_IMG_B) ) 
+if ( isdefinedsymbol(OAD_IMG_B) )
 {
   define symbol FLASH_START     = FLASH_BASE;
   define symbol OAD_HDR_START   = FLASH_START;
@@ -89,17 +89,17 @@ if ( isdefinedsymbol(OAD_IMG_B) )
   define symbol ENTRY_SIZE      = 0x40;
   define symbol ENTRY_START     = OAD_HDR_END + 1;
   define symbol ENTRY_END       = ENTRY_START + ENTRY_SIZE - 1;
-  
+
   define symbol APP_START       = ENTRY_END + 1;
-    
-  define symbol NUM_RESERVED_PAGES    = 1;  /*last page of the flash */    
+
+  define symbol NUM_RESERVED_PAGES    = 2;  /* 2 pages of NV shared between IMG_B and IMG_A */
   define symbol RESERVED_SIZE         = (NUM_RESERVED_PAGES * PAGE_SIZE);
-  define symbol FLASH_END             = FLASH_START + FLASH_SIZE - RESERVED_SIZE - 1;    
+  define symbol FLASH_END             = FLASH_START + IMAG_A_FLASH_START + RESERVED_SIZE - 1;
 }
 else if ( isdefinedsymbol(OAD_IMG_A) )
 {
   //last section where BIM and CCFG will be placed
-  define symbol NUM_RESERVED_PAGES    = 1; 
+  define symbol NUM_RESERVED_PAGES    = 1;
   define symbol RESERVED_SIZE         = (NUM_RESERVED_PAGES * PAGE_SIZE);
   define symbol RESERVED_END          = (FLASH_SIZE - 1);
   define symbol RESERVED_START        = (RESERVED_END - RESERVED_SIZE + 1);
@@ -111,10 +111,12 @@ else if ( isdefinedsymbol(OAD_IMG_A) )
 
   export symbol ENTRY_START;
   export symbol ENTRY_END;
- 
+
   define symbol FLASH_END       = (ENTRY_START - 1);
-  define symbol APP_START       = 0x0002E000; 
-  
+
+  // 2 pages of NV shared between IMG_B and IMG_A
+  define symbol APP_START       = IMAG_A_FLASH_START + PAGE_SIZE + PAGE_SIZE;
+
   define symbol OAD_HDR_START   = APP_START;
   define symbol OAD_HDR_END     = OAD_HDR_START + OAD_HDR_SIZE - 1;
 
@@ -125,9 +127,6 @@ else if ( isdefinedsymbol(OAD_IMG_A) )
   export symbol IMAGE_END;
 }
 
-define symbol FLASH_LAST_BASE     = 0x00057FA8;
-define symbol FLASH_LAST_SIZE     = 0x00000058;
-
 /* Define a memory region that covers the entire 4 GB addressable space */
 define memory mem with size = 4G;
 
@@ -136,7 +135,6 @@ if ( isdefinedsymbol(OAD_IMG_B) )
   define region FLASH         = mem:[from APP_START to FLASH_END];
   define region FLASH_IMG_HDR = mem:[from OAD_HDR_START  to OAD_HDR_END];
   define region ENTRY_FLASH   = mem:[from ENTRY_START    to ENTRY_END];
-  define region FLASH_LAST    = mem:[from FLASH_LAST_BASE size FLASH_LAST_SIZE];
 
 }
 else if ( isdefinedsymbol(OAD_IMG_A) )
@@ -144,7 +142,6 @@ else if ( isdefinedsymbol(OAD_IMG_A) )
   define region ENTRY_FLASH    = mem:[from ENTRY_START  to ENTRY_END];
   define region FLASH          = mem:[from FLASH_START    to (FLASH_END)];
   define region FLASH_IMG_HDR  = mem:[from OAD_HDR_START  to OAD_HDR_END];
-  define region FLASH_LAST     = mem:[from FLASH_LAST_BASE size FLASH_LAST_SIZE];
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -172,10 +169,6 @@ if ( isdefinedsymbol(OAD_IMG_B)) // User Appl Image
   place at address mem:ENTRY_START { readonly section .intvec };
   keep                             { readonly section .intvec };
 
-  // Place the CCA area at the end of flash 
-  "AGAMA_CCFG_AREA":
-  place noload in FLASH_LAST { readonly section .ccfg };
-
   // All other pieces of codes:
   define block ROSTK with alignment=WORD_SIZE{ ro };
   place in FLASH {block ROSTK };
@@ -191,14 +184,10 @@ else if ( isdefinedsymbol(OAD_IMG_A) )// Persistent Image
   place in FLASH_IMG_HDR { section .img_hdr };
   keep                   { section .img_hdr };
 
-  // Place the CCA area at the end of flash 
-  "AGAMA_CCFG_AREA":
-  place noload in FLASH_LAST { readonly section .ccfg };
-  
   // Code and RO Data
   define block ROCODE                           { ro };
   place in FLASH { block ROCODE };
-  
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////

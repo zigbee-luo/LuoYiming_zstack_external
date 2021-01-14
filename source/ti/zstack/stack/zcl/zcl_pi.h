@@ -49,7 +49,9 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
+#ifdef ZCL_PI
 /*********************************************************************
  * CONSTANTS
  */
@@ -436,6 +438,7 @@ extern ZStatus_t zclPI_Send_11073ConnectReq( uint8_t srcEP, afAddrType_t *dstAdd
 
 /*********************************************************************
 *********************************************************************/
+#endif // ZCL_PI
 
 #ifdef __cplusplus
 }

@@ -113,8 +113,8 @@ uint16_t zclGenericApp_IdentifyTime;
 CONST zclCommandRec_t zclGenericApp_Cmds[] =
 {
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
-    COMMAND_BASIC_RESET_FACT_DEFAULT,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
+    COMMAND_BASIC_RESET_TO_FACTORY_DEFAULTS,
     CMD_DIR_SERVER_RECEIVED
   },
 
@@ -130,7 +130,7 @@ CONST zclAttrRec_t zclGenericApp_Attrs[] =
 {
   // *** General Basic Cluster Attributes ***
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
+    ZCL_CLUSTER_ID_GENERAL_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
     {  // Attribute record
       ATTRID_BASIC_HW_VERSION,            // Attribute ID - Found in Cluster Library header (ie. zcl_general.h)
       ZCL_DATATYPE_UINT8,                 // Data Type - found in zcl.h
@@ -139,7 +139,7 @@ CONST zclAttrRec_t zclGenericApp_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_ZCL_VERSION,
       ZCL_DATATYPE_UINT8,
@@ -148,7 +148,7 @@ CONST zclAttrRec_t zclGenericApp_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_MANUFACTURER_NAME,
       ZCL_DATATYPE_CHAR_STR,
@@ -157,7 +157,7 @@ CONST zclAttrRec_t zclGenericApp_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_POWER_SOURCE,
       ZCL_DATATYPE_ENUM8,
@@ -166,16 +166,16 @@ CONST zclAttrRec_t zclGenericApp_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
-      ATTRID_BASIC_PHYSICAL_ENV,
+      ATTRID_BASIC_PHYSICAL_ENVIRONMENT,
       ZCL_DATATYPE_ENUM8,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclGenericApp_PhysicalEnvironment
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -187,9 +187,9 @@ CONST zclAttrRec_t zclGenericApp_Attrs[] =
 #ifdef ZCL_IDENTIFY
   // *** Identify Cluster Attribute ***
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     { // Attribute record
-      ATTRID_IDENTIFY_TIME,
+      ATTRID_IDENTIFY_IDENTIFY_TIME,
       ZCL_DATATYPE_UINT16,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclGenericApp_IdentifyTime
@@ -197,7 +197,7 @@ CONST zclAttrRec_t zclGenericApp_Attrs[] =
   },
 
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -217,8 +217,8 @@ uint8_t CONST zclGenericApp_NumAttributes = ( sizeof(zclGenericApp_Attrs) / size
 // specific cluster IDs.
 const cId_t zclGenericApp_InClusterList[] =
 {
-  ZCL_CLUSTER_ID_GEN_BASIC,
-  ZCL_CLUSTER_ID_GEN_IDENTIFY,
+  ZCL_CLUSTER_ID_GENERAL_BASIC,
+  ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
 
   // GENERICAPP_TODO: Add application specific Input Clusters Here.
   //       See zcl.h for Cluster ID definitions
@@ -229,7 +229,7 @@ const cId_t zclGenericApp_InClusterList[] =
 
 const cId_t zclGenericApp_OutClusterList[] =
 {
-  ZCL_CLUSTER_ID_GEN_BASIC,
+  ZCL_CLUSTER_ID_GENERAL_BASIC,
 
   // GENERICAPP_TODO: Add application specific Output Clusters Here.
   //       See zcl.h for Cluster ID definitions
@@ -241,8 +241,8 @@ SimpleDescriptionFormat_t zclGenericApp_SimpleDesc =
 {
   GENERICAPP_ENDPOINT,                  //  int Endpoint;
   ZCL_HA_PROFILE_ID,                     //  uint16_t AppProfId;
-  ZCL_HA_DEVICEID_TEST_DEVICE,          //  uint16_t AppDeviceId;
-  // GENERICAPP_TODO: Replace ZCL_HA_DEVICEID_TEST_DEVICE with application specific device ID
+  ZCL_DEVICEID_TEST_DEVICE,          //  uint16_t AppDeviceId;
+  // GENERICAPP_TODO: Replace ZCL_DEVICEID_TEST_DEVICE with application specific device ID
   GENERICAPP_DEVICE_VERSION,            //  int   AppDevVer:4;
   GENERICAPP_FLAGS,                     //  int   AppFlags:4;
   ZCLGENERICAPP_MAX_INCLUSTERS,         //  byte  AppNumInClusters;
@@ -257,8 +257,8 @@ bdbTLDeviceInfo_t tlGenericApp_DeviceInfo =
 {
   GENERICAPP_ENDPOINT,                  //uint8_t endpoint;
   ZCL_HA_PROFILE_ID,                        //uint16_t profileID;
-  // GENERICAPP_TODO: Replace ZCL_HA_DEVICEID_ON_OFF_LIGHT with application specific device ID
-  ZCL_HA_DEVICEID_ON_OFF_LIGHT,          //uint16_t deviceID;
+  // GENERICAPP_TODO: Replace ZCL_DEVICEID_ON_OFF_LIGHT with application specific device ID
+  ZCL_DEVICEID_ON_OFF_LIGHT,          //uint16_t deviceID;
   GENERICAPP_DEVICE_VERSION,                    //uint8_t version;
   GENERICAPP_NUM_GRPS                   //uint8_t grpIdCnt;
 };

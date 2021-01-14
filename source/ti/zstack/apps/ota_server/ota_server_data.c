@@ -62,10 +62,10 @@
  * CONSTANTS
  */
 
-#define OTA_DONGLE_DEVICE_VERSION     0
-#define OTA_DONGLE_FLAGS              0
-#define OTA_DONGLE_HWVERSION          1
-#define OTA_DONGLE_ZCLVERSION         BASIC_ZCL_VERSION
+#define OTA_SERVER_DEVICE_VERSION     0
+#define OTA_SERVER_FLAGS              0
+#define OTA_SERVER_HWVERSION          1
+#define OTA_SERVER_ZCLVERSION         BASIC_ZCL_VERSION
 
 #define DEFAULT_IDENTIFY_TIME 0
 #define DEFAULT_ON_OFF_TRANSITION_TIME 20
@@ -93,8 +93,8 @@
 const uint16_t otaServer_clusterRevision = 0x0001; //currently all cluster implementations are according to ZCL6, which has revision #1. In the future it is possible that different clusters will have different revisions, so they will have to use separate attribute variables.
 
 // Basic Cluster
-const uint8_t otaServer_HWRevision = OTA_DONGLE_HWVERSION;
-const uint8_t otaServer_ZCLVersion = OTA_DONGLE_ZCLVERSION;
+const uint8_t otaServer_HWRevision = OTA_SERVER_HWVERSION;
+const uint8_t otaServer_ZCLVersion = OTA_SERVER_ZCLVERSION;
 const uint8_t otaServer_ManufacturerName[] = { 16, 'T','e','x','a','s','I','n','s','t','r','u','m','e','n','t','s' };
 const uint8_t otaServer_PowerSource = POWER_SOURCE_MAINS_1_PHASE;
 uint8_t otaServer_PhysicalEnvironment = PHY_UNSPECIFIED_ENV;
@@ -102,13 +102,12 @@ uint8_t otaServer_PhysicalEnvironment = PHY_UNSPECIFIED_ENV;
 // Identify Cluster
 uint16_t otaServer_IdentifyTime;
 
-
-#if ZCL_DISCOVER
+#if defined ZCL_DISCOVER
 CONST zclCommandRec_t otaServer_Cmds[] =
 {
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
-    COMMAND_BASIC_RESET_FACT_DEFAULT,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
+    COMMAND_BASIC_RESET_TO_FACTORY_DEFAULTS,
     CMD_DIR_SERVER_RECEIVED
   }
 };
@@ -127,7 +126,7 @@ CONST zclAttrRec_t otaServer_Attrs[] =
 {
   // *** General Basic Cluster Attributes ***
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_ZCL_VERSION,
       ZCL_DATATYPE_UINT8,
@@ -136,7 +135,7 @@ CONST zclAttrRec_t otaServer_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
+    ZCL_CLUSTER_ID_GENERAL_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
     {  // Attribute record
       ATTRID_BASIC_HW_VERSION,            // Attribute ID - Found in Cluster Library header (ie. zcl_general.h)
       ZCL_DATATYPE_UINT8,                 // Data Type - found in zcl.h
@@ -145,7 +144,7 @@ CONST zclAttrRec_t otaServer_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_MANUFACTURER_NAME,
       ZCL_DATATYPE_CHAR_STR,
@@ -154,7 +153,7 @@ CONST zclAttrRec_t otaServer_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_POWER_SOURCE,
       ZCL_DATATYPE_ENUM8,
@@ -163,16 +162,16 @@ CONST zclAttrRec_t otaServer_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
-      ATTRID_BASIC_PHYSICAL_ENV,
+      ATTRID_BASIC_PHYSICAL_ENVIRONMENT,
       ZCL_DATATYPE_ENUM8,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&otaServer_PhysicalEnvironment
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -183,16 +182,16 @@ CONST zclAttrRec_t otaServer_Attrs[] =
 #ifdef ZCL_IDENTIFY
   // *** Identify Cluster Attribute ***
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     { // Attribute record
-      ATTRID_IDENTIFY_TIME,
+      ATTRID_IDENTIFY_IDENTIFY_TIME,
       ZCL_DATATYPE_UINT16,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&otaServer_IdentifyTime
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -201,7 +200,6 @@ CONST zclAttrRec_t otaServer_Attrs[] =
     }
   },
 #endif
-
 };
 
 uint8_t CONST otaServer_NumAttributes = ( sizeof(otaServer_Attrs) / sizeof(otaServer_Attrs[0]) );
@@ -211,44 +209,31 @@ uint8_t CONST otaServer_NumAttributes = ( sizeof(otaServer_Attrs) / sizeof(otaSe
  */
 // This is the Cluster ID List and should be filled with Application
 // specific cluster IDs.
-#define OTA_DONGLE_MAX_INCLUSTERS       3
-const cId_t OTA_Dongle_InClusterList[OTA_DONGLE_MAX_INCLUSTERS] =
+#define OTA_SERVER_MAX_INCLUSTERS       3
+const cId_t OTA_SERVER_InClusterList[OTA_SERVER_MAX_INCLUSTERS] =
 {
-  ZCL_CLUSTER_ID_GEN_BASIC,
-  ZCL_CLUSTER_ID_GEN_IDENTIFY,
+  ZCL_CLUSTER_ID_GENERAL_BASIC,
+  ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
   ZCL_CLUSTER_ID_OTA,
 };
 
-#define OTA_DONGLE_MAX_OUTCLUSTERS       1
-const cId_t OTA_Dongle_OutClusterList[OTA_DONGLE_MAX_OUTCLUSTERS] =
+#define OTA_SERVER_MAX_OUTCLUSTERS       1
+const cId_t OTA_SERVER_OutClusterList[OTA_SERVER_MAX_OUTCLUSTERS] =
 {
-  ZCL_CLUSTER_ID_GEN_BASIC
+  ZCL_CLUSTER_ID_GENERAL_BASIC
 };
 
-SimpleDescriptionFormat_t otaServerEpDesc =
+SimpleDescriptionFormat_t otaServerSimpleDesc =
 {
-  OTA_DONGLE_ENDPOINT,                  //  int Endpoint;
+  OTA_SERVER_ENDPOINT,                  //  int Endpoint;
   OTA_SAMPLE_PROFILE_ID,                //  uint16_t AppProfId[2];
   OTA_SAMPLE_DEVICEID,                  //  uint16_t AppDeviceId[2];
-  OTA_DONGLE_DEVICE_VERSION,            //  int   AppDevVer:4;
-  OTA_DONGLE_FLAGS,                     //  int   AppFlags:4;
-  OTA_DONGLE_MAX_INCLUSTERS,         //  byte  AppNumInClusters;
-  (cId_t *)OTA_Dongle_InClusterList, //  byte *pAppInClusterList;
-  OTA_DONGLE_MAX_OUTCLUSTERS,        //  byte  AppNumInClusters;
-  (cId_t *)OTA_Dongle_OutClusterList //  byte *pAppInClusterList;
-};
-
-SimpleDescriptionFormat_t otaServerSysAppEpDesc =
-{
-  OTA_SYSAPP_ENDPOINT,                  //  int Endpoint;
-  OTA_SAMPLE_PROFILE_ID,                //  uint16_t AppProfId[2];
-  OTA_SAMPLE_DEVICEID,                  //  uint16_t AppDeviceId[2];
-  OTA_DONGLE_DEVICE_VERSION,            //  int   AppDevVer:4;
-  OTA_DONGLE_FLAGS,                     //  int   AppFlags:4;
-  OTA_DONGLE_MAX_INCLUSTERS,         //  byte  AppNumInClusters;
-  (cId_t *)OTA_Dongle_InClusterList, //  byte *pAppInClusterList;
-  OTA_DONGLE_MAX_OUTCLUSTERS,        //  byte  AppNumInClusters;
-  (cId_t *)OTA_Dongle_OutClusterList //  byte *pAppInClusterList;
+  OTA_SERVER_DEVICE_VERSION,            //  int   AppDevVer:4;
+  OTA_SERVER_FLAGS,                     //  int   AppFlags:4;
+  OTA_SERVER_MAX_INCLUSTERS,         //  byte  AppNumInClusters;
+  (cId_t *)OTA_SERVER_InClusterList, //  byte *pAppInClusterList;
+  OTA_SERVER_MAX_OUTCLUSTERS,        //  byte  AppNumInClusters;
+  (cId_t *)OTA_SERVER_OutClusterList //  byte *pAppInClusterList;
 };
 
 

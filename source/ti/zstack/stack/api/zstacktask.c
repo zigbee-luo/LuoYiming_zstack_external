@@ -35,6 +35,7 @@
  -->
  */
 
+#include "ti_zstack_config.h"
 #include "rom_jt_154.h"
 #include "osal_nv.h"
 #include "zglobals.h"
@@ -50,7 +51,6 @@
 #include "nwk_util.h"
 #include "aps_groups.h"
 #include "zcl.h"
-#include "ti_zstack_config.h"
 
 #include "zstack.h"
 #include "zstackmsg.h"
@@ -64,10 +64,9 @@
 #include "dgp_stub.h"
 #include "bdb_reporting.h"
 
-#if (defined OTA_SERVER) && (OTA_SERVER == TRUE)
+#if defined OTA_SERVER
 #include "zcl_ota.h"
 #include "ota_common.h"
-#include "ota_srv_app.h"
   #ifdef NPI
   #include "mt_ota.h"
   #endif //NPI
@@ -92,6 +91,8 @@
 #if defined ( BDB_TL_INITIATOR ) || defined ( BDB_TL_TARGET )
   #include "bdb_touchlink.h"
 #endif
+
+#include "ti_zstack_config.h"
 
 /* ------------------------------------------------------------------------------------------------
  * Constants
@@ -156,9 +157,9 @@
  * ------------------------------------------------------------------------------------------------
  */
 
-typedef struct
+typedef struct epItem_s
 {
-  void *next;                // Next in the link List
+  struct epItem_s *next;     // Next in the link List
   uint8_t connection;        // connection;
   uint16_t zdoCBs;
   uint32_t zdoRsps;
@@ -233,7 +234,7 @@ uint8_t ZStackTask_getServiceTaskID(void);
 static void StackTask_handleNPIReq( void *pMsg );
 static void processNpiIncomingMsgInd( uint8_t *pkt );
 static void processSysAppMsgInd( mtSysAppMsg_t *pkt );
-#if (defined OTA_SERVER) && (OTA_SERVER == TRUE)
+#if defined OTA_SERVER
 static void processSysOtaMsgInd( OTA_MtMsg_t *pkt );
 #endif // OTA_SERVER
 #endif // NPI
@@ -767,7 +768,7 @@ uint32_t ZStackTaskProcessEvent( uint8_t taskId, uint32_t events )
             processSysAppMsgInd( (mtSysAppMsg_t*)pMsg );
             break;
 
-#if (defined OTA_SERVER) && (OTA_SERVER == TRUE)
+#if defined OTA_SERVER
         case MT_SYS_OTA_MSG:
             processSysOtaMsgInd( (OTA_MtMsg_t*)pMsg );
             break;
@@ -995,7 +996,7 @@ static void processSysAppMsgInd( mtSysAppMsg_t *pkt )
 
 
 
-#if (defined OTA_SERVER) && (OTA_SERVER == TRUE)
+#if defined OTA_SERVER
 /**************************************************************************************************
  * @fn      processSysOtaMsgInd
  *
@@ -6189,18 +6190,6 @@ static bool processSysConfigReadReq( uint8_t srcServiceTaskId, void *pMsg )
       pPtr->pRsp->has_devPartOfNetwork = TRUE;
       pPtr->pRsp->devPartOfNetwork = isDevicePartOfNetwork( );
     }
-
-    if ( pPtr->pReq->rejoinBackoffDuration )
-    {
-      pPtr->pRsp->has_rejoinBackoffDuration = TRUE;
-      pPtr->pRsp->rejoinBackoffDuration = zgDefaultRejoinBackoff;
-    }
-
-    if ( pPtr->pReq->rejoinScanDuration )
-    {
-      pPtr->pRsp->has_rejoinScanDuration = TRUE;
-      pPtr->pRsp->rejoinScanDuration = zgDefaultRejoinScan;
-    }
   }
   else
   {
@@ -6430,16 +6419,6 @@ static bool processSysConfigWriteReq( uint8_t srcServiceTaskId, void *pMsg )
     {
       nwkUseMultiCast = pPtr->pReq->nwkUseMultiCast;
       _NIB.nwkUseMultiCast = nwkUseMultiCast;
-    }
-
-    if  ( pPtr->pReq->has_rejoinBackoffDuration )
-    {
-      ZDApp_SetRejoinBackoffDuration( pPtr->pReq->rejoinBackoffDuration );
-    }
-
-    if ( pPtr->pReq->has_rejoinScanDuration )
-    {
-      ZDApp_SetRejoinScanDuration( pPtr->pReq->rejoinScanDuration );
     }
   }
   else

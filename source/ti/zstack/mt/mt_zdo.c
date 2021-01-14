@@ -153,7 +153,6 @@ static void MT_ZdoNwkAddrOfInterestReq( uint8_t *pBuf );
 static void MT_ZdoStartupFromApp(uint8_t *pBuf);
 static void MT_ZdoRegisterForZDOMsg(uint8_t *pBuf);
 static void MT_ZdoRemoveRegisteredCB(uint8_t *pBuf);
-static void MT_ZdoSetRejoinParameters(uint8_t *pBuf);
 #endif /* MT_ZDO_FUNC */
 
 #if defined (MT_ZDO_CB_FUNC)
@@ -415,10 +414,6 @@ uint8_t MT_ZdoCommandProcessing(uint8_t* pBuf)
 
     case MT_ZDO_MSG_CB_REMOVE:
       MT_ZdoRemoveRegisteredCB(pBuf);
-      break;
-
-    case MT_ZDO_SET_REJOIN_PARAMS:
-      MT_ZdoSetRejoinParameters(pBuf);
       break;
 
 #if defined ( MT_ZDO_EXTENSIONS )
@@ -2136,41 +2131,6 @@ void MT_ZdoRemoveRegisteredCB(uint8_t *pBuf)
   {
     MT_BuildAndSendZToolResponse(((uint8_t)MT_RPC_CMD_SRSP|(uint8_t)MT_RPC_SYS_ZDO), cmd1, 1, &tmp);
   }
-}
-
-/*************************************************************************************************
- * @fn      MT_ZdoSetRejoinParameters(pBuf);
- *
- * @brief   Set Rejoin backoff and scan duration from MT
- *
- * @param   pBuf  - MT message data
- *
- * @return  void
- *************************************************************************************************/
-static void MT_ZdoSetRejoinParameters(uint8_t *pBuf)
-{
-  uint8_t cmdId;
-  uint8_t retValue;
-  uint32_t rejoinBackoffDuration, rejoinScanDuration;
-
-  // parse header
-  cmdId = pBuf[MT_RPC_POS_CMD1];
-  pBuf += MT_RPC_FRAME_HDR_SZ;
-
-  //Rejoin Backoff Duration
-  rejoinBackoffDuration = OsalPort_buildUint32(pBuf, 4);
-  pBuf += 4;
-
-  //Rejoin Scan Duration
-  rejoinScanDuration = OsalPort_buildUint32(pBuf, 4);
-
-  ZDApp_SetRejoinScanDuration(rejoinScanDuration);
-  ZDApp_SetRejoinBackoffDuration(rejoinBackoffDuration);
-
-  retValue = ZSuccess;
-
-  MT_BuildAndSendZToolResponse(((uint8_t)MT_RPC_CMD_SRSP | (uint8_t)MT_RPC_SYS_ZDO), cmdId, 1, &retValue);
-
 }
 
 #endif /* MT_ZDO_FUNC */

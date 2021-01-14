@@ -41,7 +41,7 @@
 #define APPLICATION_UI_ZCL_SAMPLE_APP_DEF_H_
 
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 
 #define SAMPLE_APP_MENUS  1
 
@@ -50,7 +50,7 @@
 
 #define APP_TITLE_STR "TI Sample Temperature Sensor"
 
-#endif  // #ifdef USE_ZCL_SAMPLEAPP_UI
+#endif  // #ifndef CUI_DISABLE
 
 
 #endif /* APPLICATION_UI_ZCL_SAMPLEAPPDEF_H_ */

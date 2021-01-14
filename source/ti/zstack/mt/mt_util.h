@@ -41,10 +41,6 @@
 #ifndef MT_UTIL_H
 #define MT_UTIL_H
 
-#if defined ZCL_KEY_ESTABLISH
-#include "zcl_key_establish.h"
-#endif
-
 #ifdef __cplusplus
 extern "C"
 {
@@ -59,19 +55,6 @@ extern "C"
  * Process MT_SYS commands
  */
 extern uint8_t MT_UtilCommandProcessing(uint8_t *pBuf);
-
-#if defined ZCL_KEY_ESTABLISH
-/***************************************************************************************************
- * @fn      MT_UtilKeyEstablishInd
- *
- * @brief   Proxy the ZCL_KEY_ESTABLISH_IND command.
- *
- * @param   None
- *
- * @return  None
- ***************************************************************************************************/
-void MT_UtilKeyEstablishInd(zclKE_StatusInd_t *pInd);
-#endif
 #endif /* MT_UTIL_FUNC */
 
 #ifdef __cplusplus

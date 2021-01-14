@@ -180,7 +180,7 @@ static void MT_AppUserCmd(uint8_t *pBuf)
 
   uint8_t retValue, cmdId;
 
-#if defined (APP_TGEN) || defined (NWK_TEST) || defined (APP_TP) || defined (APP_TP2) || defined (OSAL_TOTAL_MEM) || defined (APP_DEBUG)
+#if defined (APP_TP) || defined (APP_TP2) || defined (OSAL_TOTAL_MEM) || defined (APP_DEBUG)
   uint16_t app_cmd;
   uint8_t srcEp;
   uint16_t param1;
@@ -196,7 +196,7 @@ static void MT_AppUserCmd(uint8_t *pBuf)
 
   retValue = INVALID_TASK;     //should be changed later
 
-#if defined (APP_TGEN) || defined (NWK_TEST) || defined (APP_TP) || defined (APP_TP2) || defined (OSAL_TOTAL_MEM) || defined (APP_DEBUG)
+#if defined (APP_TP) || defined (APP_TP2) || defined (OSAL_TOTAL_MEM) || defined (APP_DEBUG)
 
   srcEp = *pBuf++;
 
@@ -210,38 +210,6 @@ static void MT_AppUserCmd(uint8_t *pBuf)
 
   switch ( app_cmd )
   {
-
-#if defined (APP_TGEN)
-    case TGEN_START:
-      TrafficGenApp_SendCmdMSG( param1, param2, TRAFFICGENAPP_CMD_START );
-      retValue = ZSUCCESS;
-      break;
-
-    case TGEN_STOP:
-      TrafficGenApp_SendCmdMSG( param1, param2, TRAFFICGENAPP_CMD_STOP );
-      retValue = ZSUCCESS;
-      break;
-
-    case TGEN_COUNT:
-      retValue = TrafficGenApp_CountPkt( param1, param2 );
-      return;
-      break;
-#endif
-
-#if defined (NWK_TEST)
-    case HW_TEST:
-      HwApp_Start( HI_UINT16(param1), LO_UINT16(param1), HI_UINT16(param2),
-                    1000, LO_UINT16(param2), 3, 0 );
-      break;
-
-    case HW_DISPLAY_RESULT:
-      HwApp_TestInfo();
-      break;
-
-    case HW_SEND_STATUS:
-      HwApp_SendStats();
-      break;
-#endif
 
 #if defined( APP_TP ) || defined ( APP_TP2 )
   #if defined( APP_TP )
@@ -530,7 +498,7 @@ static void MT_AppUserCmd(uint8_t *pBuf)
     default:
       break;
   }
-#endif // (APP_TGEN) || (NWK_TEST) || (APP_TP) || (APP_TP2) || (OSAL_TOTAL_MEM) || (APP_DEBUG)
+#endif // (APP_TP) || (APP_TP2) || (OSAL_TOTAL_MEM) || (APP_DEBUG)
 
   /* Build and send back the response */
   MT_BuildAndSendZToolResponse(((uint8_t)MT_RPC_CMD_SRSP | (uint8_t)MT_RPC_SYS_APP), cmdId, 1, &retValue);

@@ -36,14 +36,18 @@
  *  ======== ti_zstack_config.h.xdt ========
  */
 
+/* Static module and submodules and scripts */
+const zstack = system.modules['/ti/zstack/zstack'].$static;
 const Common = system.getScript("/ti/zstack/zstack_common.js");
-
-/* Static module and submodules */
-const zstack          = system.modules['/ti/zstack/zstack'].$static;
 
 /* Channel bitmasks */
 const defaultChanlist = Common.chanArrToBitmask(zstack.rf.primaryChannels);
 const secondaryChanlist = Common.chanArrToBitmask(zstack.rf.secondaryChannels);
+
+let devices = system.getScript("/ti/zstack/stack/zcl/ZDL.js").ZDL.devices;
+const clusters = system.getScript("/ti/zstack/stack/zcl/ZCL.js").ZCL.clusters;
+
+Common.addGlobalClusters(devices, clusters);
 
 /* EPID */
 let epid = "{";
@@ -89,6 +93,244 @@ for(i = 0; i < Common.NWK_KEY_LEN  ; i++)
 }
 tcLinkKey = tcLinkKey.slice(0,-1);
 tcLinkKey += "}";
+
+/* APP BUILDER START */
+
+let flags = '';
+let maxAttrSize = '';
+
+if( zstack.appBuilder == true )
+{
+  const app = [system.modules['/ti/zstack/zstack'].$static.app, system.modules['/ti/zstack/zstack'].$static.otaClient];
+
+  /* Get device information */
+  let deviceDict = {};
+  let deviceList = [];
+  for (i=0; i<devices.length; i++) {
+    deviceDict[devices[i]._id] = devices[i];
+    deviceList.push(devices[i]._id);
+  }
+
+  /* Get clusters from ZCL.js */
+  let clusterDict = {};
+  let clusterList = [];
+  let attributeDict = {};
+  let commandDict = {};
+  for (i in clusters) {
+    let currCluster = clusters[i];
+    clusterDict[currCluster._id] = clusters[i];
+    clusterList.push(currCluster._id);
+    attributeDict[currCluster._id] = {};
+    commandDict[currCluster._id] = {};
+    if (currCluster.server) {
+      for (let j in currCluster.server.attribute) {
+        attributeDict[currCluster._id][currCluster.server.attribute[j]._id] = currCluster.server.attribute[j];
+      }
+      for (let j in currCluster.server.command) {
+        commandDict[currCluster._id][currCluster.server.command[j]._id] = currCluster.server.command[j];
+      }
+    }
+    if (currCluster.client) {
+      for (let j in currCluster.client.attribute) {
+        attributeDict[currCluster._id][currCluster.client.attribute[j]._id] = currCluster.client.attribute[j];
+      }
+      for (let j in currCluster.client.command) {
+        commandDict[currCluster._id][currCluster.client.command[j]._id] = currCluster.client.command[j];
+      }
+    }
+  }
+
+  /* Variable Declarations */
+  let clusterFlags = {};
+  let bdbReporting = false;
+  let serverClusters = [];
+  let serverAttributes = {};
+  let clientClusters = [];
+  let clientAttributes = {};
+
+  flags += '#define ZCL_SYSCONFIG\n';
+  flags += '#define ZCL_READ\n';
+  flags += '#define ZCL_WRITE\n';
+  flags += '#define ZCL_DISCOVER\n';
+
+  let deviceNum;
+  for(deviceNum = 0; deviceNum < app.length; deviceNum++)
+  {
+    if ('otaClientEnabled' in app[deviceNum] && !app[deviceNum].otaClientEnabled) //TODO Add more generic checking
+    {
+      break;
+    }
+    let deviceID = app[deviceNum].zigbeeDeviceType;
+    let deviceObj = deviceDict[deviceID];
+    let profileID = 'ZCL_HA_PROFILE_ID';
+    let deviceDef = 'NONE';
+    if (deviceObj && deviceObj._definition) {
+      deviceDef = deviceObj._definition;
+    }
+
+    /* Get Server-Side information */
+    let manServerClustIDs = app[deviceNum][deviceID + "manServer"];
+    let recServerClustIDs = app[deviceNum][deviceID + "recServer"];
+    let addServerClustIDs = app[deviceNum][deviceID + "addServer"];
+    for (i in manServerClustIDs) {
+      let currClusterID = manServerClustIDs[i];
+      let currCluster = clusterDict[currClusterID];
+      serverClusters.push(currCluster);
+      serverAttributes[currClusterID] = [];
+      let manServerAttIDs = app[deviceNum][currClusterID + 'mcmaServer'].concat(app[deviceNum][currClusterID + 'mcoaServer']);
+      for (let j in manServerAttIDs) {
+        let currAttributeID = manServerAttIDs[j];
+        let currAttribute = attributeDict[currClusterID][currAttributeID];
+        serverAttributes[currClusterID].push(currAttribute);
+        if (currAttribute._reportable == 'true') {
+          bdbReporting = true;
+        }
+      }
+    }
+    for (i in recServerClustIDs) {
+      let currClusterID = recServerClustIDs[i];
+      let currCluster = clusterDict[currClusterID];
+      serverClusters.push(currCluster);
+      serverAttributes[currClusterID] = [];
+      let recServerAttIDs = app[deviceNum][currClusterID + 'rcmaServer'].concat(app[deviceNum][currClusterID + 'rcoaServer']);
+      for (let j in recServerAttIDs) {
+        let currAttributeID = recServerAttIDs[j];
+        let currAttribute = attributeDict[currClusterID][currAttributeID];
+        serverAttributes[currClusterID].push(currAttribute);
+        if (currAttribute._reportable == 'true') {
+          bdbReporting = true;
+        }
+      }
+    }
+    for (i in addServerClustIDs) {
+      let currClusterID = addServerClustIDs[i];
+      let currCluster = clusterDict[currClusterID];
+      serverClusters.push(currCluster);
+      serverAttributes[currClusterID] = [];
+      let addServerAttIDs = app[deviceNum][currClusterID + 'acmaServer'].concat(app[deviceNum][currClusterID + 'acoaServer']);
+      for (let j in addServerAttIDs) {
+        let currAttributeID = addServerAttIDs[j];
+        let currAttribute = attributeDict[currClusterID][currAttributeID];
+        serverAttributes[currClusterID].push(currAttribute);
+        if (currAttribute._reportable == 'true') {
+          bdbReporting = true;
+        }
+      }
+    }
+
+    /* Get Client-Side information */
+    let manClientClustIDs = app[deviceNum][deviceID + "manClient"];
+    let recClientClustIDs = app[deviceNum][deviceID + "recClient"];
+    let addClientClustIDs = app[deviceNum][deviceID + "addClient"];
+    for (i in manClientClustIDs) {
+      let currClusterID = manClientClustIDs[i];
+      let currCluster = clusterDict[currClusterID];
+      clientClusters.push(currCluster);
+      clientAttributes[currClusterID] = [];
+      let manClientAttIDs = app[deviceNum][currClusterID + 'mcmaClient'].concat(app[deviceNum][currClusterID + 'mcoaClient']);
+      for (let j in manClientAttIDs) {
+        let currAttributeID = manClientAttIDs[j];
+        let currAttribute = attributeDict[currClusterID][currAttributeID];
+        clientAttributes[currClusterID].push(currAttribute);
+        if (currAttribute._reportable == 'true') {
+          bdbReporting = true;
+        }
+      }
+    }
+    for (i in recClientClustIDs) {
+      let currClusterID = recClientClustIDs[i];
+      let currCluster = clusterDict[currClusterID];
+      clientClusters.push(currCluster);
+      clientAttributes[currClusterID] = [];
+      let recClientAttIDs = app[deviceNum][currClusterID + 'rcmaClient'].concat(app[deviceNum][currClusterID + 'rcoaClient']);
+      for (let j in recClientAttIDs) {
+        let currAttributeID = recClientAttIDs[j];
+        let currAttribute = attributeDict[currClusterID][currAttributeID];
+        clientAttributes[currClusterID].push(currAttribute);
+        if (currAttribute._reportable == 'true') {
+          bdbReporting = true;
+        }
+      }
+    }
+    for (i in addClientClustIDs) {
+      let currClusterID = addClientClustIDs[i];
+      let currCluster = clusterDict[currClusterID];
+      clientClusters.push(currCluster);
+      clientAttributes[currClusterID] = [];
+      let addClientAttIDs = app[deviceNum][currClusterID + 'acmaClient'].concat(app[deviceNum][currClusterID + 'acoaClient']);
+      for (let j in addClientAttIDs) {
+        let currAttributeID = addClientAttIDs[j];
+        let currAttribute = attributeDict[currClusterID][currAttributeID];
+        clientAttributes[currClusterID].push(currAttribute);
+        if (currAttribute._reportable == 'true') {
+          bdbReporting = true;
+        }
+      }
+    }
+
+    /* App Names */
+    let appName = app[deviceNum].zigbeeApplicationName;
+    let appNameCaps = appName.toUpperCase().replace(/\s/g, '');
+    let appNameWords = appName.split(" ");
+    let appNameCamel = appNameWords[0].charAt(0).toLowerCase() + appNameWords[0].slice(1);
+    for (i=1; i<appNameWords.length; i++) {
+      appNameCamel += appNameWords[i].charAt(0).toUpperCase() + appNameWords[i].slice(1);
+    }
+
+    /* Get Advanced Settings */
+    let endpoint = app[deviceNum].endpoint;
+    let deviceVersion = app[deviceNum].deviceVersion;
+
+    /* --------------- Code Generation --------------- */
+
+    /* Server-Side */
+    for (i in serverClusters) {
+      let currCluster = serverClusters[i];
+      if(!(currCluster._flag in clusterFlags))
+      {
+        clusterFlags[currCluster._flag] = currCluster._flag;
+      }
+    }
+
+    /* Client-Side */
+    for (i in clientClusters) {
+      let currCluster = clientClusters[i];
+      if(!(currCluster._flag in clusterFlags))
+      {
+        clusterFlags[currCluster._flag] = currCluster._flag;
+      }
+    }
+
+    maxAttrSize = app[deviceNum]['bdbReportingMaxAnalogAttrSize'].toString();
+
+    if ('otaClientEnabled' in app[deviceNum] && app[deviceNum].otaClientEnabled) //TODO Add more generic checking
+    {
+      flags += '#define OTA_CLIENT_STANDALONE\n';
+    }
+  }
+  /* Flags */
+  for (let flag in clusterFlags) { flags += '#define ' + flag + '\n'; }
+
+  if (bdbReporting == true)
+  {
+    flags += '#define BDB_REPORTING\n';
+  }
+
+  if (zstack.touchlink.touchlinkEnabled == true)
+  {
+    if(zstack.touchlink.touchlinkMode == 'initiator')
+    {
+      flags += '#define BDB_TL_INITIATOR\n';
+    }
+    else if(zstack.touchlink.touchlinkMode == 'target')
+    {
+      flags += '#define BDB_TL_TARGET\n';
+    }
+  }
+}
+
+/* APP BUILDER END */
+
 %%}
 /*
  *                           ti_zstack_config.h
@@ -254,16 +496,6 @@ tcLinkKey += "}";
 #define REJOIN_POLL_RATE              `zstack.pm.rejoinMessagePollPeriod`
 #endif
 
-/* Rejoin retry backoff silent period timer duration in milliseconds - default 15 minutes according to HA test spec */
-#ifndef REJOIN_BACKOFF
-#define REJOIN_BACKOFF                900000
-#endif
-
-/* Rejoin retry backoff scan timer duration in milliseconds - default 15 minutes according to HA test spec */
-#ifndef REJOIN_SCAN
-#define REJOIN_SCAN                   900000
-#endif
-
 /* Maximum number of devices in the Assoc/Device list. */
 #ifndef NWK_MAX_DEVICE_LIST
 #define NWK_MAX_DEVICE_LIST           `zstack.network.nwkMaxDeviceList`
@@ -273,5 +505,27 @@ tcLinkKey += "}";
 #ifndef ZDSECMGR_TC_DEVICE_MAX
 #define ZDSECMGR_TC_DEVICE_MAX        `zstack.network.zdsecmgrTcDeviceMax`
 #endif
+
+/* Value used by end device when sending End Device Timeout Request */
+/* This is an index into table timeoutValue[] defined in nwk_globals.c */
+#ifndef END_DEV_TIMEOUT_VALUE
+#define END_DEV_TIMEOUT_VALUE        `zstack.network.endDeviceTimeout`
+#endif
+
+%%{
+  if ( zstack.appBuilder == true )
+  {
+%%}
+
+/* Maximum size in bytes used by reportable attributes registered in any endpoint for the application (for analog attributes) */
+#ifndef BDBREPORTING_MAX_ANALOG_ATTR_SIZE
+#define BDBREPORTING_MAX_ANALOG_ATTR_SIZE                   `maxAttrSize`
+#endif
+
+/* Cluster Flags */
+`flags`
+%%{
+  }
+%%}
 
 #endif /* TI_ZSTACK_CONFIG_H */

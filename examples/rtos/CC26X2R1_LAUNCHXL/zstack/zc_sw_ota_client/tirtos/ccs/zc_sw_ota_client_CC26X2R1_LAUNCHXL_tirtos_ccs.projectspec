@@ -55,7 +55,7 @@
             --plain_char=unsigned
             -DTIMAC_ROM_IMAGE_BUILD
             -DTIMAC_ROM_PATCH
-            -DUSE_ZCL_SAMPLEAPP_UI
+            -DxCUI_DISABLE
             -DMAX_STATUS_LINES=10
             -DZSTACK_SECURITY
             -DBOARD_DISPLAY_USE_UART
@@ -137,22 +137,22 @@
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/devices/cc13x2_cc26x2
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/devices/cc13x2_cc26x2/inc
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/devices/cc13x2_cc26x2/driverlib
+            -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/common/time
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/apps/sw
             --cmd_file=${PROJECT_ROOT}/Stack/Config/f8wcoord.opts
             -I${PROJECT_ROOT}/Common/zcl
             -DDEVICE_FAMILY=cc26x0
-            -DCC26X2R1_LAUNCHXL
             -DDeviceFamily_CC26X2
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/boards
-            -DOTA_CLIENT_CC26XX
-            -DOTA_CLIENT=TRUE
+            -DOTA_CLIENT_INTEGRATED
             -DSECURITY
             -DOTA_MANUFACTURER_ID=0xBEBE
             -DOTA_APP_VERSION=0x00000001
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/ota
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/oad/CC13X2_CC26X2R1_LAUNCHXL
-            -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/cc26xx/flash_interface
-            -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/cc26xx/crc
+            -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/common/cc26xx/flash_interface
+            -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/common/cc26xx/crc
+            -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/
             -DOTA_TYPE_ID=0x2652
             -I${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/posix/ccs
             --little_endian
@@ -166,13 +166,9 @@
              --xml_link_info=${ProjName}_linkInfo.xml
              -x
              --library=${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/library/tirtos/ccs/timac_rom_PG2_0_rom_api_linker.cmd
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/lib/ccs/libZStack_nwk_zr_ccs.a
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/display/lib/display.aem4f
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/grlib/lib/ccs/m4f/grlib.a
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/drivers/rf/lib/rf_multiMode_cc26x2.aem4f
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/drivers/lib/drivers_cc26x2.aem4f
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/library/tirtos/ccs/bin/maclib_nosecure_cc26x2_2_4g.a
-             -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/kernel/tirtos/packages/ti/dpl/lib/dpl_cc26x2.aem4f
+             -l${PROJECT_BUILD_DIR}/syscfg/ti_utils_build_linker.cmd.genlibs
+             -i${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source
+             -i${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/kernel/tirtos/packages
              -l${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/devices/cc13x2_cc26x2/driverlib/bin/ccs/driverlib.lib
              --warn_sections
              --display_error_number
@@ -183,14 +179,14 @@
         preBuildStep="
         "
         postBuildStep="
-            ${CG_TOOL_HEX} -order MS --memwidth=8 --romwidth=8 --intel -o ${ProjName}.hex ${ProjName};         ${CCS_INSTALL_ROOT}/utils/tiobj2bin/tiobj2bin ${BuildArtifactFileName} ${BuildArtifactFileBaseName}.bin ${CG_TOOL_ROOT}/bin/armofd ${CG_TOOL_ROOT}/bin/armhex ${CCS_INSTALL_ROOT}/utils/tiobj2bin/mkhex4bin;         ${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/tools/common/oad/oad_image_tool --verbose ccs ${PROJECT_LOC} 7 -hex1 ${ConfigName}/${ProjName}.hex -k ${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/tools/common/oad/private.pem -o ${ConfigName}/${ProjName}_oad;         ${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/tools/zstack/zigbee_ota_image_converter/zOTAfileGen ${PROJECT_LOC}/${ConfigName}/${ProjName}_oad.bin ${PROJECT_LOC}/${ConfigName}/ BEBE 2652 00000001;
+            ${CG_TOOL_HEX} -order MS --memwidth=8 --romwidth=8 --intel -o ${ProjName}.hex ${ProjName};         ${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/tools/common/oad/oad_image_tool --verbose ccs ${PROJECT_LOC} 7 -hex1 ${ConfigName}/${ProjName}.hex -k ${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/tools/common/oad/private.pem -o ${ConfigName}/${ProjName}_oad;         ${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/tools/zstack/zigbee_ota_image_converter/zOTAfileGen ${PROJECT_LOC}/${ConfigName}/${ProjName}_oad.bin ${PROJECT_LOC}/${ConfigName}/ BEBE 2652 00000001;
         "
         enableSysConfigTool="true"
-        sysConfigBuildOptions="--product ${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/.metadata/product.json"
+        sysConfigBuildOptions="--product ${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/.metadata/product.json --compiler ccs"
         description="">
 
         <property name="type" value="rtsc"/>
-        <property name="xdcToolsVersion" value="3_61_01_25_core"/>
+        <property name="xdcToolsVersion" value="3_61_02_27_core"/>
         <property name="target" value="ti.targets.arm.elf.M4F"/>
         <property name="platform" value="ti.platforms.simplelink:CC2652R1F"/>
         <property name="buildProfile" value="release"/>
@@ -256,6 +252,10 @@
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/util/util_timer.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/util">
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/util/util_timer.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/util">
+        </file>
+        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/common/time/utc_clock.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/util">
+        </file>
+        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/common/time/utc_clock.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/util">
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/stack/af/af.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/af">
         </file>
@@ -495,6 +495,8 @@
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/config/f8wcoord.opts" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Stack/Config">
         </file>
+        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/stack/zcl/zcl_datatypes.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Common/zcl">
+        </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/stack/zcl/zcl.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Common/zcl">
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/stack/zcl/zcl.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Common/zcl">
@@ -599,9 +601,9 @@
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/stack/zcl/zcl_ss.h" openOnCreation="false" excludeFromBuild="true" action="copy" targetDirectory="Common/zcl">
         </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/ota/ota_client_app.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/ota">
+        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/ota/ota_client.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application">
         </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/ota/ota_client_app.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/ota">
+        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/ota/ota_client.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application">
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/zstack/ota/oad_switch_agama.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/ota">
         </file>
@@ -613,11 +615,11 @@
         </file>
         <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/oad/CC13X2_CC26X2R1_LAUNCHXL/oad_image_header.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/ota">
         </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/cc26xx/flash_interface/external/flash_interface_ext_rtos_NVS.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/ota">
+        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/common/cc26xx/flash_interface/external/flash_interface_ext_rtos_NVS.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/ota">
         </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/cc26xx/crc/crc32.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/ota">
+        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/common/cc26xx/crc/crc32.c" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/ota">
         </file>
-        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/ti154stack/common/cc26xx/crc/crc32.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/ota">
+        <file path="${COM_TI_SIMPLELINK_CC13X2_26X2_SDK_INSTALL_DIR}/source/ti/common/cc26xx/crc/crc32.h" openOnCreation="false" excludeFromBuild="false" action="copy" targetDirectory="Application/ota">
         </file>
         <file path="../../zc_sw_ota_client.syscfg" openOnCreation="false" excludeFromBuild="false" action="copy">
         </file>

@@ -41,6 +41,7 @@
  * INCLUDES
  */
 #include "zcomdef.h"
+#include "ti_zstack_config.h"
 #include "zcl.h"
 #include "zcl_general.h"
 #include "zcl_poll_control.h"
@@ -116,8 +117,8 @@ ZStatus_t zclPollControl_RegisterCmdCallbacks( uint8_t endpoint, zclPollControl_
   // Register as a ZCL Plugin
   if ( zclPollControlPluginRegisted == FALSE )
   {
-    zcl_registerPlugin( ZCL_CLUSTER_ID_GEN_POLL_CONTROL,
-                        ZCL_CLUSTER_ID_GEN_POLL_CONTROL,
+    zcl_registerPlugin( ZCL_CLUSTER_ID_GENERAL_POLL_CONTROL,
+                        ZCL_CLUSTER_ID_GENERAL_POLL_CONTROL,
                         zclPollControl_HdlIncoming );
     zclPollControlPluginRegisted = TRUE;
   }
@@ -170,7 +171,7 @@ ZStatus_t zclPollControl_Send_CheckIn( uint8_t srcEP, afAddrType_t *dstAddr,
                                        uint8_t disableDefaultRsp, uint8_t seqNum )
 {
   // send, no paylod
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POLL_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POLL_CONTROL,
                           COMMAND_POLL_CONTROL_CHECK_IN, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum, 0, NULL);
 }
@@ -201,7 +202,7 @@ ZStatus_t zclPollControl_Send_CheckInRsp( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[1] = LO_UINT16(fastPollTimeout);
   buf[2] = HI_UINT16(fastPollTimeout);
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POLL_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POLL_CONTROL,
                           COMMAND_POLL_CONTROL_CHECK_IN_RSP, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, sizeof(buf), buf );
 }
@@ -222,7 +223,7 @@ ZStatus_t zclPollControl_Send_CheckInRsp( uint8_t srcEP, afAddrType_t *dstAddr,
 ZStatus_t zclPollControl_Send_FastPollStop( uint8_t srcEP, afAddrType_t *dstAddr,
                                             uint8_t disableDefaultRsp, uint8_t seqNum )
 {
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POLL_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POLL_CONTROL,
                           COMMAND_POLL_CONTROL_FAST_POLL_STOP, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, 0, NULL );
 }
@@ -251,7 +252,7 @@ ZStatus_t zclPollControl_Send_SetLongPollInterval( uint8_t srcEP, afAddrType_t *
   buf[2] = BREAK_UINT32(newLongPollInterval, 2);
   buf[3] = BREAK_UINT32(newLongPollInterval, 3);
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POLL_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POLL_CONTROL,
                           COMMAND_POLL_CONTROL_SET_LONG_POLL_INTERVAL, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, sizeof(buf), buf );
 }
@@ -278,7 +279,7 @@ ZStatus_t zclPollControl_Send_SetShortPollInterval( uint8_t srcEP, afAddrType_t 
   buf[0] = LO_UINT16(newShortPollInterval);
   buf[1] = HI_UINT16(newShortPollInterval);
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POLL_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POLL_CONTROL,
                           COMMAND_POLL_CONTROL_SET_SHORT_POLL_INTERVAL, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, sizeof(buf), buf );
 }

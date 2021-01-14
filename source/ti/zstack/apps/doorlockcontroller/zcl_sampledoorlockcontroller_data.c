@@ -104,7 +104,7 @@ CONST zclAttrRec_t zclSampleDoorLockController_Attrs[] =
 {
   // *** General Basic Cluster Attributes ***
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_ZCL_VERSION,
       ZCL_DATATYPE_UINT8,
@@ -113,7 +113,7 @@ CONST zclAttrRec_t zclSampleDoorLockController_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
+    ZCL_CLUSTER_ID_GENERAL_BASIC,             // Cluster IDs - defined in the foundation (ie. zcl.h)
     {  // Attribute record
       ATTRID_BASIC_HW_VERSION,            // Attribute ID - Found in Cluster Library header (ie. zcl_general.h)
       ZCL_DATATYPE_UINT8,                 // Data Type - found in zcl.h
@@ -122,7 +122,7 @@ CONST zclAttrRec_t zclSampleDoorLockController_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_MANUFACTURER_NAME,
       ZCL_DATATYPE_CHAR_STR,
@@ -131,7 +131,7 @@ CONST zclAttrRec_t zclSampleDoorLockController_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
       ATTRID_BASIC_POWER_SOURCE,
       ZCL_DATATYPE_ENUM8,
@@ -140,16 +140,16 @@ CONST zclAttrRec_t zclSampleDoorLockController_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     { // Attribute record
-      ATTRID_BASIC_PHYSICAL_ENV,
+      ATTRID_BASIC_PHYSICAL_ENVIRONMENT,
       ZCL_DATATYPE_ENUM8,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclSampleDoorLockController_PhysicalEnvironment
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_BASIC,
+    ZCL_CLUSTER_ID_GENERAL_BASIC,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -159,16 +159,16 @@ CONST zclAttrRec_t zclSampleDoorLockController_Attrs[] =
   },
   // *** Identify Cluster Attribute ***
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     { // Attribute record
-      ATTRID_IDENTIFY_TIME,
+      ATTRID_IDENTIFY_IDENTIFY_TIME,
       ZCL_DATATYPE_UINT16,
       (ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE),
       (void *)&zclSampleDoorLockController_IdentifyTime
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_IDENTIFY,
+    ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -177,7 +177,7 @@ CONST zclAttrRec_t zclSampleDoorLockController_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_SCENES,
+    ZCL_CLUSTER_ID_GENERAL_SCENES,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -186,7 +186,7 @@ CONST zclAttrRec_t zclSampleDoorLockController_Attrs[] =
     }
   },
   {
-    ZCL_CLUSTER_ID_GEN_GROUPS,
+    ZCL_CLUSTER_ID_GENERAL_GROUPS,
     {  // Attribute record
       ATTRID_CLUSTER_REVISION,
       ZCL_DATATYPE_UINT16,
@@ -216,17 +216,17 @@ uint8_t CONST zclSampleDoorLockController_NumAttributes = ( sizeof(zclSampleDoor
 const cId_t zclSampleDoorLockController_InClusterList[ZCLSAMPLEDOORLOCKCONTROLLER_MAX_INCLUSTERS] =
 
 {
-  ZCL_CLUSTER_ID_GEN_IDENTIFY,
-  ZCL_CLUSTER_ID_GEN_BASIC,
+  ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
+  ZCL_CLUSTER_ID_GENERAL_BASIC,
 };
 
 #define ZCLSAMPLEDOORLOCKCONTROLLER_MAX_OUTCLUSTERS       4
 const cId_t zclSampleDoorLockController_OutClusterList[ZCLSAMPLEDOORLOCKCONTROLLER_MAX_OUTCLUSTERS] =
 {
 
-  ZCL_CLUSTER_ID_GEN_IDENTIFY,
-  ZCL_CLUSTER_ID_GEN_SCENES,
-  ZCL_CLUSTER_ID_GEN_GROUPS,
+  ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
+  ZCL_CLUSTER_ID_GENERAL_SCENES,
+  ZCL_CLUSTER_ID_GENERAL_GROUPS,
   ZCL_CLUSTER_ID_CLOSURES_DOOR_LOCK
 };
 
@@ -234,7 +234,7 @@ SimpleDescriptionFormat_t zclSampleDoorLockController_SimpleDesc =
 {
   SAMPLEDOORLOCKCONTROLLER_ENDPOINT,                  //  int Endpoint;
   ZCL_HA_PROFILE_ID,                                  //  uint16_t AppProfId[2];
-  ZCL_HA_DEVICEID_DOOR_LOCK_CONTROLLER,               //  uint16_t AppDeviceId[2];
+  ZCL_DEVICEID_DOOR_LOCK_CONTROLLER,               //  uint16_t AppDeviceId[2];
   SAMPLEDOORLOCKCONTROLLER_DEVICE_VERSION,            //  int   AppDevVer:4;
   SAMPLEDOORLOCKCONTROLLER_FLAGS,                     //  int   AppFlags:4;
   ZCLSAMPLEDOORLOCKCONTROLLER_MAX_INCLUSTERS,         //  byte  AppNumInClusters;

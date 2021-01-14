@@ -111,7 +111,7 @@ keep                            { readonly section .img_hdr };
 place in FLASH_region { section .resetVecs };
 
 
-place in FLASH_region { 
+place in FLASH_region {
 	section .const,
 	section .constdata,
 	section .rodata,
@@ -136,7 +136,7 @@ place in FLASH_region {block ROSTK };
 
 place at start of RAM_region { section .vtable_ram };
 /*
-place in RAM_region  { 
+place in RAM_region  {
 	section .data,
 	section .bss,
 	section .vtable,

@@ -41,9 +41,9 @@
  * INCLUDES
  */
 
+#include "ti_zstack_config.h"
 #include "bdb.h"
 #include "zd_object.h"
-#include "bdb.h"
 #include "addr_mgr.h"
 #include "bdb_interface.h"
 #include "rom_jt_154.h"
@@ -105,7 +105,7 @@ uint8_t bdbIndentifyActiveEndpoint  = 0xFF;
 static zclOptionRec_t zcl_Groups_Options[] =
 {
   {
-    ZCL_CLUSTER_ID_GEN_GROUPS,
+    ZCL_CLUSTER_ID_GENERAL_GROUPS,
     ( AF_ACK_REQUEST ),
   },
 };
@@ -933,7 +933,7 @@ void bdb_ProcessRespondentList( void )
     pRespondentCurr = bdb_getRespondentRetry(pRespondentHead);
 
     // If null, then no responses from Identify query request
-    if ( (pRespondentCurr == NULL) )
+    if ( pRespondentCurr == NULL )
     {
       //No responses, then no responses
       if(pRespondentHead == NULL)

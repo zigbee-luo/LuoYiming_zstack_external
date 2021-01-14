@@ -42,9 +42,9 @@
  * INCLUDES
  */
 #include "zcomdef.h"
+#include "ti_zstack_config.h"
 #include "zcl.h"
 #include "zcl_general.h"
-//#include "zd_app.h"
 
 #if defined ( INTER_PAN ) || defined ( BDB_TL_INITIATOR ) || defined ( BDB_TL_TARGET )
   #include "stub_aps.h"
@@ -59,7 +59,7 @@
 #define locationTypeCoordinateSystem( a )  ( (a) & LOCATION_TYPE_COORDINATE_SYSTEM )
 
 #ifdef ZCL_SCENES
-#define zclGeneral_ScenesRemaingCapacity() ( ZCL_GEN_MAX_SCENES - zclGeneral_CountAllScenes() )
+#define zclGeneral_ScenesRemaingCapacity() ( ZCL_GENERAL_MAX_SCENES - zclGeneral_CountAllScenes() )
 #endif // ZCL_SCENES
 
 /*********************************************************************
@@ -203,8 +203,8 @@ ZStatus_t zclGeneral_RegisterCmdCallbacks( uint8_t endpoint, zclGeneral_AppCallb
   // Register as a ZCL Plugin
   if ( zclGenPluginRegisted == FALSE )
   {
-    zcl_registerPlugin( ZCL_CLUSTER_ID_GEN_BASIC,
-                        ZCL_CLUSTER_ID_GEN_MULTISTATE_VALUE_BASIC,
+    zcl_registerPlugin( ZCL_CLUSTER_ID_GENERAL_BASIC,
+                        ZCL_CLUSTER_ID_GENERAL_MULTISTATE_VALUE_BASIC,
                         zclGeneral_HdlIncoming );
 
 #ifdef ZCL_SCENES
@@ -257,8 +257,8 @@ void zclGeneral_RegisterUnsupportCallback( ZStatus_t (*callback)(zclIncoming_t*p
   // Register as a ZCL Plugin
   if ( zclGenPluginRegisted == FALSE )
   {
-    zcl_registerPlugin( ZCL_CLUSTER_ID_GEN_BASIC,
-                        ZCL_CLUSTER_ID_GEN_MULTISTATE_VALUE_BASIC,
+    zcl_registerPlugin( ZCL_CLUSTER_ID_GENERAL_BASIC,
+                        ZCL_CLUSTER_ID_GENERAL_MULTISTATE_VALUE_BASIC,
                         zclGeneral_HdlIncoming );
 
 #ifdef ZCL_SCENES
@@ -293,8 +293,8 @@ ZStatus_t zclGeneral_SendIdentify( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[0] = LO_UINT16( identifyTime );
   buf[1] = HI_UINT16( identifyTime );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_IDENTIFY,
-                          COMMAND_IDENTIFY, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
+                          COMMAND_IDENTIFY_IDENTIFY, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, 2, buf );
 }
 
@@ -321,7 +321,7 @@ ZStatus_t zclGeneral_SendIdentifyTriggerEffect( uint8_t srcEP, afAddrType_t *dst
   buf[0] = effectId;
   buf[1] = effectVariant;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_IDENTIFY,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
                           COMMAND_IDENTIFY_TRIGGER_EFFECT, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, 2, buf );
 }
@@ -347,8 +347,8 @@ ZStatus_t zclGeneral_SendIdentifyQueryResponse( uint8_t srcEP, afAddrType_t *dst
   buf[0] = LO_UINT16( timeout );
   buf[1] = HI_UINT16( timeout );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_IDENTIFY,
-                          COMMAND_IDENTIFY_QUERY_RSP, TRUE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
+                          COMMAND_IDENTIFY_IDENTIFY_QUERY_RESPONSE, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, 2, buf );
 }
 #endif // ZCL_IDENTIFY
@@ -363,8 +363,8 @@ ZStatus_t zclGeneral_SendIdentifyQueryResponse( uint8_t srcEP, afAddrType_t *dst
  * @param   srcEP - Sending Apps endpoint
  * @param   dstAddr - where to send the request
  * @param   cmd - one of the following:
- *              COMMAND_GROUP_VIEW
- *              COMMAND_GROUP_REMOVE
+ *              COMMAND_GROUPS_VIEW_GROUP
+ *              COMMAND_GROUPS_REMOVE_GROUP
  * @param   groupID -
  *
  * @return  ZStatus_t
@@ -377,7 +377,7 @@ ZStatus_t zclGeneral_SendGroupRequest( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[0] = LO_UINT16( groupID );
   buf[1] = HI_UINT16( groupID );
 
-  return ( zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_GROUPS,
+  return ( zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_GROUPS,
                             cmd, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                             disableDefaultRsp, 0, seqNum, 2, buf ) );
 }
@@ -390,8 +390,8 @@ ZStatus_t zclGeneral_SendGroupRequest( uint8_t srcEP, afAddrType_t *dstAddr,
  * @param   srcEP - Sending Apps endpoint
  * @param   dstAddr - where to send the request
  * @param   cmd - one of the following:
- *                COMMAND_GROUP_ADD
- *                COMMAND_GROUP_ADD_IF_IDENTIFYING
+ *                COMMAND_GROUPS_ADD_GROUP
+ *                COMMAND_GROUPS_ADD_GROUP_IF_IDENTIFYING
  * @param   groupID - pointer to the group structure
  * @param   groupName - pointer to Group Name.  This is a Zigbee
  *          string data type, so the first byte is the length of the
@@ -423,13 +423,13 @@ ZStatus_t zclGeneral_SendAddGroupRequestEx( uint8_t srcEP, afAddrType_t *dstAddr
 
   if(isReqFromApp)
   {
-    status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_GROUPS,
+    status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_GROUPS,
                               cmd, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                               disableDefaultRsp, 0, seqNum, len, buf );
   }
   else
   {
-    status = zcl_StackSendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_GROUPS,
+    status = zcl_StackSendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_GROUPS,
                                 cmd, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                                 disableDefaultRsp, 0, seqNum, len, buf );
   }
@@ -450,8 +450,8 @@ ZStatus_t zclGeneral_SendAddGroupRequestEx( uint8_t srcEP, afAddrType_t *dstAddr
  * @param   srcEP - Sending Apps endpoint
  * @param   dstAddr - where to send the request
  * @param   cmd - one of the following:
- *                COMMAND_GROUP_GET_MEMBERSHIP
- *                COMMAND_GROUP_GET_MEMBERSHIP_RSP
+ *                COMMAND_GROUPS_GET_GROUP_MEMBERSHIP
+ *                COMMAND_GROUPS_GET_GROUP_MEMBERSHIP_RESPONSE
  * @param   groupID - pointer to the group structure
  * @param   groupName - pointer to Group Name.  This is a Zigbee
  *          string data type, so the first byte is the length of the
@@ -489,7 +489,7 @@ ZStatus_t zclGeneral_SendGroupGetMembershipRequest( uint8_t srcEP, afAddrType_t 
       *pBuf++ = HI_UINT16( grpList[i] );
     }
 
-    status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_GROUPS,
+    status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_GROUPS,
                               cmd, TRUE, direction,
                               disableDefaultRsp, 0, seqNum, len, buf );
     zcl_mem_free( buf );
@@ -507,7 +507,7 @@ ZStatus_t zclGeneral_SendGroupGetMembershipRequest( uint8_t srcEP, afAddrType_t 
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - either COMMAND_GROUP_ADD_RSP or COMMAND_GROUP_REMOVE_RSP
+ * @param   cmd - either COMMAND_GROUPS_ADD_GROUP_RESPONSE or COMMAND_GROUPS_REMOVE_GROUP_RESPONSE
  * @param   status - group command status
  * @param   groupID - what group
  *
@@ -523,7 +523,7 @@ ZStatus_t zclGeneral_SendGroupResponse( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[1] = LO_UINT16( groupID );
   buf[2] = HI_UINT16( groupID );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_GROUPS,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_GROUPS,
                           cmd, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum, 3, buf );
 }
@@ -535,7 +535,7 @@ ZStatus_t zclGeneral_SendGroupResponse( uint8_t srcEP, afAddrType_t *dstAddr,
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - either COMMAND_GROUP_ADD_RSP or COMMAND_GROUP_REMOVE_RSP
+ * @param   cmd - either COMMAND_GROUPS_ADD_GROUP_RESPONSE or COMMAND_GROUPS_REMOVE_GROUP_RESPONSE
  * @param   status - group command status
  * @param   grp - group info
  *
@@ -572,8 +572,8 @@ ZStatus_t zclGeneral_SendGroupViewResponse( uint8_t srcEP, afAddrType_t *dstAddr
       buf[3] = 0;
     }
 
-    stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_GROUPS,
-                            COMMAND_GROUP_VIEW_RSP, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+    stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_GROUPS,
+                            COMMAND_GROUPS_VIEW_GROUP_RESPONSE, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                             disableDefaultRsp, 0, seqNum, len, buf );
     zcl_mem_free( buf );
   }
@@ -596,7 +596,7 @@ ZStatus_t zclGeneral_SendGroupViewResponse( uint8_t srcEP, afAddrType_t *dstAddr
  * @param   srcEP - Sending Apps endpoint
  * @param   dstAddr - where to send the request
  * @param   scene - pointer to the scene structure
- * @param  cmd - COMMAND_SCENE_ADD or COMMAND_SCENE_ENHANCED_ADD
+ * @param  cmd - COMMAND_SCENES_ADD_SCENE or COMMAND_SCENES_ENHANCED_ADD_SCENE
  * @param   disableDefaultRsp - whether to disable the Default Response command
  * @param   seqNum - sequence number
  *
@@ -634,7 +634,7 @@ ZStatus_t zclGeneral_SendAddSceneRequest( uint8_t srcEP, afAddrType_t *dstAddr,
     if ( scene->extLen > 0 )
       zcl_memcpy( pBuf, scene->extField, scene->extLen );
 
-    status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_SCENES,
+    status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_SCENES,
                               cmd, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                               disableDefaultRsp, 0, seqNum, len, buf );
     zcl_mem_free( buf );
@@ -654,16 +654,16 @@ ZStatus_t zclGeneral_SendAddSceneRequest( uint8_t srcEP, afAddrType_t *dstAddr,
  * @param   srcEP - Sending Apps endpoint
  * @param   dstAddr - where to send the request
  * @param   cmd - one of the following:
- *              COMMAND_SCENE_VIEW
- *              COMMAND_SCENE_REMOVE
- *              COMMAND_SCENE_REMOVE_ALL
- *              COMMAND_SCENE_STORE
- *              COMMAND_SCENE_RECALL
- *              COMMAND_SCENE_GET_MEMBERSHIP
- *              COMMAND_SCENE_ENHANCED_VIEW
+ *              COMMAND_SCENES_VIEW_SCENE
+ *              COMMAND_SCENES_REMOVE_SCENE
+ *              COMMAND_SCENES_REMOVE_ALL_SCENES
+ *              COMMAND_SCENES_STORE_SCENE
+ *              COMMAND_SCENES_RECALL_SCENE
+ *              COMMAND_SCENES_GET_SCENE_MEMBERSHIP
+ *              COMMAND_SCENES_ENHANCED_VIEW_SCENE
  * @param   groupID - group ID
- * @param   sceneID - scene ID (not applicable to COMMAND_SCENE_REMOVE_ALL and
- *                    COMMAND_SCENE_GET_MEMBERSHIP)
+ * @param   sceneID - scene ID (not applicable to COMMAND_SCENES_REMOVE_ALL_SCENES and
+ *                    COMMAND_SCENES_GET_SCENE_MEMBERSHIP)
  * @param   disableDefaultRsp - whether to disable the Default Response command
  * @param   seqNum - sequence number
  * @return  ZStatus_t
@@ -678,13 +678,13 @@ ZStatus_t zclGeneral_SendSceneRequest( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[0] = LO_UINT16( groupID );
   buf[1] = HI_UINT16( groupID );
 
-  if ( cmd != COMMAND_SCENE_REMOVE_ALL && cmd != COMMAND_SCENE_GET_MEMBERSHIP )
+  if ( cmd != COMMAND_SCENES_REMOVE_ALL_SCENES && cmd != COMMAND_SCENES_GET_SCENE_MEMBERSHIP )
   {
     buf[2] = sceneID;
     len++;
   }
 
-  return ( zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_SCENES,
+  return ( zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_SCENES,
                             cmd, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                             disableDefaultRsp, 0, seqNum, len, buf ) );
 }
@@ -696,11 +696,11 @@ ZStatus_t zclGeneral_SendSceneRequest( uint8_t srcEP, afAddrType_t *dstAddr,
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - either COMMAND_SCENE_ADD_RSP, COMMAND_SCENE_REMOVE_RSP
- *                COMMAND_SCENE_STORE_RSP, or COMMAND_SCENE_REMOVE_ALL_RSP
+ * @param   cmd - either COMMAND_SCENES_ADD_SCENE_RESPONSE, COMMAND_SCENES_REMOVE_SCENE_RESPONSE
+ *                COMMAND_SCENES_STORE_SCENE_RESPONSE, or COMMAND_SCENES_REMOVE_ALL_SCENES_RESPONSE
  * @param   status - scene command status
  * @param   groupID - what group
- * @param   sceneID - what scene (not applicable to COMMAND_SCENE_REMOVE_ALL_RSP)
+ * @param   sceneID - what scene (not applicable to COMMAND_SCENES_REMOVE_ALL_SCENES_RESPONSE)
  *
  * @return  ZStatus_t
  */
@@ -715,13 +715,13 @@ ZStatus_t zclGeneral_SendSceneResponse( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[1] = LO_UINT16( groupID );
   buf[2] = HI_UINT16( groupID );
 
-  if ( cmd != COMMAND_SCENE_REMOVE_ALL_RSP )
+  if ( cmd != COMMAND_SCENES_REMOVE_ALL_SCENES_RESPONSE )
   {
     buf[3] = sceneID;
     len++;
   }
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_SCENES,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_SCENES,
                           cmd, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum, len, buf );
 }
@@ -734,7 +734,7 @@ ZStatus_t zclGeneral_SendSceneResponse( uint8_t srcEP, afAddrType_t *dstAddr,
  *
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
- * @param   cmd - either COMMAND_SCENE_VIEW_RSP or COMMAND_SCENE_ENHANCED_VIEW_RSP
+ * @param   cmd - either COMMAND_SCENES_VIEW_SCENE_RESPONSE or COMMAND_SCENES_ENHANCED_VIEW_SCENE_RESPONSE
  * @param   status - scene command status
  * @param   scene - scene info
  *
@@ -769,7 +769,7 @@ ZStatus_t zclGeneral_SendSceneViewRsp( uint8_t srcEP, afAddrType_t *dstAddr,
     if ( status == ZCL_STATUS_SUCCESS )
     {
       uint16_t transTime = scene->transTime;
-      if ( cmd == COMMAND_SCENE_ENHANCED_VIEW_RSP )
+      if ( cmd == COMMAND_SCENES_ENHANCED_VIEW_SCENE_RESPONSE )
       {
         // Transition time is in 1/10s
         transTime *= 10;
@@ -790,7 +790,7 @@ ZStatus_t zclGeneral_SendSceneViewRsp( uint8_t srcEP, afAddrType_t *dstAddr,
         zcl_memcpy( pBuf, scene->extField, scene->extLen );
     }
 
-    stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_SCENES,
+    stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_SCENES,
                             cmd, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                             disableDefaultRsp, 0, seqNum, len, buf );
     zcl_mem_free( buf );
@@ -848,8 +848,8 @@ ZStatus_t zclGeneral_SendSceneGetMembershipResponse( uint8_t srcEP, afAddrType_t
         *pBuf++ = sceneList[i];
     }
 
-    stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_SCENES,
-                            COMMAND_SCENE_GET_MEMBERSHIP_RSP, TRUE,
+    stat = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_SCENES,
+                            COMMAND_SCENES_GET_SCENE_MEMBERSHIP_RESPONSE, TRUE,
                             ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, len, buf );
     zcl_mem_free( buf );
   }
@@ -892,8 +892,8 @@ ZStatus_t zclGeneral_SendSceneCopy( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[5] = HI_UINT16( groupIDTo );
   buf[6] = sceneIDTo;
 
-  return ( zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_SCENES,
-                            COMMAND_SCENE_COPY, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+  return ( zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_SCENES,
+                            COMMAND_SCENES_COPY_SCENE, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                             disableDefaultRsp, 0, seqNum, 7, buf ) );
 }
 
@@ -923,8 +923,8 @@ ZStatus_t zclGeneral_SendSceneCopyResponse( uint8_t srcEP, afAddrType_t *dstAddr
   buf[2] = HI_UINT16( groupIDFrom );
   buf[3] = sceneIDFrom;
 
-  return ( zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_SCENES,
-                            COMMAND_SCENE_COPY_RSP, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+  return ( zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_SCENES,
+                            COMMAND_SCENES_COPY_SCENE_RESPONSE, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                             disableDefaultRsp, 0, seqNum, 4, buf ) );
 }
 #endif // ZCL_LIGHT_LINK_ENHANCE
@@ -955,8 +955,8 @@ ZStatus_t zclGeneral_SendOnOff_CmdOffWithEffect( uint8_t srcEP, afAddrType_t *ds
   buf[0] = effectId;
   buf[1] = effectVariant;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_ON_OFF,
-                          COMMAND_OFF_WITH_EFFECT, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_ON_OFF,
+                          COMMAND_ON_OFF_OFF_WITH_EFFECT, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, 2, buf );
 }
 
@@ -987,8 +987,8 @@ ZStatus_t zclGeneral_SendOnOff_CmdOnWithTimedOff ( uint8_t srcEP, afAddrType_t *
   buf[3] = LO_UINT16( offWaitTime );
   buf[4] = HI_UINT16( offWaitTime );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_ON_OFF,
-                          COMMAND_ON_WITH_TIMED_OFF, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_ON_OFF,
+                          COMMAND_ON_OFF_ON_WITH_TIMED_OFF, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, 5, buf );
 }
 #endif // ZCL_LIGHT_LINK_ENHANCE
@@ -1021,7 +1021,7 @@ ZStatus_t zclGeneral_SendLevelControlMoveToLevelRequest( uint8_t srcEP, afAddrTy
   buf[1] = LO_UINT16( transTime );
   buf[2] = HI_UINT16( transTime );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
                           cmd, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, 3, buf );
 }
@@ -1052,7 +1052,7 @@ ZStatus_t zclGeneral_SendLevelControlMoveRequest( uint8_t srcEP, afAddrType_t *d
   buf[0] = moveMode;
   buf[1] = rate;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
                           cmd, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, 2, buf );
 }
@@ -1086,7 +1086,7 @@ ZStatus_t zclGeneral_SendLevelControlStepRequest( uint8_t srcEP, afAddrType_t *d
   buf[2] = LO_UINT16( transTime );
   buf[3] = HI_UINT16( transTime );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
                           cmd, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, 4, buf );
 }
@@ -1108,7 +1108,7 @@ ZStatus_t zclGeneral_SendLevelControlStepRequest( uint8_t srcEP, afAddrType_t *d
 ZStatus_t zclGeneral_SendLevelControlStopRequest( uint8_t srcEP, afAddrType_t *dstAddr, uint8_t cmd,
                                                   uint8_t disableDefaultRsp, uint8_t seqNum )
 {
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL,
                           cmd, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, 0, NULL );
 }
@@ -1138,7 +1138,7 @@ ZStatus_t zclGeneral_SendAlarm( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[1] = LO_UINT16( clusterID );
   buf[2] = HI_UINT16( clusterID );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_ALARMS,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_ALARMS,
                           COMMAND_ALARMS_ALARM, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum, 3, buf );
 }
@@ -1165,8 +1165,8 @@ ZStatus_t zclGeneral_SendAlarmReset( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[1] = LO_UINT16( clusterID );
   buf[2] = HI_UINT16( clusterID );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_ALARMS,
-                          COMMAND_ALARMS_RESET, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_ALARMS,
+                          COMMAND_ALARMS_RESET_ALARM, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, 3, buf );
 }
 
@@ -1201,8 +1201,8 @@ ZStatus_t zclGeneral_SendAlarmGetResponse( uint8_t srcEP, afAddrType_t *dstAddr,
     zcl_buffer_uint32( &buf[4], timeStamp );
   }
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_ALARMS,
-                          COMMAND_ALARMS_GET_RSP, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_ALARMS,
+                          COMMAND_ALARMS_GET_ALARM_RESPONSE, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum, len, buf );
 }
 
@@ -1231,7 +1231,7 @@ ZStatus_t zclGeneral_SendAlarmGetEventLog( uint8_t srcEP, afAddrType_t *dstAddr,
   zcl_buffer_uint32( &buf[5], pEventLog->endTime );
   buf[9] = pEventLog->numEvents;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_ALARMS,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_ALARMS,
                           COMMAND_ALARMS_GET_EVENT_LOG, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum, 10, buf );
 }
@@ -1279,7 +1279,7 @@ ZStatus_t zclGeneral_SendAlarmPublishEventLog( uint8_t srcEP, afAddrType_t *dstA
     pBuf = zcl_buffer_uint32( pBuf, pLogs->eventTime );
   }
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_ALARMS,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_ALARMS,
                           COMMAND_ALARMS_PUBLISH_EVENT_LOG, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum, bufLen, buf );
 }
@@ -1315,7 +1315,7 @@ ZStatus_t zclGeneral_SendLocationSetAbsolute( uint8_t srcEP, afAddrType_t *dstAd
    buf[8] = LO_UINT16( absLoc->pathLossExponent );
    buf[9] = HI_UINT16( absLoc->pathLossExponent );
 
-   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_LOCATION,
+   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_LOCATION,
                            COMMAND_LOCATION_SET_ABSOLUTE, TRUE,
                            ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, 10, buf );
 }
@@ -1347,7 +1347,7 @@ ZStatus_t zclGeneral_SendLocationSetDevCfg( uint8_t srcEP, afAddrType_t *dstAddr
    buf[7] = LO_UINT16( devCfg->reportPeriod );
    buf[8] = HI_UINT16( devCfg->reportPeriod );
 
-   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_LOCATION,
+   return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_LOCATION,
                            COMMAND_LOCATION_SET_DEV_CFG, TRUE,
                            ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, 9, buf );
 }
@@ -1370,7 +1370,7 @@ ZStatus_t zclGeneral_SendLocationGetDevCfg( uint8_t srcEP, afAddrType_t *dstAddr
 
   zcl_memcpy( buf, targetAddr, 8 );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_LOCATION,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_LOCATION,
                           COMMAND_LOCATION_GET_DEV_CFG, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, 8, buf );
 }
@@ -1409,7 +1409,7 @@ ZStatus_t zclGeneral_SendLocationGetData( uint8_t srcEP, afAddrType_t *dstAddr,
     len += 8; // ieee addr
   }
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_LOCATION,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_LOCATION,
                           COMMAND_LOCATION_GET_DATA, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, len, buf );
 }
@@ -1447,7 +1447,7 @@ ZStatus_t zclGeneral_SendLocationDevCfgResponse( uint8_t srcEP, afAddrType_t *ds
     len += 9;
   }
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_LOCATION,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_LOCATION,
                           COMMAND_LOCATION_DEV_CFG_RSP, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, len, buf );
 }
@@ -1524,7 +1524,7 @@ ZStatus_t zclGeneral_SendLocationData( uint8_t srcEP, afAddrType_t *dstAddr, uin
     }
   }
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_LOCATION,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_LOCATION,
                           cmd, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum, len, buf );
 }
@@ -1646,19 +1646,19 @@ static ZStatus_t zclGeneral_HdlInSpecificCommands( zclIncoming_t *pInMsg )
   switch ( pInMsg->msg->clusterId )
   {
 #ifdef ZCL_BASIC
-    case ZCL_CLUSTER_ID_GEN_BASIC:
+    case ZCL_CLUSTER_ID_GENERAL_BASIC:
       stat = zclGeneral_ProcessInBasic( pInMsg, pCBs );
       break;
 #endif // ZCL_BASIC
 
 #ifdef ZCL_IDENTIFY
-    case ZCL_CLUSTER_ID_GEN_IDENTIFY:
+    case ZCL_CLUSTER_ID_GENERAL_IDENTIFY:
       stat = zclGeneral_ProcessInIdentity( pInMsg, pCBs );
       break;
 #endif // ZCL_IDENTIFY
 
 #ifdef ZCL_GROUPS
-    case ZCL_CLUSTER_ID_GEN_GROUPS:
+    case ZCL_CLUSTER_ID_GENERAL_GROUPS:
       if ( zcl_ServerCmd( pInMsg->hdr.fc.direction ) )
         stat = zclGeneral_ProcessInGroupsServer( pInMsg );
       else
@@ -1667,7 +1667,7 @@ static ZStatus_t zclGeneral_HdlInSpecificCommands( zclIncoming_t *pInMsg )
 #endif // ZCL_GROUPS
 
 #ifdef ZCL_SCENES
-    case ZCL_CLUSTER_ID_GEN_SCENES:
+    case ZCL_CLUSTER_ID_GENERAL_SCENES:
       if ( zcl_ServerCmd( pInMsg->hdr.fc.direction ) )
         stat = zclGeneral_ProcessInScenesServer( pInMsg, pCBs );
       else
@@ -1676,19 +1676,19 @@ static ZStatus_t zclGeneral_HdlInSpecificCommands( zclIncoming_t *pInMsg )
 #endif // ZCL_SCENES
 
 #ifdef ZCL_ON_OFF
-    case ZCL_CLUSTER_ID_GEN_ON_OFF:
+    case ZCL_CLUSTER_ID_GENERAL_ON_OFF:
       stat = zclGeneral_ProcessInOnOff( pInMsg, pCBs );
       break;
 #endif // ZCL_ON_OFF
 
 #ifdef ZCL_LEVEL_CTRL
-    case ZCL_CLUSTER_ID_GEN_LEVEL_CONTROL:
+    case ZCL_CLUSTER_ID_GENERAL_LEVEL_CONTROL:
       stat = zclGeneral_ProcessInLevelControl( pInMsg, pCBs );
       break;
 #endif // ZCL_LEVEL_CTRL
 
 #ifdef ZCL_ALARMS
-    case ZCL_CLUSTER_ID_GEN_ALARMS:
+    case ZCL_CLUSTER_ID_GENERAL_ALARMS:
       if ( zcl_ServerCmd( pInMsg->hdr.fc.direction ) )
         stat = zclGeneral_ProcessInAlarmsServer( pInMsg, pCBs );
       else
@@ -1697,7 +1697,7 @@ static ZStatus_t zclGeneral_HdlInSpecificCommands( zclIncoming_t *pInMsg )
 #endif // ZCL_ALARMS
 
 #ifdef ZCL_LOCATION
-    case ZCL_CLUSTER_ID_GEN_LOCATION:
+    case ZCL_CLUSTER_ID_GENERAL_LOCATION:
       if ( zcl_ServerCmd( pInMsg->hdr.fc.direction ) )
         stat = zclGeneral_ProcessInLocationServer( pInMsg, pCBs );
       else
@@ -1705,10 +1705,10 @@ static ZStatus_t zclGeneral_HdlInSpecificCommands( zclIncoming_t *pInMsg )
       break;
 #endif // ZCL_LOCATION
 
-    case ZCL_CLUSTER_ID_GEN_POWER_CFG:
-    case ZCL_CLUSTER_ID_GEN_DEVICE_TEMP_CONFIG:
-    case ZCL_CLUSTER_ID_GEN_ON_OFF_SWITCH_CONFIG:
-    case ZCL_CLUSTER_ID_GEN_TIME:
+    case ZCL_CLUSTER_ID_GENERAL_POWER_CFG:
+    case ZCL_CLUSTER_ID_GENERAL_DEVICE_TEMP_CONFIG:
+    case ZCL_CLUSTER_ID_GENERAL_ON_OFF_SWITCH_CONFIGURATION:
+    case ZCL_CLUSTER_ID_GENERAL_TIME:
     default:
       stat = ZFailure;
       break;
@@ -1732,7 +1732,7 @@ static ZStatus_t zclGeneral_ProcessInBasic( zclIncoming_t *pInMsg,
 {
   if ( zcl_ServerCmd( pInMsg->hdr.fc.direction ) )
   {
-    if ( pInMsg->hdr.commandID > COMMAND_BASIC_RESET_FACT_DEFAULT )
+    if ( pInMsg->hdr.commandID > COMMAND_BASIC_RESET_TO_FACTORY_DEFAULTS )
       return ( ZFailure );   // Error ignore the command
 
     if ( pCBs->pfnBasicReset )
@@ -1761,7 +1761,7 @@ static ZStatus_t zclGeneral_ProcessInIdentity( zclIncoming_t *pInMsg,
   {
 #if (BDB_FINDING_BINDING_CAPABILITY_ENABLED == 1)
 
-    if ( pInMsg->hdr.commandID == COMMAND_IDENTIFY )
+    if ( pInMsg->hdr.commandID == COMMAND_IDENTIFY_IDENTIFY )
     {
       uint16_t identifyTime;
 
@@ -1772,9 +1772,9 @@ static ZStatus_t zclGeneral_ProcessInIdentity( zclIncoming_t *pInMsg,
 #endif
 #ifdef ZCL_READ
 #if (BDB_FINDING_BINDING_CAPABILITY_ENABLED == 1)
-    else if ( pInMsg->hdr.commandID == COMMAND_IDENTIFY_QUERY )
+    else if ( pInMsg->hdr.commandID == COMMAND_IDENTIFY_IDENTIFY_QUERY )
 #else
-    if ( pInMsg->hdr.commandID == COMMAND_IDENTIFY_QUERY )
+    if ( pInMsg->hdr.commandID == COMMAND_IDENTIFY_IDENTIFY_QUERY )
 #endif
     {
       uint16_t identifyTime = 0;
@@ -1788,7 +1788,7 @@ static ZStatus_t zclGeneral_ProcessInIdentity( zclIncoming_t *pInMsg,
 
       // Retrieve Identify Time
       zcl_ReadAttrData( pInMsg->msg->endPoint, pInMsg->msg->clusterId,
-                        ATTRID_IDENTIFY_TIME, (uint8_t *)&identifyTime, NULL );
+                        ATTRID_IDENTIFY_IDENTIFY_TIME, (uint8_t *)&identifyTime, NULL );
 
       // Is device identifying itself?
       if ( identifyTime > 0 )
@@ -1815,7 +1815,7 @@ static ZStatus_t zclGeneral_ProcessInIdentity( zclIncoming_t *pInMsg,
       }
     }
 #endif //ZCL_LIGHT_LINK_ENHANCE
-    else if ( pInMsg->hdr.commandID == COMMAND_IDENTIFY )
+    else if ( pInMsg->hdr.commandID == COMMAND_IDENTIFY_IDENTIFY )
         {
           if(pCBs->pfnIdentify != NULL)
           {
@@ -1832,7 +1832,7 @@ static ZStatus_t zclGeneral_ProcessInIdentity( zclIncoming_t *pInMsg,
   }
   else // Client Command
   {
-    if ( pInMsg->hdr.commandID > COMMAND_IDENTIFY_QUERY_RSP )
+    if ( pInMsg->hdr.commandID > COMMAND_IDENTIFY_IDENTIFY_QUERY_RESPONSE )
       return ( ZFailure );   // Error ignore the command
 #if (BDB_FINDING_BINDING_CAPABILITY_ENABLED==1)
     zclIdentifyQueryRsp_t rsp;
@@ -1858,7 +1858,6 @@ static ZStatus_t zclGeneral_ProcessInIdentity( zclIncoming_t *pInMsg,
 #endif // ZCL_IDENTIFY
 
 #ifdef ZCL_GROUPS
-
 /*********************************************************************
  * @fn      zclGeneral_AddGroup
  *
@@ -1877,10 +1876,11 @@ static ZStatus_t zclGeneral_AddGroup( uint8_t endPoint, aps_Group_t *group, uint
 
   pData += 2;   // Move past group ID
   nameLen = *pData++;
-
+#ifdef ZCL_READ
   // Retrieve Name Support attribute
-  zcl_ReadAttrData( endPoint, ZCL_CLUSTER_ID_GEN_GROUPS,
-                    ATTRID_GROUP_NAME_SUPPORT, &nameSupport, NULL );
+  zcl_ReadAttrData( endPoint, ZCL_CLUSTER_ID_GENERAL_GROUPS,
+                    ATTRID_GROUPS_NAME_SUPPORT, &nameSupport, NULL );
+#endif // ZCL_READ
 
   if ( nameSupport )
   {
@@ -1921,7 +1921,7 @@ static ZStatus_t zclGeneral_ProcessInGroupsServer( zclIncoming_t *pInMsg )
   group.ID = BUILD_UINT16( pData[0], pData[1] );
   switch ( pInMsg->hdr.commandID )
   {
-    case COMMAND_GROUP_ADD:
+    case COMMAND_GROUPS_ADD_GROUP:
       status = zclGeneral_AddGroup( pInMsg->msg->endPoint, &group, pData );
       if ( status != ZSuccess )
       {
@@ -1944,7 +1944,7 @@ static ZStatus_t zclGeneral_ProcessInGroupsServer( zclIncoming_t *pInMsg )
       }
       break;
 
-    case COMMAND_GROUP_VIEW:
+    case COMMAND_GROUPS_VIEW_GROUP:
       //Only respond if unicast
       if ( UNICAST_MSG( pInMsg->msg ) )
       {
@@ -1965,7 +1965,7 @@ static ZStatus_t zclGeneral_ProcessInGroupsServer( zclIncoming_t *pInMsg )
       }
       break;
 
-    case COMMAND_GROUP_GET_MEMBERSHIP:
+    case COMMAND_GROUPS_GET_GROUP_MEMBERSHIP:
       {
         grpCnt = *pData++;
 
@@ -2016,7 +2016,7 @@ static ZStatus_t zclGeneral_ProcessInGroupsServer( zclIncoming_t *pInMsg )
       }
       break;
 
-    case COMMAND_GROUP_REMOVE:
+    case COMMAND_GROUPS_REMOVE_GROUP:
 #if defined ( ZCL_SCENES )
       zclGeneral_RemoveAllScenes( pInMsg->msg->endPoint, group.ID );
 #endif
@@ -2038,12 +2038,12 @@ static ZStatus_t zclGeneral_ProcessInGroupsServer( zclIncoming_t *pInMsg )
       }
       break;
 
-    case COMMAND_GROUP_REMOVE_ALL:
+    case COMMAND_GROUPS_REMOVE_ALL_GROUPS:
       {
         uint8_t numGroups;
         uint16_t groupList[APS_MAX_GROUPS];
 
-        if ( numGroups = aps_FindAllGroupsForEndpoint( pInMsg->msg->endPoint, groupList ) )
+        if ( 0 != ( numGroups = aps_FindAllGroupsForEndpoint( pInMsg->msg->endPoint, groupList ) ) )
         {
           for ( i = 0; i < numGroups; i++ )
           {
@@ -2057,10 +2057,12 @@ static ZStatus_t zclGeneral_ProcessInGroupsServer( zclIncoming_t *pInMsg )
       }
       break;
 
-    case COMMAND_GROUP_ADD_IF_IDENTIFYING:
+    case COMMAND_GROUPS_ADD_GROUP_IF_IDENTIFYING:
+#ifdef ZCL_READ
       // Retrieve Identify Time
-      zcl_ReadAttrData( pInMsg->msg->endPoint, ZCL_CLUSTER_ID_GEN_IDENTIFY,
-                        ATTRID_IDENTIFY_TIME, (uint8_t *)&identifyTime, NULL );
+      zcl_ReadAttrData( pInMsg->msg->endPoint, ZCL_CLUSTER_ID_GENERAL_IDENTIFY,
+                        ATTRID_IDENTIFY_IDENTIFY_TIME, (uint8_t *)&identifyTime, NULL );
+#endif
 
       // Is device identifying itself?
       if ( identifyTime > 0 )
@@ -2102,13 +2104,13 @@ static ZStatus_t zclGeneral_ProcessInGroupsClient( zclIncoming_t *pInMsg,
 
   switch ( pInMsg->hdr.commandID )
   {
-    case COMMAND_GROUP_ADD_RSP:
-    case COMMAND_GROUP_VIEW_RSP:
-    case COMMAND_GROUP_REMOVE_RSP:
+    case COMMAND_GROUPS_ADD_GROUP_RESPONSE:
+    case COMMAND_GROUPS_VIEW_GROUP_RESPONSE:
+    case COMMAND_GROUPS_REMOVE_GROUP_RESPONSE:
       rsp.status = *pData++;
       group.ID = BUILD_UINT16( pData[0], pData[1] );
 
-      if ( rsp.status == ZCL_STATUS_SUCCESS && pInMsg->hdr.commandID == COMMAND_GROUP_VIEW_RSP )
+      if ( rsp.status == ZCL_STATUS_SUCCESS && pInMsg->hdr.commandID == COMMAND_GROUPS_VIEW_GROUP_RESPONSE )
       {
         pData += 2;   // Move past ID
         nameLen = *pData++;
@@ -2131,7 +2133,7 @@ static ZStatus_t zclGeneral_ProcessInGroupsClient( zclIncoming_t *pInMsg,
       }
       break;
 
-    case COMMAND_GROUP_GET_MEMBERSHIP_RSP:
+    case COMMAND_GROUPS_GET_GROUP_MEMBERSHIP_RESPONSE:
       {
         uint16_t *grpList = NULL;
         rsp.capacity = *pData++;
@@ -2514,15 +2516,15 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
 
   switch ( pInMsg->hdr.commandID )
   {
-    case COMMAND_SCENE_ADD:
+    case COMMAND_SCENES_ADD_SCENE:
 #ifdef ZCL_LIGHT_LINK_ENHANCE
-    case COMMAND_SCENE_ENHANCED_ADD:
+    case COMMAND_SCENES_ENHANCED_ADD_SCENE:
 #endif // ZCL_LIGHT_LINK_ENHANCE
       // Parse the rest of the incoming message
       scene.transTime = BUILD_UINT16( pData[0], pData[1] );
       pData += 2;
 
-      if ( pInMsg->hdr.commandID == COMMAND_SCENE_ENHANCED_ADD )
+      if ( pInMsg->hdr.commandID == COMMAND_SCENES_ENHANCED_ADD_SCENE )
       {
         // Received transition time is in 1/10 second
         scene.transTime100ms = scene.transTime % 10;
@@ -2530,15 +2532,15 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
       }
 
       nameLen= *pData++; // Name length
-
+#ifdef ZCL_READ
       // Retrieve Name Support attribute
-      zcl_ReadAttrData( pInMsg->msg->endPoint, ZCL_CLUSTER_ID_GEN_SCENES,
+      zcl_ReadAttrData( pInMsg->msg->endPoint, ZCL_CLUSTER_ID_GENERAL_SCENES,
                         ATTRID_SCENES_NAME_SUPPORT, &nameSupport, NULL );
-
+#endif // ZCL_READ
       if ( nameSupport )
       {
-        if ( nameLen > (ZCL_GEN_SCENE_NAME_LEN-1) )
-          nameLen = (ZCL_GEN_SCENE_NAME_LEN-1);
+        if ( nameLen > (ZCL_GENERAL_SCENE_NAME_LEN-1) )
+          nameLen = (ZCL_GENERAL_SCENE_NAME_LEN-1);
         scene.name[0] = nameLen;
         zcl_memcpy( &(scene.name[1]), pData, nameLen );
       }
@@ -2549,11 +2551,11 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
       if ( scene.extLen > 0 )
       {
         // Copy the extention field(s)
-        if ( scene.extLen > ZCL_GEN_SCENE_EXT_LEN )
+        if ( scene.extLen > ZCL_GENERAL_SCENE_EXT_LEN )
         {
-          scene.extLen = ZCL_GEN_SCENE_EXT_LEN;
+          scene.extLen = ZCL_GENERAL_SCENE_EXT_LEN;
         }
-        zcl_memset(scene.extField, 0xFF,ZCL_GEN_SCENE_EXT_LEN);
+        zcl_memset(scene.extField, 0xFF,ZCL_GENERAL_SCENE_EXT_LEN);
         zcl_memcpy( scene.extField, pData, scene.extLen );
       }
 
@@ -2563,7 +2565,7 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
         // Either the Scene doesn't belong to a Group (Group ID = 0x0000) or it
         // does and the corresponding Group exits
         pScene = zclGeneral_FindScene( pInMsg->msg->endPoint, scene.groupID, scene.ID );
-        if ( pScene || ( zclGeneral_CountAllScenes() < ZCL_GEN_MAX_SCENES ) )
+        if ( pScene || ( zclGeneral_CountAllScenes() < ZCL_GENERAL_MAX_SCENES ) )
         {
           status = ZCL_STATUS_SUCCESS;
           if ( pScene != NULL )
@@ -2573,7 +2575,7 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
 
             if(nameSupport)
             {
-                zcl_memcpy( pScene->name, scene.name, ZCL_GEN_SCENE_NAME_LEN );
+                zcl_memcpy( pScene->name, scene.name, ZCL_GENERAL_SCENE_NAME_LEN );
             }
 
             // Use the new extention field(s)
@@ -2601,14 +2603,14 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
 
       if ( UNICAST_MSG( pInMsg->msg ) )
       {
-        if ( pInMsg->hdr.commandID == COMMAND_SCENE_ADD )
+        if ( pInMsg->hdr.commandID == COMMAND_SCENES_ADD_SCENE )
         {
           zclGeneral_SendSceneAddResponse( pInMsg->msg->endPoint, &pInMsg->msg->srcAddr,
                                           status, scene.groupID, scene.ID,
                                           true, pInMsg->hdr.transSeqNum );
         }
 #ifdef ZCL_LIGHT_LINK_ENHANCE
-        else // COMMAND_SCENE_ENHANCED_ADD
+        else // COMMAND_SCENES_ENHANCED_ADD_SCENE
         {
           zclGeneral_SendSceneEnhancedAddResponse( pInMsg->msg->endPoint, &pInMsg->msg->srcAddr,
                                                   status, scene.groupID, scene.ID,
@@ -2620,9 +2622,9 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
 
       break;
 
-    case COMMAND_SCENE_VIEW:
+    case COMMAND_SCENES_VIEW_SCENE:
 #ifdef ZCL_LIGHT_LINK_ENHANCE
-    case COMMAND_SCENE_ENHANCED_VIEW:
+    case COMMAND_SCENES_ENHANCED_VIEW_SCENE:
 #endif // ZCL_LIGHT_LINK_ENHANCE
       pScene = zclGeneral_FindScene( pInMsg->msg->endPoint, scene.groupID, scene.ID );
       if ( pScene != NULL )
@@ -2646,7 +2648,7 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
 
       if ( UNICAST_MSG( pInMsg->msg ) )
       {
-        if ( pInMsg->hdr.commandID == COMMAND_SCENE_VIEW )
+        if ( pInMsg->hdr.commandID == COMMAND_SCENES_VIEW_SCENE )
         {
           zclGeneral_SendSceneViewResponse( pInMsg->msg->endPoint, &pInMsg->msg->srcAddr,
                                            status, pScene, true, pInMsg->hdr.transSeqNum );
@@ -2662,7 +2664,7 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
       stat = ZCL_STATUS_CMD_HAS_RSP;
       break;
 
-    case COMMAND_SCENE_REMOVE:
+    case COMMAND_SCENES_REMOVE_SCENE:
       if ( zclGeneral_RemoveScene( pInMsg->msg->endPoint, scene.groupID, scene.ID ) )
       {
         status = ZCL_STATUS_SUCCESS;
@@ -2691,7 +2693,7 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
       stat = ZCL_STATUS_CMD_HAS_RSP;
       break;
 
-    case COMMAND_SCENE_REMOVE_ALL:
+    case COMMAND_SCENES_REMOVE_ALL_SCENES:
       if ( scene.groupID == 0x0000 ||
            aps_FindGroup( pInMsg->msg->endPoint, scene.groupID ) != NULL )
       {
@@ -2712,14 +2714,14 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
       stat = ZCL_STATUS_CMD_HAS_RSP;
       break;
 
-    case COMMAND_SCENE_STORE:
+    case COMMAND_SCENES_STORE_SCENE:
       if ( scene.groupID == 0x0000 ||
            aps_FindGroup( pInMsg->msg->endPoint, scene.groupID ) != NULL )
       {
         // Either the Scene doesn't belong to a Group (Group ID = 0x0000) or it
         // does and the corresponding Group exits
         pScene = zclGeneral_FindScene( pInMsg->msg->endPoint, scene.groupID, scene.ID );
-        if ( pScene || ( zclGeneral_CountAllScenes() < ZCL_GEN_MAX_SCENES ) )
+        if ( pScene || ( zclGeneral_CountAllScenes() < ZCL_GENERAL_MAX_SCENES ) )
         {
           uint8_t sceneChanged = FALSE;
 
@@ -2775,7 +2777,7 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
       stat = ZCL_STATUS_CMD_HAS_RSP;
       break;
 
-    case COMMAND_SCENE_RECALL:
+    case COMMAND_SCENES_RECALL_SCENE:
       pScene = zclGeneral_FindScene( pInMsg->msg->endPoint, scene.groupID, scene.ID );
       if ( pScene && pCBs->pfnSceneRecallReq )
       {
@@ -2789,13 +2791,13 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
       // No response
       break;
 
-    case COMMAND_SCENE_GET_MEMBERSHIP:
+    case COMMAND_SCENES_GET_SCENE_MEMBERSHIP:
       // Find all the Scenes corresponding to the Group ID
       if ( scene.groupID == 0x0000 ||
            aps_FindGroup( pInMsg->msg->endPoint, scene.groupID ) != NULL )
       {
         // Allocate space for the scene list
-        sceneList = zcl_mem_alloc( ZCL_GEN_MAX_SCENES );
+        sceneList = zcl_mem_alloc( ZCL_GENERAL_MAX_SCENES );
         if ( sceneList != NULL )
         {
           sceneCnt = zclGeneral_FindAllScenesForGroup( pInMsg->msg->endPoint,
@@ -2841,7 +2843,7 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
       break;
 
 #ifdef ZCL_LIGHT_LINK_ENHANCE
-    case COMMAND_SCENE_COPY:
+    case COMMAND_SCENES_COPY_SCENE:
       {
         uint8_t mode;
         uint16_t groupIDFrom, groupIDTo;
@@ -2865,7 +2867,7 @@ static ZStatus_t zclGeneral_ProcessInScenesServer( zclIncoming_t *pInMsg,
              ( aps_FindGroup( pInMsg->msg->endPoint, groupIDTo ) != NULL ) )
         {
           // Allocate space for the scene list
-          sceneList = zcl_mem_alloc( (mode & SCENE_COPY_MODE_ALL_BIT) ? ZCL_GEN_MAX_SCENES : 1 );
+          sceneList = zcl_mem_alloc( (mode & SCENE_COPY_MODE_ALL_BIT) ? ZCL_GENERAL_MAX_SCENES : 1 );
           if ( sceneList == NULL )
           {
             status = ZCL_STATUS_INSUFFICIENT_SPACE; // Couldn't allocate space for the scene list!
@@ -2995,7 +2997,7 @@ static ZStatus_t zclGeneral_ProcessInScenesClient( zclIncoming_t *pInMsg,
   // Get the status field first
   rsp.status = *pData++;
 
-  if ( pInMsg->hdr.commandID == COMMAND_SCENE_GET_MEMBERSHIP_RSP )
+  if ( pInMsg->hdr.commandID == COMMAND_SCENES_GET_SCENE_MEMBERSHIP_RESPONSE )
   {
     rsp.capacity = *pData++;
   }
@@ -3005,14 +3007,14 @@ static ZStatus_t zclGeneral_ProcessInScenesClient( zclIncoming_t *pInMsg,
 
   switch ( pInMsg->hdr.commandID )
   {
-    case COMMAND_SCENE_VIEW_RSP:
+    case COMMAND_SCENES_VIEW_SCENE_RESPONSE:
       // Parse the rest of the incoming message
       scene.ID = *pData++; // Not applicable to Remove All Response command
       scene.transTime = BUILD_UINT16( pData[0], pData[1] );
       pData += 2;
       nameLen = *pData++; // Name length
-      if ( nameLen > (ZCL_GEN_SCENE_NAME_LEN-1) )
-        nameLen = (ZCL_GEN_SCENE_NAME_LEN-1);
+      if ( nameLen > (ZCL_GENERAL_SCENE_NAME_LEN-1) )
+        nameLen = (ZCL_GENERAL_SCENE_NAME_LEN-1);
 
       scene.name[0] = nameLen;
       zcl_memcpy( &(scene.name[1]), pData, nameLen );
@@ -3023,13 +3025,18 @@ static ZStatus_t zclGeneral_ProcessInScenesClient( zclIncoming_t *pInMsg,
 
       // Fall through to callback - break is left off intentionally
 
-    case COMMAND_SCENE_ADD_RSP:
-    case COMMAND_SCENE_REMOVE_RSP:
-    case COMMAND_SCENE_REMOVE_ALL_RSP:
-    case COMMAND_SCENE_STORE_RSP:
+    case COMMAND_SCENES_ADD_SCENE_RESPONSE:
+    case COMMAND_SCENES_REMOVE_SCENE_RESPONSE:
+    case COMMAND_SCENES_REMOVE_ALL_SCENES_RESPONSE:
+    case COMMAND_SCENES_STORE_SCENE_RESPONSE:
+#ifdef ZCL_LIGHT_LINK_ENHANCE
+    case COMMAND_SCENES_ENHANCED_ADD_SCENE_RESPONSE:
+    case COMMAND_SCENES_ENHANCED_VIEW_SCENE_RESPONSE:
+    case COMMAND_SCENES_COPY_SCENE_RESPONSE:
+#endif
       if ( pCBs->pfnSceneRsp )
       {
-        if ( pInMsg->hdr.commandID != COMMAND_SCENE_REMOVE_ALL_RSP )
+        if ( pInMsg->hdr.commandID != COMMAND_SCENES_REMOVE_ALL_SCENES_RESPONSE )
         {
           scene.ID = *pData++;
         }
@@ -3041,7 +3048,7 @@ static ZStatus_t zclGeneral_ProcessInScenesClient( zclIncoming_t *pInMsg,
       }
       break;
 
-    case COMMAND_SCENE_GET_MEMBERSHIP_RSP:
+    case COMMAND_SCENES_GET_SCENE_MEMBERSHIP_RESPONSE:
       {
         uint8_t *sceneList = NULL;
 
@@ -3107,9 +3114,9 @@ static ZStatus_t zclGeneral_ProcessInOnOff( zclIncoming_t *pInMsg,
   {
     switch ( pInMsg->hdr.commandID )
     {
-      case COMMAND_OFF:
-      case COMMAND_ON:
-      case COMMAND_TOGGLE:
+      case COMMAND_ON_OFF_OFF:
+      case COMMAND_ON_OFF_ON:
+      case COMMAND_ON_OFF_TOGGLE:
         if ( pCBs->pfnOnOff )
         {
           pCBs->pfnOnOff( pInMsg->hdr.commandID );
@@ -3117,7 +3124,7 @@ static ZStatus_t zclGeneral_ProcessInOnOff( zclIncoming_t *pInMsg,
         break;
 
 #ifdef ZCL_LIGHT_LINK_ENHANCE
-      case COMMAND_OFF_WITH_EFFECT:
+      case COMMAND_ON_OFF_OFF_WITH_EFFECT:
         if ( pCBs->pfnOnOff_OffWithEffect )
         {
           zclOffWithEffect_t cmd;
@@ -3130,14 +3137,14 @@ static ZStatus_t zclGeneral_ProcessInOnOff( zclIncoming_t *pInMsg,
         }
         break;
 
-      case COMMAND_ON_WITH_RECALL_GLOBAL_SCENE:
+      case COMMAND_ON_OFF_ON_WITH_RECALL_GLOBAL_SCENE:
         if ( pCBs->pfnOnOff_OnWithRecallGlobalScene )
         {
           pCBs->pfnOnOff_OnWithRecallGlobalScene();
         }
         break;
 
-      case COMMAND_ON_WITH_TIMED_OFF:
+      case COMMAND_ON_OFF_ON_WITH_TIMED_OFF:
         if ( pCBs->pfnOnOff_OnWithTimedOff )
         {
           zclOnWithTimedOff_t cmd;
@@ -3240,14 +3247,28 @@ static ZStatus_t zclGeneral_ProcessInLevelControl( zclIncoming_t *pInMsg,
         }
         break;
 
-      case COMMAND_LEVEL_STOP:
       case COMMAND_LEVEL_STOP_WITH_ON_OFF:
-        // Both Stop commands are identical
+          withOnOff = TRUE;
+      case COMMAND_LEVEL_STOP:
+        // fall through
         if ( pCBs->pfnLevelControlStop )
         {
-          pCBs->pfnLevelControlStop();
+            zclLCStop_t cmd;
+            cmd.withOnOff = withOnOff;
+
+            pCBs->pfnLevelControlStop( &cmd );
         }
         break;
+
+      case COMMAND_LEVEL_MOVE_TO_CLOSEST_FREQUENCY:
+          if ( pCBs->pfnLevelControlMoveFreq )
+          {
+              zclLCMoveFreq_t cmd;
+              cmd.freq = BUILD_UINT16( pInMsg->pData[0], pInMsg->pData[1] );
+
+              pCBs->pfnLevelControlMoveFreq( &cmd );
+          }
+          break;
 
       default:
         stat = ZFailure;
@@ -3484,7 +3505,7 @@ static ZStatus_t zclGeneral_ProcessInAlarmsServer( zclIncoming_t *pInMsg,
 
   switch ( pInMsg->hdr.commandID )
   {
-    case COMMAND_ALARMS_RESET:
+    case COMMAND_ALARMS_RESET_ALARM:
       if ( pCBs->pfnAlarm )
       {
         alarm.cmdID = pInMsg->hdr.commandID;
@@ -3499,7 +3520,7 @@ static ZStatus_t zclGeneral_ProcessInAlarmsServer( zclIncoming_t *pInMsg,
       }
       break;
 
-    case COMMAND_ALARMS_RESET_ALL:
+    case COMMAND_ALARMS_RESET_ALL_ALARMS:
       if ( pCBs->pfnAlarm )
       {
         alarm.cmdID = pInMsg->hdr.commandID;
@@ -3512,7 +3533,7 @@ static ZStatus_t zclGeneral_ProcessInAlarmsServer( zclIncoming_t *pInMsg,
       }
       break;
 
-    case COMMAND_ALARMS_GET:
+    case COMMAND_ALARMS_GET_ALARM:
       if ( pCBs->pfnAlarm )
       {
         alarm.srcAddr = &(pInMsg->msg->srcAddr);
@@ -3546,7 +3567,7 @@ static ZStatus_t zclGeneral_ProcessInAlarmsServer( zclIncoming_t *pInMsg,
       }
       break;
 
-    case COMMAND_ALARMS_RESET_LOG:
+    case COMMAND_ALARMS_RESET_ALARM_LOG:
       if ( pCBs->pfnAlarm )
       {
         alarm.cmdID = pInMsg->hdr.commandID;
@@ -3655,7 +3676,7 @@ static ZStatus_t zclGeneral_ProcessInAlarmsClient( zclIncoming_t *pInMsg,
       }
       break;
 
-    case COMMAND_ALARMS_GET_RSP:
+    case COMMAND_ALARMS_GET_ALARM_RESPONSE:
       if ( pCBs->pfnAlarm )
       {
         alarm.srcAddr = &(pInMsg->msg->srcAddr);
@@ -3955,7 +3976,7 @@ static uint8_t zclGeneral_ScenesInitNV( void )
   uint16_t size;
 
   size = (uint16_t)((sizeof ( nvGenScenesHdr_t ))
-                  + ( sizeof( zclGenSceneNVItem_t ) * ZCL_GEN_MAX_SCENES ));
+                  + ( sizeof( zclGenSceneNVItem_t ) * ZCL_GENERAL_MAX_SCENES ));
 
   status = zcl_nv_item_init( ZCD_NV_SCENE_TABLE, size, NULL );
 

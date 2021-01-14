@@ -49,7 +49,9 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
+#ifdef ZCL_LIGHTING
 /******************************************************************************
  * CONSTANTS
  */
@@ -58,66 +60,71 @@ extern "C"
 /***  Color Control Cluster Attributes ***/
 /*****************************************/
   // Color Information attributes set
-#define ATTRID_LIGHTING_COLOR_CONTROL_CURRENT_HUE                        0x0000
-#define ATTRID_LIGHTING_COLOR_CONTROL_CURRENT_SATURATION                 0x0001
-#define ATTRID_LIGHTING_COLOR_CONTROL_REMAINING_TIME                     0x0002
-#define ATTRID_LIGHTING_COLOR_CONTROL_CURRENT_X                          0x0003
-#define ATTRID_LIGHTING_COLOR_CONTROL_CURRENT_Y                          0x0004
-#define ATTRID_LIGHTING_COLOR_CONTROL_DRIFT_COMPENSATION                 0x0005
-#define ATTRID_LIGHTING_COLOR_CONTROL_COMPENSATION_TEXT                  0x0006
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_TEMPERATURE                  0x0007
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_MODE                         0x0008
+#define ATTRID_COLOR_CONTROL_CURRENT_HUE                        0x0000
+#define ATTRID_COLOR_CONTROL_CURRENT_SATURATION                 0x0001
+#define ATTRID_COLOR_CONTROL_REMAINING_TIME                     0x0002
+#define ATTRID_COLOR_CONTROL_CURRENT_X                          0x0003
+#define ATTRID_COLOR_CONTROL_CURRENT_Y                          0x0004
+#define ATTRID_COLOR_CONTROL_DRIFT_COMPENSATION                 0x0005
+#define ATTRID_COLOR_CONTROL_COMPENSATION_TEXT                  0x0006
+#define ATTRID_COLOR_CONTROL_COLOR_TEMPERATURE_MIREDS           0x0007
+#define ATTRID_COLOR_CONTROL_COLOR_MODE                         0x0008
+#define ATTRID_COLOR_CONTROL_OPTIONS                            0x000F
 
   // Defined Primaries Inofrmation attribute Set
-#define ATTRID_LIGHTING_COLOR_CONTROL_NUM_PRIMARIES                      0x0010
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_1_X                        0x0011
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_1_Y                        0x0012
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_1_INTENSITY                0x0013
+#define ATTRID_COLOR_CONTROL_NUMBER_OF_PRIMARIES                0x0010
+#define ATTRID_COLOR_CONTROL_PRIMARY_1_X                        0x0011
+#define ATTRID_COLOR_CONTROL_PRIMARY_1_Y                        0x0012
+#define ATTRID_COLOR_CONTROL_PRIMARY_1_INTENSITY                0x0013
   // 0x0014 is reserved
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_2_X                        0x0015
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_2_Y                        0x0016
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_2_INTENSITY                0x0017
+#define ATTRID_COLOR_CONTROL_PRIMARY_2_X                        0x0015
+#define ATTRID_COLOR_CONTROL_PRIMARY_2_Y                        0x0016
+#define ATTRID_COLOR_CONTROL_PRIMARY_2_INTENSITY                0x0017
   // 0x0018 is reserved
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_3_X                        0x0019
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_3_Y                        0x001a
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_3_INTENSITY                0x001b
+#define ATTRID_COLOR_CONTROL_PRIMARY_3_X                        0x0019
+#define ATTRID_COLOR_CONTROL_PRIMARY_3_Y                        0x001a
+#define ATTRID_COLOR_CONTROL_PRIMARY_3_INTENSITY                0x001b
 
   // Additional Defined Primaries Information attribute set
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_4_X                        0x0020
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_4_Y                        0x0021
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_4_INTENSITY                0x0022
+#define ATTRID_COLOR_CONTROL_PRIMARY_4_X                        0x0020
+#define ATTRID_COLOR_CONTROL_PRIMARY_4_Y                        0x0021
+#define ATTRID_COLOR_CONTROL_PRIMARY_4_INTENSITY                0x0022
   // 0x0023 is reserved
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_5_X                        0x0024
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_5_Y                        0x0025
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_5_INTENSITY                0x0026
+#define ATTRID_COLOR_CONTROL_PRIMARY_5_X                        0x0024
+#define ATTRID_COLOR_CONTROL_PRIMARY_5_Y                        0x0025
+#define ATTRID_COLOR_CONTROL_PRIMARY_5_INTENSITY                0x0026
   // 0x0027 is reserved
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_6_X                        0x0028
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_6_Y                        0x0029
-#define ATTRID_LIGHTING_COLOR_CONTROL_PRIMARY_6_INTENSITY                0x002a
+#define ATTRID_COLOR_CONTROL_PRIMARY_6_X                        0x0028
+#define ATTRID_COLOR_CONTROL_PRIMARY_6_Y                        0x0029
+#define ATTRID_COLOR_CONTROL_PRIMARY_6_INTENSITY                0x002a
 
   // Defined Color Points Settings attribute set
-#define ATTRID_LIGHTING_COLOR_CONTROL_WHITE_POINT_X                      0x0030
-#define ATTRID_LIGHTING_COLOR_CONTROL_WHITE_POINT_Y                      0x0031
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_POINT_R_X                    0x0032
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_POINT_R_Y                    0x0033
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_POINT_R_INTENSITY            0x0034
+#define ATTRID_COLOR_CONTROL_WHITE_POINT_X                      0x0030
+#define ATTRID_COLOR_CONTROL_WHITE_POINT_Y                      0x0031
+#define ATTRID_COLOR_CONTROL_COLOR_POINT_RX                     0x0032
+#define ATTRID_COLOR_CONTROL_COLOR_POINT_RY                     0x0033
+#define ATTRID_COLOR_CONTROL_COLOR_POINT_R_INTENSITY            0x0034
   // 0x0035 is reserved
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_POINT_G_X                    0x0036
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_POINT_G_Y                    0x0037
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_POINT_B_INTENSITY            0x0038
+#define ATTRID_COLOR_CONTROL_COLOR_POINT_GX                     0x0036
+#define ATTRID_COLOR_CONTROL_COLOR_POINT_GY                     0x0037
+#define ATTRID_COLOR_CONTROL_COLOR_POINT_G_INTENSITY            0x0038
   // 0x0039 is reserved
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_POINT_B_X                    0x003a
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_POINT_B_Y                    0x003b
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_POINT_G_INTENSITY            0x003c
+#define ATTRID_COLOR_CONTROL_COLOR_POINT_BX                     0x003a
+#define ATTRID_COLOR_CONTROL_COLOR_POINT_BY                     0x003b
+#define ATTRID_COLOR_CONTROL_COLOR_POINT_B_INTENSITY            0x003c
   // 0x003d is reserved
-#define ATTRID_LIGHTING_COLOR_CONTROL_ENHANCED_CURRENT_HUE               0x4000
-#define ATTRID_LIGHTING_COLOR_CONTROL_ENHANCED_COLOR_MODE                0x4001
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_LOOP_ACTIVE                  0x4002
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_LOOP_DIRECTION               0x4003
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_LOOP_TIME                    0x4004
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_LOOP_START_ENHANCED_HUE      0x4005
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_LOOP_STORED_ENHANCED_HUE     0x4006
-#define ATTRID_LIGHTING_COLOR_CONTROL_COLOR_CAPABILITIES                 0x400a
+#define ATTRID_COLOR_CONTROL_ENHANCED_CURRENT_HUE               0x4000
+#define ATTRID_COLOR_CONTROL_ENHANCED_COLOR_MODE                0x4001
+#define ATTRID_COLOR_CONTROL_COLOR_LOOP_ACTIVE                  0x4002
+#define ATTRID_COLOR_CONTROL_COLOR_LOOP_DIRECTION               0x4003
+#define ATTRID_COLOR_CONTROL_COLOR_LOOP_TIME                    0x4004
+#define ATTRID_COLOR_CONTROL_COLOR_LOOP_START_ENHANCED_HUE      0x4005
+#define ATTRID_COLOR_CONTROL_COLOR_LOOP_STORED_ENHANCED_HUE     0x4006
+#define ATTRID_COLOR_CONTROL_COLOR_CAPABILITIES                 0x400a
+#define ATTRID_COLOR_CONTROL_COLOR_TEMP_PHYSICAL_MIN_MIREDS            0x400b
+#define ATTRID_COLOR_CONTROL_COLOR_TEMP_PHYSICAL_MAX_MIREDS            0x400c
+#define ATTRID_COLOR_CONTROL_COUPLE_COLOR_TEMP_TO_LEVEL_MIN_MIREDS     0x400d
+#define ATTRID_COLOR_CONTROL_START_UP_COLOR_TEMPERATURE_MIREDS         0x4010
 
  /***  Color Information attributes range limits   ***/
 #define LIGHTING_COLOR_HUE_MAX                                           0xfe
@@ -155,25 +162,25 @@ extern "C"
 /*****************************************/
 /***  Color Control Cluster Commands   ***/
 /*****************************************/
-#define COMMAND_LIGHTING_MOVE_TO_HUE                                     0x00
-#define COMMAND_LIGHTING_MOVE_HUE                                        0x01
-#define COMMAND_LIGHTING_STEP_HUE                                        0x02
-#define COMMAND_LIGHTING_MOVE_TO_SATURATION                              0x03
-#define COMMAND_LIGHTING_MOVE_SATURATION                                 0x04
-#define COMMAND_LIGHTING_STEP_SATURATION                                 0x05
-#define COMMAND_LIGHTING_MOVE_TO_HUE_AND_SATURATION                      0x06
-#define COMMAND_LIGHTING_MOVE_TO_COLOR                                   0x07
-#define COMMAND_LIGHTING_MOVE_COLOR                                      0x08
-#define COMMAND_LIGHTING_STEP_COLOR                                      0x09
-#define COMMAND_LIGHTING_MOVE_TO_COLOR_TEMPERATURE                       0x0a
-#define COMMAND_LIGHTING_ENHANCED_MOVE_TO_HUE                            0x40
-#define COMMAND_LIGHTING_ENHANCED_MOVE_HUE                               0x41
-#define COMMAND_LIGHTING_ENHANCED_STEP_HUE                               0x42
-#define COMMAND_LIGHTING_ENHANCED_MOVE_TO_HUE_AND_SATURATION             0x43
-#define COMMAND_LIGHTING_COLOR_LOOP_SET                                  0x44
-#define COMMAND_LIGHTING_STOP_MOVE_STEP                                  0x47
-#define COMMAND_LIGHTING_MOVE_COLOR_TEMPERATURE                          0x4b
-#define COMMAND_LIGHTING_STEP_COLOR_TEMPERATURE                          0x4c
+#define COMMAND_COLOR_CONTROL_MOVE_TO_HUE                                     0x00
+#define COMMAND_COLOR_CONTROL_MOVE_HUE                                        0x01
+#define COMMAND_COLOR_CONTROL_STEP_HUE                                        0x02
+#define COMMAND_COLOR_CONTROL_MOVE_TO_SATURATION                              0x03
+#define COMMAND_COLOR_CONTROL_MOVE_SATURATION                                 0x04
+#define COMMAND_COLOR_CONTROL_STEP_SATURATION                                 0x05
+#define COMMAND_COLOR_CONTROL_MOVE_TO_HUE_AND_SATURATION                      0x06
+#define COMMAND_COLOR_CONTROL_MOVE_TO_COLOR                                   0x07
+#define COMMAND_COLOR_CONTROL_MOVE_COLOR                                      0x08
+#define COMMAND_COLOR_CONTROL_STEP_COLOR                                      0x09
+#define COMMAND_COLOR_CONTROL_MOVE_TO_COLOR_TEMPERATURE                       0x0a
+#define COMMAND_COLOR_CONTROL_ENHANCED_MOVE_TO_HUE                            0x40
+#define COMMAND_COLOR_CONTROL_ENHANCED_MOVE_HUE                               0x41
+#define COMMAND_COLOR_CONTROL_ENHANCED_STEP_HUE                               0x42
+#define COMMAND_COLOR_CONTROL_ENHANCED_MOVE_TO_HUE_AND_SATURATION             0x43
+#define COMMAND_COLOR_CONTROL_COLOR_LOOP_SET                                  0x44
+#define COMMAND_COLOR_CONTROL_STOP_MOVE_STEP                                  0x47
+#define COMMAND_COLOR_CONTROL_MOVE_COLOR_TEMPERATURE                          0x4b
+#define COMMAND_COLOR_CONTROL_STEP_COLOR_TEMPERATURE                          0x4c
 
   /***  Move To Hue Cmd payload: direction field values  ***/
 #define LIGHTING_MOVE_TO_HUE_DIRECTION_SHORTEST_DISTANCE                 0x00
@@ -206,28 +213,28 @@ extern "C"
 /***          Ballast Configuration Cluster Attributes                     ***/
 /*****************************************************************************/
   // Ballast Information attribute set
-#define ATTRID_LIGHTING_BALLAST_CONFIG_PHYSICAL_MIN_LEVEL                0x0000
-#define ATTRID_LIGHTING_BALLAST_CONFIG_PHYSICAL_MAX_LEVEL                0x0001
-#define ATTRID_LIGHTING_BALLAST_BALLAST_STATUS                           0x0002
+#define ATTRID_BALLAST_CONFIGURATION_PHYSICAL_MIN_LEVEL                0x0000
+#define ATTRID_BALLAST_CONFIGURATION_PHYSICAL_MAX_LEVEL                0x0001
+#define ATTRID_BALLAST_CONFIGURATION_BALLAST_STATUS                           0x0002
 /*** Ballast Status Attribute values (by bit number) ***/
 #define LIGHTING_BALLAST_STATUS_NON_OPERATIONAL                          1 // bit 0 is set
 #define LIGHTING_BALLAST_STATUS_LAMP_IS_NOT_IN_SOCKET                    2 // bit 1 is set
   // Ballast Settings attributes set
-#define ATTRID_LIGHTING_BALLAST_MIN_LEVEL                                0x0010
-#define ATTRID_LIGHTING_BALLAST_MAX_LEVEL                                0x0011
-#define ATTRID_LIGHTING_BALLAST_POWER_ON_LEVEL                           0x0012
-#define ATTRID_LIGHTING_BALLAST_POWER_ON_FADE_TIME                       0x0013
-#define ATTRID_LIGHTING_BALLAST_INTRISTIC_BALLAST_FACTOR                 0x0014
-#define ATTRID_LIGHTING_BALLAST_BALLAST_FACTOR_ADJUSTMENT                0x0015
+#define ATTRID_BALLAST_CONFIGURATION_MIN_LEVEL                                0x0010
+#define ATTRID_BALLAST_CONFIGURATION_MAX_LEVEL                                0x0011
+#define ATTRID_BALLAST_CONFIGURATION_POWER_ON_LEVEL                           0x0012
+#define ATTRID_BALLAST_CONFIGURATION_POWER_ON_FADE_TIME                       0x0013
+#define ATTRID_BALLAST_CONFIGURATION_INTRINSIC_BALLAST_FACTOR                  0x0014
+#define ATTRID_BALLAST_CONFIGURATION_BALLAST_FACTOR_ADJUSTMENT                0x0015
   // Lamp Information attributes set
-#define ATTRID_LIGHTING_BALLAST_LAMP_QUANTITY                            0x0020
+#define ATTRID_BALLAST_CONFIGURATION_LAMP_QUANTITY                            0x0020
   // Lamp Settings attributes set
-#define ATTRID_LIGHTING_BALLAST_LAMP_TYPE                                0x0030
-#define ATTRID_LIGHTING_BALLAST_LAMP_MANUFACTURER                        0x0031
-#define ATTRID_LIGHTING_BALLAST_LAMP_RATED_HOURS                         0x0032
-#define ATTRID_LIGHTING_BALLAST_LAMP_BURN_HOURS                          0x0033
-#define ATTRID_LIGHTING_BALLAST_LAMP_ALARM_MODE                          0x0034
-#define ATTRID_LIGHTING_BALLAST_LAMP_BURN_HOURS_TRIP_POINT               0x0035
+#define ATTRID_BALLAST_CONFIGURATION_LAMP_TYPE                                0x0030
+#define ATTRID_BALLAST_CONFIGURATION_LAMP_MANUFACTURER                        0x0031
+#define ATTRID_BALLAST_CONFIGURATION_LAMP_RATED_HOURS                         0x0032
+#define ATTRID_BALLAST_CONFIGURATION_LAMP_BURN_HOURS                          0x0033
+#define ATTRID_BALLAST_CONFIGURATION_LAMP_ALARM_MODE                          0x0034
+#define ATTRID_BALLAST_CONFIGURATION_LAMP_BURN_HOURS_TRIP_POINT               0x0035
 /*** Lamp Alarm Mode attribute values  ***/
 #define LIGHTING_BALLAST_LAMP_ALARM_MODE_BIT_0_NO_ALARM                  0
 #define LIGHTING_BALLAST_LAMP_ALARM_MODE_BIT_0_ALARM                     1
@@ -491,25 +498,25 @@ typedef ZStatus_t (*zclLighting_ColorControl_StepColorTemperature_t)( zclCCStepC
 // the application would like to receive
 typedef struct
 {
-  zclLighting_ColorControl_MoveToHue_t                pfnColorControl_MoveToHue;
-  zclLighting_ColorControl_MoveHue_t                  pfnColorControl_MoveHue;
-  zclLighting_ColorControl_StepHue_t                  pfnColorControl_StepHue;
-  zclLighting_ColorControl_MoveToSaturation_t         pfnColorControl_MoveToSaturation;
-  zclLighting_ColorControl_MoveSaturation_t           pfnColorControl_MoveSaturation;
-  zclLighting_ColorControl_StepSaturation_t           pfnColorControl_StepSaturation;
-  zclLighting_ColorControl_MoveToHueAndSaturation_t   pfnColorControl_MoveToHueAndSaturation;
-  zclLighting_ColorControl_MoveToColor_t              pfnColorControl_MoveToColor;
-  zclLighting_ColorControl_MoveColor_t                pfnColorControl_MoveColor;
-  zclLighting_ColorControl_StepColor_t                pfnColorControl_StepColor;
-  zclLighting_ColorControl_MoveToColorTemperature_t   pfnColorControl_MoveToColorTemperature;
-  zclLighting_ColorControl_EnhancedMoveToHue_t        pfnColorControl_EnhancedMoveToHue;
-  zclLighting_ColorControl_EnhancedMoveHue_t          pfnColorControl_EnhancedMoveHue;
-  zclLighting_ColorControl_EnhancedStepHue_t          pfnColorControl_EnhancedStepHue;
-  zclLighting_ColorControl_EnhancedMoveToHueAndSaturation_t pfnColorControl_EnhancedMoveToHueAndSaturation;
-  zclLighting_ColorControl_ColorLoopSet_t             pfnColorControl_ColorLoopSet;
-  zclLighting_ColorControl_StopMoveStep_t             pfnColorControl_StopMoveStep;
-  zclLighting_ColorControl_MoveColorTemperature_t     pfnColorControl_MoveColorTemperature;
-  zclLighting_ColorControl_StepColorTemperature_t     pfnColorControl_StepColorTemperature;
+  zclLighting_ColorControl_MoveToHue_t                        pfnColorControl_MoveToHue;                        //!< (COMMAND_COLOR_CONTROL_MOVE_TO_HUE)
+  zclLighting_ColorControl_MoveHue_t                          pfnColorControl_MoveHue;                          //!< (COMMAND_COLOR_CONTROL_MOVE_HUE)
+  zclLighting_ColorControl_StepHue_t                          pfnColorControl_StepHue;                          //!< (COMMAND_COLOR_CONTROL_STEP_HUE)
+  zclLighting_ColorControl_MoveToSaturation_t                 pfnColorControl_MoveToSaturation;                 //!< (COMMAND_COLOR_CONTROL_MOVE_TO_SATURATION)
+  zclLighting_ColorControl_MoveSaturation_t                   pfnColorControl_MoveSaturation;                   //!< (COMMAND_COLOR_CONTROL_MOVE_SATURATION)
+  zclLighting_ColorControl_StepSaturation_t                   pfnColorControl_StepSaturation;                   //!< (COMMAND_COLOR_CONTROL_STEP_SATURATION)
+  zclLighting_ColorControl_MoveToHueAndSaturation_t           pfnColorControl_MoveToHueAndSaturation;           //!< (COMMAND_COLOR_CONTROL_MOVE_TO_HUE_AND_SATURATION)
+  zclLighting_ColorControl_MoveToColor_t                      pfnColorControl_MoveToColor;                      //!< (COMMAND_COLOR_CONTROL_MOVE_TO_COLOR)
+  zclLighting_ColorControl_MoveColor_t                        pfnColorControl_MoveColor;                        //!< (COMMAND_COLOR_CONTROL_MOVE_COLOR)
+  zclLighting_ColorControl_StepColor_t                        pfnColorControl_StepColor;                        //!< (COMMAND_COLOR_CONTROL_STEP_COLOR)
+  zclLighting_ColorControl_MoveToColorTemperature_t           pfnColorControl_MoveToColorTemperature;           //!< (COMMAND_COLOR_CONTROL_MOVE_TO_COLOR_TEMPERATURE)
+  zclLighting_ColorControl_EnhancedMoveToHue_t                pfnColorControl_EnhancedMoveToHue;                //!< (COMMAND_COLOR_CONTROL_ENHANCED_MOVE_TO_HUE)
+  zclLighting_ColorControl_EnhancedMoveHue_t                  pfnColorControl_EnhancedMoveHue;                  //!< (COMMAND_COLOR_CONTROL_ENHANCED_MOVE_HUE)
+  zclLighting_ColorControl_EnhancedStepHue_t                  pfnColorControl_EnhancedStepHue;                  //!< (COMMAND_COLOR_CONTROL_ENHANCED_STEP_HUE)
+  zclLighting_ColorControl_EnhancedMoveToHueAndSaturation_t   pfnColorControl_EnhancedMoveToHueAndSaturation;   //!< (COMMAND_COLOR_CONTROL_ENHANCED_MOVE_TO_HUE_AND_SATURATION)
+  zclLighting_ColorControl_ColorLoopSet_t                     pfnColorControl_ColorLoopSet;                     //!< (COMMAND_COLOR_CONTROL_COLOR_LOOP_SET)
+  zclLighting_ColorControl_StopMoveStep_t                     pfnColorControl_StopMoveStep;                     //!< (COMMAND_COLOR_CONTROL_STOP_MOVE_STEP)
+  zclLighting_ColorControl_MoveColorTemperature_t             pfnColorControl_MoveColorTemperature;             //!< (COMMAND_COLOR_CONTROL_MOVE_COLOR_TEMPERATURE)
+  zclLighting_ColorControl_StepColorTemperature_t             pfnColorControl_StepColorTemperature;             //!< (COMMAND_COLOR_CONTROL_STEP_COLOR_TEMPERATURE)
 } zclLighting_AppCallbacks_t;
 
 
@@ -518,11 +525,11 @@ typedef struct
  */
 #ifdef ZCL_LIGHT_LINK_ENHANCE
 /*
- *  Send out anStop Move Step Command - COMMAND_LIGHTING_STOP_MOVE_STEP
+ *  Send out anStop Move Step Command - COMMAND_COLOR_CONTROL_STOP_MOVE_STEP
  *  Use like:
  *      ZStatus_t zclLighting_ColorControl_Send_StopMoveStepCmd( uint16_t srcEP, afAddrType_t *dstAddr, uint8_t disableDefaultRsp, uint8_t seqNum );
  */
-#define zclLighting_ColorControl_Send_StopMoveStepCmd(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_LIGHTING_COLOR_CONTROL, COMMAND_LIGHTING_STOP_MOVE_STEP, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
+#define zclLighting_ColorControl_Send_StopMoveStepCmd(a,b,c,d) zcl_SendCommand( (a), (b), ZCL_CLUSTER_ID_LIGHTING_COLOR_CONTROL, COMMAND_COLOR_CONTROL_STOP_MOVE_STEP, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR, (c), 0, (d), 0, NULL )
 #endif //ZCL_LIGHT_LINK_ENHANCE
 
 /******************************************************************************
@@ -710,6 +717,7 @@ ZStatus_t zclLighting_ColorControl_Send_ColorLoopSetCmd(uint8_t srcEP, afAddrTyp
 
 /*********************************************************************
 *********************************************************************/
+#endif // ZCL_LIGHTING
 
 #ifdef __cplusplus
 }

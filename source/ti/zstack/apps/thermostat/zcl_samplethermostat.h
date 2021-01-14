@@ -51,7 +51,9 @@ extern "C"
  */
 #include "zcl.h"
 #include "nvintf.h"
+#ifndef CUI_DISABLE
 #include "cui.h"
+#endif
 /*********************************************************************
  * CONSTANTS
  */
@@ -118,7 +120,7 @@ extern uint8_t zclSampleThermostat_SystemMode;
  */
 extern void zclSampleThermostat_ResetAttributesToDefaultValues(void);
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 extern void zclSampleThermostat_UiActionSetCoolPoint(const char _input, char* _lines[3], CUI_cursorInfo_t * _curInfo);
 extern void zclSampleThermostat_UiActionSetHeatPoint(const char _input, char* _lines[3], CUI_cursorInfo_t * _curInfo);
 #if defined (ENABLE_GREENPOWER_COMBO_BASIC)

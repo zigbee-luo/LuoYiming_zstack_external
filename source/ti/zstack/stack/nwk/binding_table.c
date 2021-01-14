@@ -617,7 +617,7 @@ BindingEntry_t *bindFindExisting( byte srcEpInt,
   // Start at the beginning
   for ( x = 0; x < gNWK_MAX_BINDING_ENTRIES; x++ )
   {
-    if ( (BindingTable[x].srcEP == srcEpInt) )
+    if ( BindingTable[x].srcEP == srcEpInt )
     {
       if ( ((dstAddr->addrMode == AddrGroup)
               && (BindingTable[x].dstGroupMode == DSTGROUPMODE_GROUP)

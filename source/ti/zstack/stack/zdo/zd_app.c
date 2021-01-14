@@ -162,8 +162,6 @@ zAddrType_t zdappMgmtNwkDiscRspAddr;
 uint8_t zdappMgmtNwkDiscStartIndex;
 uint8_t zdappMgmtSavedNwkState;
 
-uint8_t continueJoining = TRUE;
-
 uint8_t  _tmpRejoinState;
 
 // The extended PanID used in ZDO layer for rejoin.
@@ -200,7 +198,6 @@ uint8_t ZDApp_ReadNetworkRestoreState( void );
 uint8_t ZDApp_RestoreNetworkState( void );
 void ZDAppDetermineDeviceType( void );
 void ZDApp_InitUserDesc( void );
-void ZDAppCheckForHoldKey( void );
 void ZDApp_ProcessOSALMsg( OsalPort_EventHdr *msgPtr );
 void ZDApp_ProcessNetworkJoin( void );
 void ZDApp_SetCoordAddress( uint8_t endPoint, uint8_t dstEP );
@@ -446,26 +443,6 @@ uint32_t ZDApp_event_loop( uint8_t task_id, uint32_t events )
       // Return unprocessed events
       return (events ^ ZDO_PARENT_ANNCE_EVT);
     }
-  }
-
-  if( events & ZDO_REJOIN_BACKOFF )
-  {
-    if( devState == DEV_NWK_BACKOFF )
-    {
-      ZDApp_ChangeState(DEV_NWK_DISC);
-      // Restart scan for rejoin
-      ZDApp_StartJoiningCycle();
-      OsalPortTimers_startTimer( ZDAppTaskID, ZDO_REJOIN_BACKOFF, zgDefaultRejoinScan );
-    }
-    else
-    {
-      // Rejoin backoff, silent period
-      ZDApp_ChangeState(DEV_NWK_BACKOFF);
-      ZDApp_StopJoiningCycle();
-      OsalPortTimers_startTimer( ZDAppTaskID, ZDO_REJOIN_BACKOFF, zgDefaultRejoinBackoff );
-    }
-
-    return ( events ^ ZDO_REJOIN_BACKOFF);
   }
 
   if ( events & ZDO_STATE_CHANGE_EVT )
@@ -1114,32 +1091,6 @@ void ZDApp_InitUserDesc( void )
 }
 
 /*********************************************************************
- * @fn      ZDAppCheckForHoldKey()
- *
- * @brief   Check for key to set the device into Hold Auto Start
- *
- * @param   none
- *
- * @return  none
- */
-void ZDAppCheckForHoldKey( void )
-{
-#if (defined HAL_KEY) && (HAL_KEY == TRUE)
-
-  // Get Keypad directly to see if a HOLD is needed
-  zdappHoldKeys = HalKeyRead();
-
-  // Hold down the SW_BYPASS_START key (see on_board.h)
-  // while booting to avoid starting up the device.
-  if ( zdappHoldKeys == SW_BYPASS_START )
-  {
-    // Change the device state to HOLD on start up
-    devState = DEV_HOLD;
-  }
-#endif // HAL_KEY
-}
-
-/*********************************************************************
  * @fn      ZDApp_ProcessOSALMsg()
  *
  * @brief   Process the incoming task message.
@@ -1540,8 +1491,6 @@ void ZDApp_ProcessNetworkJoin( void )
       else
       {
         ZDApp_ChangeState( DEV_END_DEVICE );
-
-        OsalPortTimers_stopTimer( ZDAppTaskID, ZDO_REJOIN_BACKOFF );
 
         // The receiver is on, turn network layer polling off.
         if ( ZDO_Config_Node_Descriptor.CapabilityFlags & CAPINFO_RCVR_ON_IDLE )
@@ -2051,7 +2000,7 @@ void ZDApp_PauseNwk()
 {
     APSME_HoldDataRequests( 0xFFFF ); // hold off for as long as possible.
 
-    if ( ZG_BUILD_COORDINATOR_TYPE || ZG_BUILD_RTR_TYPE )
+    if ( 0 != ZG_BUILD_COORDINATOR_TYPE || 0 != ZG_BUILD_RTR_TYPE )
     {
         OsalPortTimers_stopTimer( NWK_TaskID, NWK_LINK_STATUS_EVT );
         OsalPort_clearEvent( NWK_TaskID, NWK_LINK_STATUS_EVT );
@@ -2069,7 +2018,7 @@ void ZDApp_ResumeNwk()
 {
     APSME_HoldDataRequests(0); // Enable APS data request again
 
-    if ( ZG_BUILD_COORDINATOR_TYPE || ZG_BUILD_RTR_TYPE )
+    if ( 0 != ZG_BUILD_COORDINATOR_TYPE || 0 != ZG_BUILD_RTR_TYPE )
     {
         NLME_SetLinkStatusTimer();
 
@@ -2757,7 +2706,7 @@ void ZDO_JoinConfirmCB( uint16_t PanId, ZStatus_t Status )
       }
     }
 
-    if ( (devState == DEV_HOLD) )
+    if ( devState == DEV_HOLD )
     {
       ZDApp_ChangeState( DEV_NWK_JOINING );
     }
@@ -3044,7 +2993,7 @@ void ZDO_LeaveInd( NLME_LeaveInd_t* ind )
     // Check if this device needs to leave as a child or descendent
     if ( ind->srcAddr == NLME_GetCoordShortAddr() )
     {
-      if ( ( ind->removeChildren == TRUE )   )
+      if ( ind->removeChildren == TRUE )
       {
         leave = TRUE;
       }
@@ -3342,49 +3291,6 @@ void ZDApp_NodeProfileSync( uint8_t stackProfile )
       NLME_SetBroadcastFilter( ZDO_Config_Node_Descriptor.CapabilityFlags );
     }
   }
-}
-
-/*********************************************************************
- * @fn      ZDApp_StartJoiningCycle()
- *
- * @brief   Starts the joining cycle of a device.  This will only
- *          continue an already started (or stopped) joining cycle.
- *
- * @param   none
- *
- * @return  TRUE if joining stopped, FALSE if joining or rejoining
- */
-uint8_t ZDApp_StartJoiningCycle( void )
-{
-  if ( devState == DEV_INIT || devState == DEV_NWK_DISC )
-  {
-    continueJoining = TRUE;
-    ZDApp_NetworkInit( 0 );
-
-    return ( TRUE );
-  }
-  else
-    return ( FALSE );
-}
-
-/*********************************************************************
- * @fn      ZDApp_StopJoiningCycle()
- *
- * @brief   Stops the joining or rejoining process of a device.
- *
- * @param   none
- *
- * @return  TRUE if joining stopped, FALSE if joining or rejoining
- */
-uint8_t ZDApp_StopJoiningCycle( void )
-{
-  if ( devState == DEV_INIT || devState == DEV_NWK_DISC || devState == DEV_NWK_BACKOFF )
-  {
-    continueJoining = FALSE;
-    return ( TRUE );
-  }
-  else
-    return ( FALSE );
 }
 
 /*********************************************************************
@@ -3803,34 +3709,6 @@ void ZDApp_ChangeState( devStates_t state )
     devState = state;
     OsalPort_setEvent( ZDAppTaskID, ZDO_STATE_CHANGE_EVT );
   }
-}
-
-/*********************************************************************
- * @fn      ZDApp_SetRejoinScanDuration()
- *
- * @brief   Sets scan duration for rejoin for an end device
- *
- * @param   rejoinScanDuration - milliseconds
- *
- * @return  none
- */
-void ZDApp_SetRejoinScanDuration( uint32_t rejoinScanDuration )
-{
-  zgDefaultRejoinScan = rejoinScanDuration;
-}
-
-/*********************************************************************
- * @fn      ZDApp_SetRejoinBackoffDuration()
- *
- * @brief   Sets rejoin backoff duration for rejoin for an end device
- *
- * @param   rejoinBackoffDuration - milliseconds
- *
- * @return  none
- */
-void ZDApp_SetRejoinBackoffDuration( uint32_t rejoinBackoffDuration )
-{
-  zgDefaultRejoinBackoff = rejoinBackoffDuration;
 }
 
 /*********************************************************************

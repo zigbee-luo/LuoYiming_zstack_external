@@ -143,8 +143,9 @@ const uint8_t DevicePrivateKey[ZCL_KE_DEVICE_PRIVATE_KEY_LEN] = {
   0xe1, 0x50, 0x3f, 0x69, 0x55
 };
 #pragma required=DevicePrivateKey
-#endif
-#endif
+#endif // ZG_BUILD_COORDINATOR_TYPE
+
+#endif // TEST_CERT_DATA
 
 /**************************************************************************************************
 */

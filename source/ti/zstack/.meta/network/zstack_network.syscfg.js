@@ -113,6 +113,37 @@ const zdsecmgrTcDeviceMaxLongDescription = zdsecmgrTcDeviceMaxDescription
 
 **Range:** 0 - 65535`;
 
+const endDeviceTimeoutDescription = `Value of End Device Timeout`;
+
+const endDeviceTimeoutLongDescription = endDeviceTimeoutDescription
++ `\n\n
+If ZED, this is the value used when sending End Device Timeout Request.
+
+If ZC/ZR, this is the default value if any End Device that does not
+ negotiate a different timeout value
+
+**Default:** 8
+
+**Range:** 0 - 14`;
+
+/* End device timeout values */
+const timeoutValues = [
+    {name: 0, displayName: "0 - 10 seconds"},
+    {name: 1, displayName: "1 - 2 minutes"},
+    {name: 2, displayName: "2 - 4 minutes"},
+    {name: 3, displayName: "3 - 8 minutes"},
+    {name: 4, displayName: "4 - 16 minutes"},
+    {name: 5, displayName: "5 - 32 minutes"},
+    {name: 6, displayName: "6 - 64 minutes"},
+    {name: 7, displayName: "7 - 128 minutes"},
+    {name: 8, displayName: "8 - 256 minutes"},
+    {name: 9, displayName: "9 - 512 minutes"},
+    {name: 10, displayName: "10 - 1024 minutes"},
+    {name: 11, displayName: "11 - 2048 minutes"},
+    {name: 12, displayName: "12 - 4096 minutes"},
+    {name: 13, displayName: "13 - 8192 minutes"},
+    {name: 14, displayName: "14 - 16384 minutes"}
+];
 
 /* Network submodule for the zstack module */
 const networkModule = {
@@ -185,6 +216,14 @@ const networkModule = {
             longDescription: zdsecmgrTcDeviceMaxLongDescription,
             default: 40,
             hidden: true
+        },
+        {
+            name: "endDeviceTimeout",
+            displayName: "End Device Timeout",
+            description: endDeviceTimeoutDescription,
+            longDescription: endDeviceTimeoutLongDescription,
+            default: 8,
+            options: timeoutValues
         }
     ],
     validate: validate

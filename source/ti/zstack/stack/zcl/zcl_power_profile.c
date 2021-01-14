@@ -41,6 +41,7 @@
  * INCLUDES
  */
 #include "zcomdef.h"
+#include "ti_zstack_config.h"
 #include "zcl.h"
 #include "zcl_general.h"
 #include "zcl_power_profile.h"
@@ -127,8 +128,8 @@ ZStatus_t zclPowerProfile_RegisterCmdCallbacks( uint8_t endpoint, zclPowerProfil
   // Register as a ZCL Plugin
   if ( zclPowerProfilePluginRegisted == FALSE )
   {
-    zcl_registerPlugin( ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                        ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
+    zcl_registerPlugin( ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                        ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
                         zclPowerProfile_HdlIncoming );
     zclPowerProfilePluginRegisted = TRUE;
   }
@@ -186,8 +187,8 @@ extern ZStatus_t zclPowerProfile_Send_PowerProfileReq( uint8_t srcEP, afAddrType
 
   buf[0] = powerProfileID;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                          COMMAND_POWER_PROFILE_POWER_PROFILE_REQ, TRUE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                          COMMAND_POWER_PROFILE_POWER_PROFILE_REQUEST, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
 
@@ -207,8 +208,8 @@ extern ZStatus_t zclPowerProfile_Send_PowerProfileStateReq( uint8_t srcEP, afAdd
                                                             uint8_t disableDefaultRsp, uint8_t seqNum )
 {
   // no payload
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                          COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_REQ, TRUE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                          COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_REQUEST, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, 0, 0 );
 }
 
@@ -245,8 +246,8 @@ extern ZStatus_t zclPowerProfile_Send_GetPowerProfilePriceRsp( uint8_t srcEP, af
   buf[6] = BREAK_UINT32( price, 3 );
   buf[7] = priceTrailingDigit;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                          COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_RSP, TRUE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                          COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_RESPONSE, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
 
@@ -280,8 +281,8 @@ extern ZStatus_t zclPowerProfile_Send_GetOverallSchedulePriceRsp( uint8_t srcEP,
   buf[5] = BREAK_UINT32( price, 3 );
   buf[6] = priceTrailingDigit;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                          COMMAND_POWER_PROFILE_GET_OVERALL_SCHEDULE_PRICE_RSP, TRUE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                          COMMAND_POWER_PROFILE_GET_OVERALL_SCHEDULE_PRICE_RESPONSE, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
 
@@ -293,8 +294,8 @@ extern ZStatus_t zclPowerProfile_Send_GetOverallSchedulePriceRsp( uint8_t srcEP,
  * @param   srcEP - Sending application's endpoint
  * @param   dstAddr - where you want the message to go
  * @param   cmdID - COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_NOTIFICATION,
- *                  COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RSP,
- *                  COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RSP,
+ *                  COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RESPONSE,
+ *                  COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RESPONSE,
  *                  COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_NOTIFICATION
  * @param   pCmd - parameters for the Energy Phases Schedule commands
  * @param   direction - send command client-to-server or server-to-client
@@ -338,7 +339,7 @@ extern ZStatus_t zclPowerProfile_Send_EnergyPhasesSchedule( uint8_t srcEP, afAdd
     }
   }
 
-  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
+  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
                             cmdID, TRUE, direction, disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
 
   zcl_mem_free( pBuf );
@@ -367,8 +368,8 @@ extern ZStatus_t zclPowerProfile_Send_PowerProfileScheduleConstraintsReq( uint8_
 
   buf[0] = powerProfileID;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                          COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_REQ, TRUE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                          COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_REQUEST, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
 
@@ -393,8 +394,8 @@ extern ZStatus_t zclPowerProfile_Send_EnergyPhasesScheduleStateReq( uint8_t srcE
 
   buf[0] = powerProfileID;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                          COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_REQ, TRUE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                          COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_REQUEST, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
 
@@ -431,8 +432,8 @@ extern ZStatus_t zclPowerProfile_Send_GetPowerProfilePriceExtRsp( uint8_t srcEP,
   buf[6] = BREAK_UINT32( price, 3 );
   buf[7] = priceTrailingDigit;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                          COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_EXT_RSP, TRUE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                          COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_EXTENDED_RESPONSE, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
 
@@ -496,7 +497,7 @@ extern ZStatus_t zclPowerProfile_Send_PowerProfileNotification( uint8_t srcEP, a
     pBuf[offset++] = HI_UINT16( pPayload->pTransferredPhasesRecord[i].maxActivationDelay );
   }
 
-  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
+  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
                             COMMAND_POWER_PROFILE_POWER_PROFILE_NOTIFICATION, TRUE,
                             ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
   zcl_mem_free( pBuf );
@@ -564,8 +565,8 @@ extern ZStatus_t zclPowerProfile_Send_PowerProfileRsp( uint8_t srcEP, afAddrType
     pBuf[offset++] = HI_UINT16( pPayload->pTransferredPhasesRecord[i].maxActivationDelay );
   }
 
-  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                            COMMAND_POWER_PROFILE_POWER_PROFILE_RSP, TRUE,
+  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                            COMMAND_POWER_PROFILE_POWER_PROFILE_RESPONSE, TRUE,
                             ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
   zcl_mem_free( pBuf );
 
@@ -617,8 +618,8 @@ extern ZStatus_t zclPowerProfile_Send_PowerProfileStateRsp( uint8_t srcEP, afAdd
     pBuf[offset++] = pPayload->pPowerProfileStateRecord[i].powerProfileState;
   }
 
-  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                            COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_RSP, TRUE,
+  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                            COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_RESPONSE, TRUE,
                             ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
   zcl_mem_free( pBuf );
 
@@ -646,7 +647,7 @@ extern ZStatus_t zclPowerProfile_Send_GetPowerProfilePrice( uint8_t srcEP, afAdd
 
   buf[0] = powerProfileID;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
                           COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
@@ -697,7 +698,7 @@ extern ZStatus_t zclPowerProfile_Send_PowerProfileStateNotification( uint8_t src
     pBuf[offset++] = pPayload->pPowerProfileStateRecord[i].powerProfileState;
   }
 
-  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
+  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
                             COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_NOTIFICATION, TRUE,
                             ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
  zcl_mem_free( pBuf );
@@ -722,7 +723,7 @@ extern ZStatus_t zclPowerProfile_Send_GetOverallSchedulePrice( uint8_t srcEP, af
                                                                uint8_t disableDefaultRsp, uint8_t seqNum )
 {
   // no payload
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
                           COMMAND_POWER_PROFILE_GET_OVERALL_SCHEDULE_PRICE, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, 0, 0 );
 }
@@ -749,8 +750,8 @@ extern ZStatus_t zclPowerProfile_Send_EnergyPhasesScheduleReq( uint8_t srcEP, af
 
   buf[0] = powerProfileID;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                          COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_REQ, TRUE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                          COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_REQUEST, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
 
@@ -780,7 +781,7 @@ extern ZStatus_t zclPowerProfile_Send_PowerProfileScheduleConstraintsNotificatio
   buf[3] = LO_UINT16( pCmd->stopBefore );
   buf[4] = HI_UINT16( pCmd->stopBefore );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
                           COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_NOTIFICATION, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
@@ -810,8 +811,8 @@ extern ZStatus_t zclPowerProfile_Send_PowerProfileScheduleConstraintsRsp( uint8_
   buf[3] = LO_UINT16( pCmd->stopBefore );
   buf[4] = HI_UINT16( pCmd->stopBefore );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                          COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_RSP, TRUE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                          COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_RESPONSE, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
 
@@ -846,8 +847,8 @@ extern ZStatus_t zclPowerProfile_Send_GetPowerProfilePriceExt( uint8_t srcEP, af
     buf[3] = HI_UINT16( pCmd->powerProfileStartTime );
   }
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_POWER_PROFILE,
-                          COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_EXT, TRUE,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_POWER_PROFILE,
+                          COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_EXTENDED, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, calculatedSize, buf );
 }
 
@@ -965,36 +966,36 @@ static ZStatus_t zclPowerProfile_ProcessInCmds( zclIncoming_t *pInMsg, zclPowerP
   {
     switch( pInMsg->hdr.commandID )
     {
-      case COMMAND_POWER_PROFILE_POWER_PROFILE_REQ:
+      case COMMAND_POWER_PROFILE_POWER_PROFILE_REQUEST:
         stat = zclPowerProfile_ProcessInCmd_PowerProfileReq( pInMsg, pCBs );
         break;
 
-      case COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_REQ:
+      case COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_REQUEST:
         stat = zclPowerProfile_ProcessInCmd_PowerProfileStateReq( pInMsg, pCBs );
         break;
 
-      case COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_RSP:
+      case COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_RESPONSE:
         stat = zclPowerProfile_ProcessInCmd_GetPowerProfilePriceRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_POWER_PROFILE_GET_OVERALL_SCHEDULE_PRICE_RSP:
+      case COMMAND_POWER_PROFILE_GET_OVERALL_SCHEDULE_PRICE_RESPONSE:
         stat = zclPowerProfile_ProcessInCmd_GetOverallSchedulePriceRsp( pInMsg, pCBs );
         break;
 
       case COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_NOTIFICATION:
-      case COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RSP:
+      case COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RESPONSE:
         stat = zclPowerProfile_ProcessInCmd_EnergyPhasesSchedule( pInMsg, pCBs );
         break;
 
-      case COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_REQ:
+      case COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_REQUEST:
         stat = zclPowerProfile_ProcessInCmd_PowerProfileScheduleConstraintsReq( pInMsg, pCBs );
         break;
 
-      case COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_REQ:
+      case COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_REQUEST:
         stat = zclPowerProfile_ProcessInCmd_EnergyPhasesScheduleStateReq( pInMsg, pCBs );
         break;
 
-      case COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_EXT_RSP:
+      case COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_EXTENDED_RESPONSE:
         stat = zclPowerProfile_ProcessInCmd_GetPowerProfilePriceExtRsp( pInMsg, pCBs );
         break;
 
@@ -1013,11 +1014,11 @@ static ZStatus_t zclPowerProfile_ProcessInCmds( zclIncoming_t *pInMsg, zclPowerP
         stat = zclPowerProfile_ProcessInCmd_PowerProfileNotification( pInMsg, pCBs );
         break;
 
-      case COMMAND_POWER_PROFILE_POWER_PROFILE_RSP:
+      case COMMAND_POWER_PROFILE_POWER_PROFILE_RESPONSE:
         stat = zclPowerProfile_ProcessInCmd_PowerProfileRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_RSP:
+      case COMMAND_POWER_PROFILE_POWER_PROFILE_STATE_RESPONSE:
         stat = zclPowerProfile_ProcessInCmd_PowerProfileStateRsp( pInMsg, pCBs );
         break;
 
@@ -1033,11 +1034,11 @@ static ZStatus_t zclPowerProfile_ProcessInCmds( zclIncoming_t *pInMsg, zclPowerP
         stat = zclPowerProfile_ProcessInCmd_GetOverallSchedulePrice( pInMsg, pCBs );
         break;
 
-      case COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_REQ:
+      case COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_REQUEST:
         stat = zclPowerProfile_ProcessInCmd_EnergyPhasesScheduleReq( pInMsg, pCBs );
         break;
 
-      case COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RSP:
+      case COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RESPONSE:
       case COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_NOTIFICATION:
         stat = zclPowerProfile_ProcessInCmd_EnergyPhasesSchedule( pInMsg, pCBs );
         break;
@@ -1046,11 +1047,11 @@ static ZStatus_t zclPowerProfile_ProcessInCmds( zclIncoming_t *pInMsg, zclPowerP
         stat = zclPowerProfile_ProcessInCmd_PowerProfileScheduleConstraintsNotification( pInMsg, pCBs );
         break;
 
-      case COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_RSP:
+      case COMMAND_POWER_PROFILE_POWER_PROFILE_SCHEDULE_CONSTRAINTS_RESPONSE:
         stat = zclPowerProfile_ProcessInCmd_PowerProfileScheduleConstraintsRsp( pInMsg, pCBs );
         break;
 
-      case COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_EXT:
+      case COMMAND_POWER_PROFILE_GET_POWER_PROFILE_PRICE_EXTENDED:
         stat = zclPowerProfile_ProcessInCmd_GetPowerProfilePriceExt( pInMsg, pCBs );
         break;
 
@@ -1213,14 +1214,14 @@ static ZStatus_t zclPowerProfile_ProcessInCmd_EnergyPhasesSchedule( zclIncoming_
       status = ( pCBs->pfnPowerProfile_EnergyPhasesScheduleNotification( &cmd ) );
     }
   }
-  else if ( pInMsg->hdr.commandID == COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RSP )
+  else if ( pInMsg->hdr.commandID == COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_RESPONSE )
   {
     if ( pCBs->pfnPowerProfile_EnergyPhasesScheduleRsp )
     {
       status = ( pCBs->pfnPowerProfile_EnergyPhasesScheduleRsp( &cmd ) );
     }
   }
-  else if ( pInMsg->hdr.commandID == COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RSP )
+  else if ( pInMsg->hdr.commandID == COMMAND_POWER_PROFILE_ENERGY_PHASES_SCHEDULE_STATE_RESPONSE )
   {
     if ( pCBs->pfnPowerProfile_EnergyPhasesScheduleStateRsp )
     {

@@ -685,7 +685,7 @@ extern uint32_t _sign_fnPtr;
   #define TYPEDEF_STRUCT_PACKED        __packed typedef struct
 #elif defined __TI_COMPILER_VERSION || defined __TI_COMPILER_VERSION__
   #define TYPEDEF_STRUCT_PACKED        typedef struct __attribute__((packed))
-#elif defined (__GNUC__)
+#elif defined (__GNUC__) || defined(__clang__)
   #define TYPEDEF_STRUCT_PACKED        typedef struct __attribute__((__packed__))
 #endif
 /// @endcond // NODOC

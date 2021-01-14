@@ -51,6 +51,7 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
 
 /******************************************************************************

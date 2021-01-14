@@ -51,27 +51,25 @@
 
 #include <driverlib/sys_ctrl.h>
 
-
 #if !defined( CC253X_MACNP )
   #include "zglobals.h"
 #endif
 #if defined( FEATURE_NVEXID )
   #include "zstackconfig.h"
 #endif
-#if defined( FEATURE_DUAL_MAC )
-  #include "dmmgr.h"
-#endif
 #if defined( FEATURE_SYSTEM_STATS )
 #include "zdiags.h"
 #endif
-#if defined( MT_SYS_JAMMER_FEATURE )
-  #include "mac_rx.h"
-  #include "mac_radio_defs.h"
-#endif
-#if (defined INCLUDE_REVISION_INFORMATION) && ((defined MAKE_CRC_SHDW) || (defined FAKE_CRC_SHDW)) //built for bootloader
-  #include "hal_flash.h"
-  #include "sb_shared.h"
-#endif
+
+#ifdef FEATURE_UTC_TIME
+  #include "utc_clock.h"
+#endif //FEATURE_UTC_TIME
+
+#if defined( ENABLE_MT_SYS_RESET_SHUTDOWN )
+#include "mac_rx.h"
+#include "mac_radio_defs.h"
+#include <ti/drivers/power/PowerCC26XX.h>
+#endif /* ENABLE_MT_SYS_RESET_SHUTDOWN */
 
 /******************************************************************************
  * MACROS
@@ -102,33 +100,6 @@
 #define GPIO_HiD_SET() (val = 0)
 #define GPIO_HiD_CLR() (val = 0)
 #endif
-
-#if defined ( MT_SYS_SNIFFER_FEATURE )
-#if defined ( HAL_MCU_CC2530 ) && !defined ( HAL_BOARD_CC2530USB )
-  // This only works with CC253x chips
-  #define HAL_BOARD_ENABLE_INTEGRATED_SNIFFER() st         \
-  (                                                                                                                                                                                                                                   \
-    OBSSEL3 = 0xFD;                                        \
-    OBSSEL4 = 0xFC;                                        \
-    RFC_OBS_CTRL1 = 0x09; /* 9 - sniff clk */              \
-    RFC_OBS_CTRL2 = 0x08; /* 8 - sniff data */             \
-    MDMTEST1 |= 0x04;                                      \
-  )
-
-  // This only works with CC253x chips
-  #define HAL_BOARD_DISABLE_INTEGRATED_SNIFFER() st        \
-  (                                                                                                                                                                                                                                   \
-    OBSSEL3 &= ~0x80;                                                                                                                                                                             \
-    OBSSEL4 &= ~0x80;                                                                                                                                                                             \
-    RFC_OBS_CTRL1 = 0x00; /* 0 - constant value 0 to rfc_obs_sigs[1] */                                                                                   \
-    RFC_OBS_CTRL2 = 0x00; /* 0 - constant value 0 to rfc_obs_sigs[2] */                                                                                   \
-    MDMTEST1 &= ~0x04;                                                                                                                                                         \
-  )
-#else
-  #define HAL_BOARD_ENABLE_INTEGRATED_SNIFFER() { status = FAILURE; }
-  #define HAL_BOARD_DISABLE_INTEGRATED_SNIFFER() { status = FAILURE; }
-#endif
-#endif // MT_SYS_SNIFFER_FEATURE
 
 #define RESET_HARD     0
 #define RESET_SOFT     1
@@ -162,20 +133,6 @@ typedef enum {
   GPIO_HiD = 0x12
 } GPIO_Op_t;
 
-#if defined( MT_SYS_JAMMER_FEATURE )
-  #define JAMMER_CHECK_EVT                           0x0001
-
-  #if !defined( JAMMER_DETECT_CONTINUOUS_EVENTS )
-    #define JAMMER_DETECT_CONTINUOUS_EVENTS          150
-  #endif
-  #if !defined( JAMMER_DETECT_PERIOD_TIME )
-    #define JAMMER_DETECT_PERIOD_TIME                100  // In milliseconds
-  #endif
-  #if !defined( JAMMER_HIGH_NOISE_LEVEL )
-    #define JAMMER_HIGH_NOISE_LEVEL                  -65
-  #endif
-#endif // MT_SYS_JAMMER_FEATURE
-
 /******************************************************************************
  * EXTERNAL VARIABLES
  *****************************************************************************/
@@ -186,17 +143,6 @@ extern zstack_Config_t *pZStackCfg;
 /******************************************************************************
  * LOCAL VARIABLES
  *****************************************************************************/
-#if defined( MT_SYS_JAMMER_FEATURE )
-static uint8_t jammerTaskID;
-static uint16_t jammerContinuousEvents = JAMMER_DETECT_CONTINUOUS_EVENTS;
-static uint16_t jammerDetections = JAMMER_DETECT_CONTINUOUS_EVENTS;
-static int8_t jammerHighNoiseLevel = JAMMER_HIGH_NOISE_LEVEL;
-static uint32_t jammerDetectPeriodTime = JAMMER_DETECT_PERIOD_TIME;
-#endif
-
-#if defined( MT_SYS_SNIFFER_FEATURE )
-static uint8_t sniffer = FALSE;
-#endif
 
 /******************************************************************************
  * LOCAL FUNCTIONS
@@ -238,12 +184,6 @@ static uint8_t MT_StackNvExtId( NVINTF_itemID_t *nvId );
 static uint8_t *MT_ParseNvExtId( uint8_t *pBuf, NVINTF_itemID_t *nvId );
 #endif /* FEATURE_NVEXID */
 #endif /* !CC253X_MACNP */
-#if defined( MT_SYS_JAMMER_FEATURE )
-static void MT_SysJammerParameters( uint8_t *pBuf );
-#endif /* MT_SYS_JAMMER_FEATURE */
-#if defined( MT_SYS_SNIFFER_FEATURE )
-static void MT_SysSnifferParameters( uint8_t *pBuf );
-#endif /* MT_SYS_SNIFFER_FEATURE */
 #if defined( FEATURE_SYSTEM_STATS )
 static void MT_SysZDiagsInitStats(void);
 static void MT_SysZDiagsClearStats(uint8_t *pBuf);
@@ -385,20 +325,6 @@ uint8_t MT_SysCommandProcessing(uint8_t *pBuf)
 #endif  /* FEATURE_NVEXID */
 #endif  /* !CC253X_MACNP */
 
-#if !defined( CC26XX )
-#if defined( MT_SYS_JAMMER_FEATURE )
-    case MT_SYS_JAMMER_PARAMETERS:
-      MT_SysJammerParameters( pBuf );
-      break;
-#endif  /* MT_SYS_JAMMER_FEATURE */
-
-#if defined( MT_SYS_SNIFFER_FEATURE )
-    case MT_SYS_SNIFFER_PARAMETERS:
-      MT_SysSnifferParameters( pBuf );
-      break;
-#endif  /* MT_SYS_SNIFFER_FEATURE */
-#endif /* !CC26XX */
-
 #if defined( FEATURE_SYSTEM_STATS )
     case MT_SYS_ZDIAGS_INIT_STATS:
       MT_SysZDiagsInitStats();
@@ -501,49 +427,9 @@ static void MT_SysPing(void)
  *****************************************************************************/
 static void MT_SysVersion(void)
 {
-#if !defined( INCLUDE_REVISION_INFORMATION )
   /* Build and send back the default response */
   MT_BuildAndSendZToolResponse( MT_SRSP_SYS, MT_SYS_VERSION,
                                 sizeof(MTVersionString),(uint8_t*)MTVersionString);
-#else
-  uint8_t verStr[sizeof(MTVersionString) + 4];
-  uint8_t *pBuf = &verStr[sizeof(MTVersionString)];
-#if (defined MAKE_CRC_SHDW) || (defined FAKE_CRC_SHDW)  //built for bootloader
-  uint32_t sblSig;
-  uint32_t sblRev;
-#endif
-
-  OsalPort_memcpy(verStr, (uint8_t *)MTVersionString, sizeof(MTVersionString));
-
-#if (defined MAKE_CRC_SHDW) || (defined FAKE_CRC_SHDW)  //built for bootloader
-  HalFlashRead(SBL_SIG_ADDR / HAL_FLASH_PAGE_SIZE,
-               SBL_SIG_ADDR % HAL_FLASH_PAGE_SIZE,
-               (uint8_t *)&sblSig, sizeof(sblSig));
-
-  if (sblSig == SBL_SIGNATURE)
-  {
-    // SBL is supported and its revision is provided (in a known flash location)
-    HalFlashRead(SBL_REV_ADDR / HAL_FLASH_PAGE_SIZE,
-                 SBL_REV_ADDR % HAL_FLASH_PAGE_SIZE,
-                 (uint8_t *)&sblRev, sizeof(sblRev));
-  }
-  else
-  {
-    //  SBL is supported but its revision is not provided
-    sblRev = 0x00000000;
-  }
-#else
-  // SBL is NOT supported
-  sblRev = 0xFFFFFFFF;
-#endif
-
-  // Plug the SBL revision indication
-  UINT32_TO_BUF_LITTLE_ENDIAN(pBuf,sblRev);
-
-  /* Build and send back the response */
-  MT_BuildAndSendZToolResponse( MT_SRSP_SYS, MT_SYS_VERSION,
-                                sizeof(verStr), verStr);
-#endif
 }
 
 /******************************************************************************
@@ -1656,7 +1542,7 @@ static void MT_SysSetUtcTime(uint8_t *pBuf)
       if ((utc.month != 1) || (utc.day < (IsLeapYear( utc.year ) ? 29 : 28)))
       {
         /* Numbers look reasonable, convert to UTC */
-        utcSecs = osal_ConvertUTCSecs( &utc );
+        utcSecs = UTC_convertUTCSecs( &utc );
       }
     }
   }
@@ -1669,7 +1555,7 @@ static void MT_SysSetUtcTime(uint8_t *pBuf)
   else
   {
     /* Parameters accepted, set the time */
-    osal_setClock( utcSecs );
+    UTC_setClock( utcSecs );
     retStat = ZSuccess;
   }
 
@@ -1702,8 +1588,8 @@ static void MT_SysGetUtcTime(void)
     UTCTimeStruct utcTime;
 
     // Get current 32-bit UTC time and parse it
-    utcSecs = MAP_osal_GetSystemClock();
-    osal_ConvertUTCTime( &utcTime, utcSecs );
+    utcSecs = UTC_getClock();
+    UTC_convertUTCTime( &utcTime, utcSecs );
 
     // Start with 32-bit UTC time
     pBuf = OsalPort_bufferUint32( buf, utcSecs );
@@ -1922,208 +1808,6 @@ void MT_SysOsalTimerExpired(uint8_t Id)
                                 sizeof(retValue), &retValue);
 }
 
-#if defined ( MT_SYS_JAMMER_FEATURE )
-/******************************************************************************
- * @fn      MT_SysJammerParameters
- *
- * @brief   Set the Jammer detection parameters.
- *
- * @param   pBuf - MT message containing the parameters.
- *
- * @return  None
- *****************************************************************************/
-static void MT_SysJammerParameters( uint8_t *pBuf )
-{
-  uint8_t status = SUCCESS;
-
-  // Adjust for the data
-  pBuf += MT_RPC_FRAME_HDR_SZ;
-
-  // Number of continuous events needed to detect Jam
-  jammerContinuousEvents = OsalPort_buildUint16( pBuf );
-  jammerDetections = jammerContinuousEvents;
-  pBuf += 2;
-
-  // Noise Level need to be a Jam
-  jammerHighNoiseLevel = *pBuf++;
-
-  // The time between each noise level reading
-  jammerDetectPeriodTime = OsalPort_buildUint32( pBuf, 4 );
-
-  // Update the timer
-  OsalPortTimers_startReloadTimer( jammerTaskID, JAMMER_CHECK_EVT, jammerDetectPeriodTime );
-
-  /* Send out Reset Response message */
-  MT_BuildAndSendZToolResponse( MT_SRSP_SYS, MT_SYS_JAMMER_PARAMETERS,
-                                sizeof(status), &status );
-}
-
-/******************************************************************************
- * @fn      MT_SysJammerInd()
- *
- * @brief   Sends a jammer indication message.
- *
- * @param   jammerInd - TRUE if jammer detected, FALSE if changed to undetected
- *
- * @return  None
- *
- *****************************************************************************/
-void MT_SysJammerInd( uint8_t jammerInd )
-{
-  /* Send out Reset Response message */
-  MT_BuildAndSendZToolResponse( MT_ARSP_SYS, MT_SYS_JAMMER_IND,
-                                sizeof(jammerInd), &jammerInd );
-}
-
-/******************************************************************************
- * @fn      jammerInit()
- *
- * @brief   Jammer Detection task initialization function
- *
- * @param   taskId - task ID
- *
- * @return  None
- *
- *****************************************************************************/
-void jammerInit( uint8_t taskId )
-{
-  jammerTaskID = taskId;
-
-  // Start the jammer check timer
-  OsalPortTimers_startReloadTimer( taskId, JAMMER_CHECK_EVT, jammerDetectPeriodTime );
-}
-
-/******************************************************************************
- * @fn      jammerEventLoop()
- *
- * @brief   Jammer Detection task event processing function
- *
- * @param   taskId - task ID
- * @param   events - task events
- *
- * @return  remaining events
- *
- *****************************************************************************/
-uint16_t jammerEventLoop( uint8_t taskId, uint16_t events )
-{
-  OsalPort_EventHdr  *pMsg;
-
-  if (events & SYS_EVENT_MSG)
-  {
-    if ( (pMsg = (OsalPort_EventHdr *) OsalPort_msgReceive( taskId )) != NULL )
-    {
-      switch ( pMsg->event )
-      {
-        default:
-          break;
-      }
-
-      OsalPort_msgDeallocate( (byte *)pMsg );
-    }
-
-    events ^= SYS_EVENT_MSG;
-  }
-  else if ( events & JAMMER_CHECK_EVT )
-  {
-#ifdef FEATURE_DUAL_MAC
-    if ( DMMGR_IsDefaultMac() )
-#endif /* FEATURE_DUAL_MAC */
-    {
-    // Make sure we aren't currently receiving a message and radio is active.
-    if ( MAC_RX_IS_PHYSICALLY_ACTIVE() == MAC_RX_ACTIVE_NO_ACTIVITY )
-    {
-      int8_t rssiDbm = -128;
-
-      // Read the noise level
-      if ( RSSISTAT & 0x01 )
-      {
-        /* Add the RSSI offset */
-        rssiDbm = RSSI + MAC_RADIO_RSSI_OFFSET;
-
-        /* Adjust for external PA/LNA, if any */
-        MAC_RADIO_RSSI_LNA_OFFSET( rssiDbm );
-
-        // Check for a noise level that's high
-        if ( jammerDetections && (rssiDbm  > jammerHighNoiseLevel) )
-        {
-          jammerDetections--;
-          if ( jammerDetections == 0 )
-          {
-            // Jam detected
-            MT_SysJammerInd( TRUE );
-          }
-        }
-        else if ( rssiDbm <= jammerHighNoiseLevel )
-        {
-          if ( jammerDetections == 0 )
-          {
-            // Jam cleared
-            MT_SysJammerInd( FALSE );
-          }
-          jammerDetections = jammerContinuousEvents;
-        }
-      }
-    }
-    }
-    events ^= JAMMER_CHECK_EVT;
-  }
-  else
-  {
-    events = 0;  /* Discard unknown events. */
-  }
-
-  return ( events );
-}
-#endif // MT_SYS_JAMMER_FEATURE
-
-#if defined ( MT_SYS_SNIFFER_FEATURE )
-/******************************************************************************
- * @fn      MT_SysSnifferParameters
- *
- * @brief   Set the sniffer parameters.
- *
- * @param   pBuf - MT message containing the parameters.
- *
- * @return  None
- *****************************************************************************/
-static void MT_SysSnifferParameters( uint8_t *pBuf )
-{
-  uint8_t status = SUCCESS;
-  uint8_t param;
-
-  // Adjust for the data
-  pBuf += MT_RPC_FRAME_HDR_SZ;
-
-  // Noise Level need to be a Jam
-  param = *pBuf;
-
-  if ( param == MT_SYS_SNIFFER_DISABLE )
-  {
-    // Disable Sniffer
-    HAL_BOARD_DISABLE_INTEGRATED_SNIFFER();
-    sniffer = FALSE;
-  }
-  else if ( param == MT_SYS_SNIFFER_ENABLE )
-  {
-    // Enable the Sniffer
-    HAL_BOARD_ENABLE_INTEGRATED_SNIFFER();
-    sniffer = TRUE;
-  }
-  else if ( param == MT_SYS_SNIFFER_GET_SETTING )
-  {
-    status = sniffer; // sniffer setting
-  }
-  else
-  {
-    status = INVALIDPARAMETER;
-  }
-
-  /* Send back response that includes the actual dBm TxPower that can be set. */
-  MT_BuildAndSendZToolResponse( MT_SRSP_SYS, MT_SYS_SNIFFER_PARAMETERS,
-                                sizeof(status), &status );
-}
-#endif // MT_SYS_SNIFFER_FEATURE
-
 #if defined( ENABLE_MT_SYS_RESET_SHUTDOWN )
 /******************************************************************************
  * @fn          powerOffSoc
@@ -2136,16 +1820,8 @@ static void MT_SysSnifferParameters( uint8_t *pBuf )
  *****************************************************************************/
 static void powerOffSoc(void)
 {
-  HAL_DISABLE_INTERRUPTS();
-
-  /* turn off the RF front end device */
-  //TBD, based on the rf-front-end being used
-
   /* turn off the receiver */
   MAC_RADIO_RXTX_OFF();
-
-  /* just in case a receive was about to start, flush the receive FIFO */
-  MAC_RADIO_FLUSH_RX_FIFO();
 
   /* clear any receive interrupt that happened to squeak through */
   MAC_RADIO_CLEAR_RX_THRESHOLD_INTERRUPT_FLAG();
@@ -2156,25 +1832,15 @@ static void powerOffSoc(void)
   /* power of radio */
   MAC_RADIO_TURN_OFF_POWER();
 
-  STIF = 0; //HAL_SLEEP_TIMER_CLEAR_INT;
+  Power_releaseConstraint(PowerCC26XX_SD_DISALLOW);
+  /* Go to shutdown */
+  Power_shutdown(0, 0);
 
-  if (ZNP_CFG1_UART == znpCfg1)
+  // just in case we wake up for some unknown reason
+  OsalPort_enterCS();
+  while (1)
   {
-    HalUARTSuspend();
-  }
-
-  /* Prep CC2530 power mode */
-  //HAL_SLEEP_PREP_POWER_MODE(3);
-  SLEEPCMD &= ~PMODE; /* clear mode bits */
-  SLEEPCMD |= 3;      /* set mode bits  to PM3 */
-  while (!(STLOAD & LDRDY));
-
-  while (1) //just in case we wake up for some unknown reason
-  {
-    /* Execution is supposed to halt at this instruction. Interrupts are
-       disabled - the only way to exit this state is from hardware reset. */
-    PCON = halSleepPconValue;
-    asm("NOP");
+    asm(" NOP");
   }
 }
 #endif

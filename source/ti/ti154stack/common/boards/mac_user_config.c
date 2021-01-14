@@ -395,7 +395,8 @@ void rfSelect(uint16_t phyId)
 /* end of CC1312R1 Configuration */
 
 /* CC26X2R1/CC2652RB Configuration */
-#if defined(LAUNCHXL_CC26X2R1) || defined(LAUNCHXL_CC2652RB)
+#if defined(LAUNCHXL_CC26X2R1) || defined(LAUNCHXL_CC2652RB) || \
+    defined(LP_CC2652RSIP) || defined(LP_CC2652PSIP)
 void rfSelect(uint16_t phyId)
 {
     (void)phyId;

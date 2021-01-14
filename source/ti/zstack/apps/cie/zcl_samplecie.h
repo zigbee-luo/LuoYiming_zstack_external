@@ -52,7 +52,9 @@ extern "C"
  */
 #include "zcl.h"
 #include "nvintf.h"
+#ifndef CUI_DISABLE
 #include "cui.h"
+#endif
 
 /*********************************************************************
  * CONSTANTS
@@ -113,9 +115,11 @@ extern CONST uint8_t zclSampleCIE_NumAttributes;
  *  Reset all writable attributes to their default values.
  */
 extern void zclSampleCIE_ResetAttributesToDefaultValues(void); //implemented in zcl_samplesw_data.c
+#ifndef CUI_DISABLE
 extern void zclSampleCIE_UiActionSendSquawk(const int32_t _itemEntry);
 extern void zclSampleCIE_UiActionDiscoverZone(const int32_t _itemEntry);
 extern void zclSampleCIE_UiActionConfigureServiceDiscovery(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
+#endif
 
 /*********************************************************************
 *********************************************************************/

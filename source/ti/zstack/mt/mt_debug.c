@@ -280,13 +280,8 @@ static void MT_DebugMacDataDump(void)
   *pBuf++ = BREAK_UINT32(rxCrcSuccess, 2);
   *pBuf++ = BREAK_UINT32(rxCrcSuccess, 3);
 #endif
-#if defined MAC_RADIO_CC2520
-  *pBuf++ = macSpiReadReg(FSMSTAT0);
-  *pBuf++ = macSpiReadReg(FSMSTAT1);
-#else
   *pBuf++ = 0;//FSMSTAT0;   //TODO: Update this register as per Agama device
   *pBuf++ = 0;//FSMSTAT1;
-#endif
   *pBuf++ = macData.rxCount;
   *pBuf++ = macData.directCount;
   *pBuf++ = macMain.state;

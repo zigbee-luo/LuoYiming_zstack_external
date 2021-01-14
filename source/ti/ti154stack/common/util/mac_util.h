@@ -51,7 +51,7 @@
  *****************************************************************************/
 #include <stdint.h>
 
-#ifndef COPROCESSOR
+#if !defined(COPROCESSOR) && !defined(LIBRARY)
 #include "ti_154stack_config.h"
 #endif
 

@@ -146,7 +146,7 @@ uint8_t Board_Key_initialize(Board_Key_keysPressedCB_t appKeyCB)
     PIN_registerIntCb(keyPinHandle, board_key_keyFxn);
 
     /* Setup keycallback for keys */
-    Timer_construct(&keyChangeClock, board_key_changeHandler,
+    UtilTimer_construct(&keyChangeClock, board_key_changeHandler,
                     (KEY_DEBOUNCE_TIMEOUT),
                     0, false, 0);
 
@@ -175,9 +175,9 @@ static void board_key_keyFxn(PIN_Handle keyPinHandle, PIN_Id keyPinId)
         keysPressed |= KEY_RIGHT;
     }
 
-    if(Timer_isActive(&keyChangeClock) != true)
+    if(UtilTimer_isActive(&keyChangeClock) != true)
     {
-        Timer_start(&keyChangeClock);
+        UtilTimer_start(&keyChangeClock);
     }
 }
 

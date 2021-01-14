@@ -153,7 +153,7 @@ void zclGp_GpNotificationCommandCB( zclGpNotification_t *pCmd )
     switch(pCmd->gpCmdId)
     {
 #ifdef ZCL_IDENTIFY
-    case GP_COMMAND_IDENTIFY:
+    case GP_COMMAND_IDENTIFY_IDENTIFY:
       if( GpSink_AppCallbacks->pfnGpdfIdentifyCmd )
       {
         GpSink_AppCallbacks->pfnGpdfIdentifyCmd(pCmd);
@@ -496,11 +496,11 @@ ZStatus_t zclGp_DataIndParse( gp_DataInd_t *pInd, gpNotificationCmd_t *pGpNotifi
       pGpNotification->gppShortAddr = _NIB.nwkDevAddress;
 
       RSSI = pInd->Rssi;
-      ( RSSI > 8 ) ?RSSI = 8 : ( RSSI < -109 ) ?RSSI = -109 : NULL;
+      ( RSSI > 8 ) ?RSSI = 8 : ( RSSI < -109 ) ?RSSI = -109 : 0;
       RSSI += 110;
       RSSI /= 2;
 
-      ( pInd->LinkQuality == 0 ) ?LQI = 0 : ( pInd->LinkQuality > 0 ) ?LQI = 2 : NULL;
+      ( pInd->LinkQuality == 0 ) ?LQI = 0 : ( pInd->LinkQuality > 0 ) ?LQI = 2 : 0;
 
       pGpNotification->gppGpdLink = RSSI;
       pGpNotification->gppGpdLink |= ( LQI << 6 );
@@ -1214,7 +1214,7 @@ void gp_dataIndSink(gp_DataInd_t *gpDataInd)
   gpDataInd->SecReqHandling.timeout = gpDuplicateTimeout;
   //Consider the current time elapsed to the next timeout
 #if (defined (USE_ICALL) || defined (OSAL_PORT2TIRTOS))
-  timeout =  Timer_getTimeout(gpAppExpireDuplicateClkHandle);
+  timeout =  UtilTimer_getTimeout(gpAppExpireDuplicateClkHandle);
 #else
   timeout = OsalPortTimers_getTimerTimeout(gp_TaskID, GP_DUPLICATE_FILTERING_TIMEOUT_EVENT);
 #endif
@@ -1226,8 +1226,8 @@ void gp_dataIndSink(gp_DataInd_t *gpDataInd)
   else
   {
 #if (defined (USE_ICALL) || defined (OSAL_PORT2TIRTOS))
-  Timer_setTimeout(gpAppExpireDuplicateClkHandle, gpDataInd->SecReqHandling.timeout );
-  Timer_start(&gpAppExpireDuplicateClk);
+  UtilTimer_setTimeout(gpAppExpireDuplicateClkHandle, gpDataInd->SecReqHandling.timeout );
+  UtilTimer_start(&gpAppExpireDuplicateClk);
 #else
   OsalPortTimers_startTimer(gp_TaskID, GP_DUPLICATE_FILTERING_TIMEOUT_EVENT, gp_DataInd->SecReqHandling.timeout);
 #endif
@@ -1338,8 +1338,8 @@ void gp_dataIndSink(gp_DataInd_t *gpDataInd)
       {
 
 #if (defined (USE_ICALL) || defined (OSAL_PORT2TIRTOS))
-      Timer_setTimeout(gpAppTempMasterTimeoutClkHandle, gpBirectionalCommissioningChangeChannelTimeout);
-      Timer_start(&gpAppTempMasterTimeoutClk);
+      UtilTimer_setTimeout(gpAppTempMasterTimeoutClkHandle, gpBirectionalCommissioningChangeChannelTimeout);
+      UtilTimer_start(&gpAppTempMasterTimeoutClk);
 #else
       OsalPortTimers_startTimer(gp_TaskID, GP_CHANNEL_CONFIGURATION_TIMEOUT, gpBirectionalCommissioningChangeChannelTimeout);
 #endif
@@ -2045,8 +2045,8 @@ static uint8_t* gp_processCommissioning(gpdID_t *pGPDId, uint8_t *pAsdu, gpdComm
         zcl_memcpy( pCommissioningCmdPayload->gpdKey, keyRsp.key, SEC_KEY_LEN );
       }
       //Key was requested and requires encryption for gp response
-      else if(!pCommissioningCmdPayload->extOptions.gpdKeyPresent |
-               pCommissioningCmdPayload->options.securityKeyRequest == TRUE)
+      else if ( 0 == pCommissioningCmdPayload->extOptions.gpdKeyPresent ||
+                0 != pCommissioningCmdPayload->options.securityKeyRequest )
       {
         pGpResponsePayload = zcl_memcpy(pGpResponsePayload, keyRsp.key, SEC_KEY_LEN);
         pGpResponsePayload = zcl_memcpy(pGpResponsePayload, &keyRsp.keyMic, GP_SECURITY_MIC_SIZE);
@@ -2059,7 +2059,8 @@ static uint8_t* gp_processCommissioning(gpdID_t *pGPDId, uint8_t *pAsdu, gpdComm
       }
     }
     //If Key is required for gp response in plain text
-    if( !pCommissioningCmdPayload->extOptions.gpdKeyPresent | pCommissioningCmdPayload->options.securityKeyRequest == TRUE)
+    if ( 0 == pCommissioningCmdPayload->extOptions.gpdKeyPresent ||
+         0 != pCommissioningCmdPayload->options.securityKeyRequest )
     {
       uint8_t gpSharedKey[SEC_KEY_LEN];
 

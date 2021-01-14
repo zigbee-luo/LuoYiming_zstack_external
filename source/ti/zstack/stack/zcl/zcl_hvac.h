@@ -51,6 +51,7 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
 /*********************************************************************
  * CONSTANTS
@@ -60,28 +61,28 @@ extern "C"
 /***          HVAC: Pump Config and Control Cluster Attributes          ***/
 /**************************************************************************/
   // Pump information attribute set
-#define ATTRID_HVAC_PUMP_MAX_PRESSURE                                    0x0000
-#define ATTRID_HVAC_PUMP_MAX_SPEED                                       0x0001
-#define ATTRID_HVAC_PUMP_MAX_FLOW                                        0x0002
-#define ATTRID_HVAC_PUMP_MIN_CONST_PRESSURE                              0x0003
-#define ATTRID_HVAC_PUMP_MAX_CONST_PRESSURE                              0x0004
-#define ATTRID_HVAC_PUMP_MIN_COMP_PRESSURE                               0x0005
-#define ATTRID_HVAC_PUMP_MAX_COMP_PRESSURE                               0x0006
-#define ATTRID_HVAC_PUMP_MIN_CONST_SPEED                                 0x0007
-#define ATTRID_HVAC_PUMP_MAX_CONST_SPEED                                 0x0008
-#define ATTRID_HVAC_PUMP_MIN_CONST_FLOW                                  0x0009
-#define ATTRID_HVAC_PUMP_MAX_CONST_FLOW                                  0x000A
-#define ATTRID_HVAC_PUMP_MIN_CONST_TEMP                                  0x000B
-#define ATTRID_HVAC_PUMP_MAX_CONST_TEMP                                  0x000C
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MAX_PRESSURE                                    0x0000
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MAX_SPEED                                       0x0001
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MAX_FLOW                                        0x0002
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MIN_CONST_PRESSURE                              0x0003
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MAX_CONST_PRESSURE                              0x0004
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MIN_COMP_PRESSURE                               0x0005
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MAX_COMP_PRESSURE                               0x0006
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MIN_CONST_SPEED                                 0x0007
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MAX_CONST_SPEED                                 0x0008
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MIN_CONST_FLOW                                  0x0009
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MAX_CONST_FLOW                                  0x000A
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MIN_CONST_TEMP                                  0x000B
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_MAX_CONST_TEMP                                  0x000C
   // Pump Dynamic Information attribute set
-#define ATTRID_HVAC_PUMP_STATUS                                          0x0010
-#define ATTRID_HVAC_PUMP_EFECTIVE_OPERATION_MODE                         0x0011
-#define ATTRID_HVAC_PUMP_EFFECTIVE_CONTROL_MODE                          0x0012
-#define ATTRID_HVAC_PUMP_CAPACITY                                        0x0013
-#define ATTRID_HVAC_PUMP_SPEED                                           0x0014
-#define ATTRID_HVAC_PUMP_LIFETIME_RUNNING_HOURS                          0x0015
-#define ATTRID_HVAC_PUMP_POWER                                           0x0016
-#define ATTRID_HVAC_LIFETIME_ENERGY_CONSUMED                             0x0017
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_PUMP_STATUS                                     0x0010
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_EFFECTIVE_OPERATION_MODE                        0x0011
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_EFFECTIVE_CONTROL_MODE                          0x0012
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_CAPACITY                                        0x0013
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_SPEED                                           0x0014
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_LIFETIME_RUNNING_HOURS                          0x0015
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_POWER                                           0x0016
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_LIFETIME_ENERGY_CONSUMED                             0x0017
   /*** Pump status attribute values ***/
 #define HVAC_PUMP_DEVICE_FAULT                                           0x0000
 #define HVAC_PUMP_SUPPLY_FAULT                                           0x0001
@@ -93,11 +94,11 @@ extern "C"
 #define HVAC_PUMP_REMOTE_FLOW                                            0x0007
 #define HVAC_PUMP_REMOTE_TEMPERATURE                                     0x0008
   // Pump Settings attributes set
-#define ATTRID_HVAC_PUMP_OPERATION_MODE                                  0x0020
-#define ATTRID_HVAC_PUMP_CONTROL_MODE                                    0x0021
-#define ATTRID_HVAC_PUMP_ALARM_MASK                                      0x0022
-//#define ATTRID_HVAC_PUMP_CAPACITY_MIN_PERCENT_CHANGE                     0x0023
-//#define ATTRID_HVAC_PUMP_CAPACITY_MIN_ABSOLUTE_CHANGE                    0x0024
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_OPERATION_MODE                                  0x0020
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_CONTROL_MODE                                    0x0021
+#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_ALARM_MASK                                      0x0022
+//#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_CAPACITY_MIN_PERCENT_CHANGE                     0x0023
+//#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_CAPACITY_MIN_ABSOLUTE_CHANGE                    0x0024
 /*** Operation mode attribute values ***/
 #define HVAC_PUMP_OPERATION_MODE_NORMAL                                  0x00
 #define HVAC_PUMP_OPERATION_MODE_MINIMUM                                 0x01
@@ -126,7 +127,7 @@ extern "C"
 #define HVAC_PUMP_ELECTRONIC_FATAL_FAILURE                               0x1000
 #define HVAC_PUMP_GENERAL_FAULT                                          0x2000
   // Pump Unit Table attributes set
-//#define ATTRID_HVAC_PUMP_POWER_UNIT                                      0x0030
+//#define ATTRID_PUMP_CONFIGURATION_AND_CONTROL_POWER_UNIT                                      0x0030
 /*** Power Unit attribute values ***/
 //#define HVAC_PUMP_POWER_UNIT_POWER_IN_WATTS                              0x00
 //#define HVAC_PUMP_POWER_UNIT_POWER_IN_KILOWATTS                          0x01
@@ -135,58 +136,66 @@ extern "C"
 /***          HVAC: Thermostat Cluster Attributes                       ***/
 /**************************************************************************/
   // Thermostat information attribute set
-#define ATTRID_HVAC_THERMOSTAT_LOCAL_TEMPERATURE                         0x0000 // M, R, int16_t
-#define ATTRID_HVAC_THERMOSTAT_OUTDOOR_TEMPERATURE                       0x0001 // O, R, int16_t
-#define ATTRID_HVAC_THERMOSTAT_OCCUPANCY                                 0x0002 // O, R, BITMAP8
-#define ATTRID_HVAC_THERMOSTAT_ABS_MIN_HEAT_SETPOINT_LIMIT               0x0003 // O, R, int16_t
-#define ATTRID_HVAC_THERMOSTAT_ABS_MAX_HEAT_SETPOINT_LIMIT               0x0004 // O, R, int16_t
-#define ATTRID_HVAC_THERMOSTAT_ABS_MIN_COOL_SETPOINT_LIMIT               0x0005 // O, R, int16_t
-#define ATTRID_HVAC_THERMOSTAT_ABS_MAX_COOL_SETPOINT_LIMIT               0x0006 // O, R, int16_t
-#define ATTRID_HVAC_THERMOSTAT_PI_COOLING_DEMAND                         0x0007 // O, R, uint8_t
-#define ATTRID_HVAC_THERMOSTAT_PI_HEATING_DEMAND                         0x0008 // O, R, uint8_t
-#define ATTRID_HVAC_THERMOSTAT_SYSTEM_TYPE_CONFIGURATION                 0x0009 // O, R/W, BITMAP8
+#define ATTRID_THERMOSTAT_LOCAL_TEMPERATURE                         0x0000 // M, R, int16_t
+#define ATTRID_THERMOSTAT_OUTDOOR_TEMPERATURE                       0x0001 // O, R, int16_t
+#define ATTRID_THERMOSTAT_OCCUPANCY                                 0x0002 // O, R, BITMAP8
+#define ATTRID_THERMOSTAT_ABS_MIN_HEAT_SETPOINT_LIMIT               0x0003 // O, R, int16_t
+#define ATTRID_THERMOSTAT_ABS_MAX_HEAT_SETPOINT_LIMIT               0x0004 // O, R, int16_t
+#define ATTRID_THERMOSTAT_ABS_MIN_COOL_SETPOINT_LIMIT               0x0005 // O, R, int16_t
+#define ATTRID_THERMOSTAT_ABS_MAX_COOL_SETPOINT_LIMIT               0x0006 // O, R, int16_t
+#define ATTRID_THERMOSTAT_PI_COOLING_DEMAND                         0x0007 // O, R, uint8_t
+#define ATTRID_THERMOSTAT_PI_HEATING_DEMAND                         0x0008 // O, R, uint8_t
+#define ATTRID_THERMOSTAT_HVAC_SYSTEM_TYPE_CONFIGURATION                 0x0009 // O, R/W, BITMAP8
 
   // Thermostat settings attribute set
-#define ATTRID_HVAC_THERMOSTAT_LOCAL_TEMP_CALIBRATION                    0x0010 // O, R/W, int8_t
-#define ATTRID_HVAC_THERMOSTAT_OCCUPIED_COOLING_SETPOINT                 0x0011 // M, R/W, int16_t
-#define ATTRID_HVAC_THERMOSTAT_OCCUPIED_HEATING_SETPOINT                 0x0012 // M, R/W, int16_t
-#define ATTRID_HVAC_THERMOSTAT_UNOCCUPIED_COOLING_SETPOINT               0x0013 // O, R/W, int16_t
-#define ATTRID_HVAC_THERMOSTAT_UNOCCUPIED_HEATING_SETPOINT               0x0014 // O, R/W, int16_t
-#define ATTRID_HVAC_THERMOSTAT_MIN_HEAT_SETPOINT_LIMIT                   0x0015 // O, R/W, int16_t
-#define ATTRID_HVAC_THERMOSTAT_MAX_HEAT_SETPOINT_LIMIT                   0x0016 // O, R/W, int16_t
-#define ATTRID_HVAC_THERMOSTAT_MIN_COOL_SETPOINT_LIMIT                   0x0017 // O, R/W, int16_t
-#define ATTRID_HVAC_THERMOSTAT_MAX_COOL_SETPOINT_LIMIT                   0x0018 // O, R/W, int16_t
-#define ATTRID_HVAC_THERMOSTAT_MIN_SETPOINT_DEAD_BAND                    0x0019 // O, R/W, int8_t
-#define ATTRID_HVAC_THERMOSTAT_REMOTE_SENSING                            0x001A // O, R/W, BITMAP8
-#define ATTRID_HVAC_THERMOSTAT_CTRL_SEQ_OF_OPER                          0x001B // M, R/W, ENUM8
-#define ATTRID_HVAC_THERMOSTAT_SYSTEM_MODE                               0x001C // M, R/W, ENUM8
-#define ATTRID_HVAC_THERMOSTAT_ALAM_MASK                                 0x001D // O, R, BITMAP8
-#define ATTRID_HVAC_THERMOSTAT_RUNNING_MODE                              0x001E // O, R, ENUM8
+#define ATTRID_THERMOSTAT_LOCAL_TEMPERATURE_CALIBRATION                    0x0010 // O, R/W, int8_t
+#define ATTRID_THERMOSTAT_OCCUPIED_COOLING_SETPOINT                 0x0011 // M, R/W, int16_t
+#define ATTRID_THERMOSTAT_OCCUPIED_HEATING_SETPOINT                 0x0012 // M, R/W, int16_t
+#define ATTRID_THERMOSTAT_UNOCCUPIED_COOLING_SETPOINT               0x0013 // O, R/W, int16_t
+#define ATTRID_THERMOSTAT_UNOCCUPIED_HEATING_SETPOINT               0x0014 // O, R/W, int16_t
+#define ATTRID_THERMOSTAT_MIN_HEAT_SETPOINT_LIMIT                   0x0015 // O, R/W, int16_t
+#define ATTRID_THERMOSTAT_MAX_HEAT_SETPOINT_LIMIT                   0x0016 // O, R/W, int16_t
+#define ATTRID_THERMOSTAT_MIN_COOL_SETPOINT_LIMIT                   0x0017 // O, R/W, int16_t
+#define ATTRID_THERMOSTAT_MAX_COOL_SETPOINT_LIMIT                   0x0018 // O, R/W, int16_t
+#define ATTRID_THERMOSTAT_MIN_SETPOINT_DEAD_BAND                    0x0019 // O, R/W, int8_t
+#define ATTRID_THERMOSTAT_REMOTE_SENSING                            0x001A // O, R/W, BITMAP8
+#define ATTRID_THERMOSTAT_CONTROL_SEQUENCE_OF_OPERATION                          0x001B // M, R/W, ENUM8
+#define ATTRID_THERMOSTAT_SYSTEM_MODE                               0x001C // M, R/W, ENUM8
+#define ATTRID_THERMOSTAT_ALARM_MASK                                 0x001D // O, R, BITMAP8
+#define ATTRID_THERMOSTAT_THERMOSTAT_RUNNING_MODE                              0x001E // O, R, ENUM8
 
   // Thermostat Schedule & HVAC Relay Attribute Set
-#define ATTRID_HVAC_THERMOSTAT_START_OF_WEEK                             0x0020 // O, R, ENUM8
-#define ATTRID_HVAC_THERMOSTAT_NUMBER_OF_WEEKLY_TRANSITIONS              0x0021 // O, R, uint8_t
-#define ATTRID_HVAC_THERMOSTAT_NUMBER_OF_DAILY_TRANSITIONS               0x0022 // O, R, uint8_t
-#define ATTRID_HVAC_THERMOSTAT_TEMPERATURE_SETPOINT_HOLD                 0x0023 // O, R/W, ENUM8
-#define ATTRID_HVAC_THERMOSTAT_TEMPERATURE_SETPOINT_HOLD_DURATION        0x0024 // O, R/W, uint16_t
-#define ATTRID_HVAC_THERMOSTAT_PROGRAMMING_OPERATION_MODE                0x0025 // O, R/W, BITMAP8
+#define ATTRID_THERMOSTAT_START_OF_WEEK                             0x0020 // O, R, ENUM8
+#define ATTRID_THERMOSTAT_NUMBER_OF_WEEKLY_TRANSITIONS              0x0021 // O, R, uint8_t
+#define ATTRID_THERMOSTAT_NUMBER_OF_DAILY_TRANSITIONS               0x0022 // O, R, uint8_t
+#define ATTRID_THERMOSTAT_TEMPERATURE_SETPOINT_HOLD                 0x0023 // O, R/W, ENUM8
+#define ATTRID_THERMOSTAT_TEMPERATURE_SETPOINT_HOLD_DURATION        0x0024 // O, R/W, uint16_t
+#define ATTRID_THERMOSTAT_THERMOSTAT_PROGRAMMING_OPERATION_MODE                0x0025 // O, R/W, BITMAP8
   // HVAC Relay Attribute:
-#define ATTRID_HVAC_THERMOSTAT_RUNNING_STATE                             0x0029 // O, R, BITMAP16
+#define ATTRID_THERMOSTAT_THERMOSTAT_RUNNING_STATE                             0x0029 // O, R, BITMAP16
 
   // Thermostat Setpoint Change Tracking Attribute Set
-#define ATTRID_HVAC_THERMOSTAT_SETPOINT_CHANGE_SOURCE                    0x0030 // O, R, ENUM8
-#define ATTRID_HVAC_THERMOSTAT_SETPOINT_CHANGE_AMOUNT                    0x0031 // O, R, int16_t
-#define ATTRID_HVAC_THERMOSTAT_SETPOINT_CHANGE_SOURCE_TIMESTAMP          0x0032 // O, R, UTC
+#define ATTRID_THERMOSTAT_SETPOINT_CHANGE_SOURCE                    0x0030 // O, R, ENUM8
+#define ATTRID_THERMOSTAT_SETPOINT_CHANGE_AMOUNT                    0x0031 // O, R, int16_t
+#define ATTRID_THERMOSTAT_SETPOINT_CHANGE_SOURCE_TIMESTAMP          0x0032 // O, R, UTC
+
+#define ATTRID_THERMOSTAT_OCCUPIED_SETBACK                          0x0034
+#define ATTRID_THERMOSTAT_OCCUPIED_SETBACK_MIN                      0x0035
+#define ATTRID_THERMOSTAT_OCCUPIED_SETBACK_MAX                      0x0036
+#define ATTRID_THERMOSTAT_UNOCCUPIED_SETBACK                        0x0037
+#define ATTRID_THERMOSTAT_UNOCCUPIED_SETBACK_MIN                    0x0038
+#define ATTRID_THERMOSTAT_UNOCCUPIED_SETBACK_MAX                    0x0039
+#define ATTRID_THERMOSTAT_EMERGENCY_HEAT_DELTA                      0x003A
 
   // Thermostat AC Information Attribute Set
-#define ATTRID_HVAC_THERMOSTAT_AC_TYPE                                   0x0040 // O, R/W, ENUM8
-#define ATTRID_HVAC_THERMOSTAT_AC_CAPACITY                               0x0041 // O, R/W, uint16_t
-#define ATTRID_HVAC_THERMOSTAT_AC_REFRIGERANT_TYPE                       0x0042 // O, R/W, ENUM8
-#define ATTRID_HVAC_THERMOSTAT_AC_COMPRESSOR_TYPE                        0x0043 // O, R/W, ENUM8
-#define ATTRID_HVAC_THERMOSTAT_AC_ERROR_CODE                             0x0044 // O, R/W, BITMAP32
-#define ATTRID_HVAC_THERMOSTAT_AC_LOUVER_POSITION                        0x0045 // O, R/W, ENUM8
-#define ATTRID_HVAC_THERMOSTAT_AC_COIL_TEMPERATURE                       0x0046 // O, R, int16_t
-#define ATTRID_HVAC_THERMOSTAT_AC_CAPACITY_FORMAT                        0x0047 // O, R/W, ENUM8
+#define ATTRID_THERMOSTAT_AC_TYPE                                   0x0040 // O, R/W, ENUM8
+#define ATTRID_THERMOSTAT_AC_CAPACITY                               0x0041 // O, R/W, uint16_t
+#define ATTRID_THERMOSTAT_AC_REFRIGERANT_TYPE                       0x0042 // O, R/W, ENUM8
+#define ATTRID_THERMOSTAT_AC_COMPRESSOR_TYPE                        0x0043 // O, R/W, ENUM8
+#define ATTRID_THERMOSTAT_AC_ERROR_CODE                             0x0044 // O, R/W, BITMAP32
+#define ATTRID_THERMOSTAT_AC_LOUVER_POSITION                        0x0045 // O, R/W, ENUM8
+#define ATTRID_THERMOSTAT_AC_COIL_TEMPERATURE                       0x0046 // O, R, int16_t
+#define ATTRID_THERMOSTAT_AC_CAPACITY_FORMAT                        0x0047 // O, R/W, ENUM8
 
   // Thermostat Attribute Defaults
 #define ATTR_DEFAULT_HVAC_THERMOSTAT_LOCAL_TEMPERATURE                    0
@@ -324,7 +333,7 @@ extern "C"
 #define HVAC_THERMOSTAT_AC_CAPACITY_BTUH                                 0x00
 
   // command IDs received by Server
-#define COMMAND_THERMOSTAT_SETPOINT_RAISE_LOWER                          0x00 // zclCmdThermostatSetpointRaiseLowerPayload_t
+#define COMMAND_THERMOSTAT_SETPOINT_RAISE_OR_LOWER                          0x00 // zclCmdThermostatSetpointRaiseLowerPayload_t
 #define COMMAND_THERMOSTAT_SET_WEEKLY_SCHEDULE                           0x01 // zclThermostatWeeklySchedule_t
 #define COMMAND_THERMOSTAT_GET_WEEKLY_SCHEDULE                           0x02 // zclThermostatGetWeeklySchedule_t
 #define COMMAND_THERMOSTAT_CLEAR_WEEKLY_SCHEDULE                         0x03 // no payload
@@ -336,15 +345,15 @@ extern "C"
 #define HVAC_THERMOSTAT_MODE_BOTH                                        0x02
 
   // command IDs generated by Server
-#define COMMAND_THERMOSTAT_GET_WEEKLY_SCHEDULE_RSP                       0x00 // zclThermostatWeeklySchedule_t
-#define COMMAND_THERMOSTAT_GET_RELAY_STATUS_LOG_RSP                      0x01 // zclThermostatGetRelayStatusLogRsp_t
+#define COMMAND_THERMOSTAT_GET_WEEKLY_SCHEDULE_RESPONSE                       0x00 // zclThermostatWeeklySchedule_t
+#define COMMAND_THERMOSTAT_GET_RELAY_STATUS_LOG_RESPONSE                      0x01 // zclThermostatGetRelayStatusLogRsp_t
 
 /**************************************************************************/
 /***          HVAC: Fan Control Cluster Attributes                      ***/
 /**************************************************************************/
   // Fan Control attribute set
-#define ATTRID_HVAC_FAN_CTRL_FAN_MODE                                    0x0000 // M, R/W, ENUM8
-#define ATTRID_HVAC_FAN_CTRL_FAN_SEQUENCE                                0x0001 // M, R/W, ENUM8
+#define ATTRID_FAN_CONTROL_FAN_MODE                                    0x0000 // M, R/W, ENUM8
+#define ATTRID_FAN_CONTROL_FAN_MODE_SEQUENCE                                0x0001 // M, R/W, ENUM8
 
   /*** Fan Mode attribute values ***/
 #define HVAC_FAN_CTRL_FAN_MODE_OFF                                       0x00
@@ -366,16 +375,16 @@ extern "C"
 /***          HVAC: Dehumidifcation Control Cluster Attributes          ***/
 /**************************************************************************/
   // Dehumidifcation Control Information attribute set
-#define ATTRID_HVAC_DEHUMIDIFICATION_CTRL_RELATIVE_HUMIDITY              0x0000
-#define ATTRID_HVAC_DEHUMIDIFICATION_CTRL_DEHUMID_COOLING                0x0001
+#define ATTRID_DEHUMIDIFICATION_CONTROL_RELATIVE_HUMIDITY              0x0000
+#define ATTRID_DEHUMIDIFICATION_CONTROL_DEHUMIDIFICATION_COOLING                0x0001
 
   // Dehumidifcation Control Settings attribute set
-#define ATTRID_HVAC_DEHUMIDIFICATION_CTRL_RHDEHUMID_SETPOINT             0x0010
-#define ATTRID_HVAC_DEHUMIDIFICATION_CTRL_RELATIVE_HUMIDITY_MODE         0x0011
-#define ATTRID_HVAC_DEHUMIDIFICATION_CTRL_DEHUMID_LOCKOUT                0x0012
-#define ATTRID_HVAC_DEHUMIDIFICATION_CTRL_DEHUMID_HYSTERESIS             0x0013
-#define ATTRID_HVAC_DEHUMIDIFICATION_CTRL_DEHUMID_MAX_COOL               0x0014
-#define ATTRID_HVAC_DEHUMIDIFICATION_CTRL_RELATIVE_HUMIDITY_DISPLAY      0x0015
+#define ATTRID_DEHUMIDIFICATION_CONTROL_RH_DEHUMIDIFICATION_SETPOINT             0x0010
+#define ATTRID_DEHUMIDIFICATION_CONTROL_RELATIVE_HUMIDITY_MODE         0x0011
+#define ATTRID_DEHUMIDIFICATION_CONTROL_DEHUMIDIFICATION_LOCKOUT                0x0012
+#define ATTRID_DEHUMIDIFICATION_CONTROL_DEHUMIDIFICATION_HYSTERESIS             0x0013
+#define ATTRID_DEHUMIDIFICATION_CONTROL_DEHUMIDIFICATION_MAX_COOL               0x0014
+#define ATTRID_DEHUMIDIFICATION_CONTROL_RELATIVE_HUMIDITY_DISPLAY      0x0015
 
    /*** Relative Humidity Mode attribute values ***/
 #define HVAC_DEHUMIDIFICATION_CTRL_RELATIVE_HUMIDITY_MEASURED_LOCALLY    0x00
@@ -393,24 +402,24 @@ extern "C"
 /***          HVAC: Thermostat User Interface Config Cluster Attributes ***/
 /**************************************************************************/
   // Thermostat User Interface Config attribute set
-#define ATTRID_HVAC_THERMOSTAT_UI_CONFIG_TEMP_DISPLAY_MODE               0x0000 // M, R/W, ENUM8
-#define ATTRID_HVAC_THERMOSTAT_UI_CONFIG_KEYPAD_LOCKOUT                  0x0001 // M, R/W, ENUM8
-#define ATTRID_HVAC_THERMOSTAT_UI_SCHEDULE_PROGRAMMING_VISIBILITY        0x0002 // O, R/W, ENUM8
+#define ATTRID_THERMOSTAT_USER_INTERFACE_CONFIGURATION_TEMPERATURE_DISPLAY_MODE        0x0000 // M, R/W, ENUM8
+#define ATTRID_THERMOSTAT_USER_INTERFACE_CONFIGURATION_KEYPAD_LOCKOUT                  0x0001 // M, R/W, ENUM8
+#define ATTRID_THERMOSTAT_USER_INTERFACE_CONFIGURATION_SCHEDULE_PROGRAMMING_VISIBILITY        0x0002 // O, R/W, ENUM8
 
   // Thermostat UI Attribute Defaults
 #define ATTR_DEFAULT_HVAC_THERMOSTAT_UI_SCHEDULE_PROGRAMMING_VISIBILITY  0
 
   /*** Display Mode attribute values ***/
-#define ATTRID_HVAC_THERMOSTAT_UI_CONFIG_DISPLAY_MODE_IN_C               0x00
-#define ATTRID_HVAC_THERMOSTAT_UI_CONFIG_DISPLAY_MODE_IN_F               0x01
+#define ATTRID_THERMOSTAT_UI_CONFIG_DISPLAY_MODE_IN_C               0x00
+#define ATTRID_THERMOSTAT_UI_CONFIG_DISPLAY_MODE_IN_F               0x01
 
   /*** Keypad Lockout attribute values ***/
-#define ATTRID_HVAC_THERMOSTAT_UI_KEYPAD_NO_LOCOUT                       0x00
-#define ATTRID_HVAC_THERMOSTAT_UI_KEYPAD_LEVEL1_LOCOUT                   0x01
-#define ATTRID_HVAC_THERMOSTAT_UI_KEYPAD_LEVEL2_LOCOUT                   0x02
-#define ATTRID_HVAC_THERMOSTAT_UI_KEYPAD_LEVEL3_LOCOUT                   0x03
-#define ATTRID_HVAC_THERMOSTAT_UI_KEYPAD_LEVEL4_LOCOUT                   0x04
-#define ATTRID_HVAC_THERMOSTAT_UI_KEYPAD_LEVEL5_LOCOUT                   0x05
+#define ATTRID_THERMOSTAT_UI_KEYPAD_NO_LOCOUT                       0x00
+#define ATTRID_THERMOSTAT_UI_KEYPAD_LEVEL1_LOCOUT                   0x01
+#define ATTRID_THERMOSTAT_UI_KEYPAD_LEVEL2_LOCOUT                   0x02
+#define ATTRID_THERMOSTAT_UI_KEYPAD_LEVEL3_LOCOUT                   0x03
+#define ATTRID_THERMOSTAT_UI_KEYPAD_LEVEL4_LOCOUT                   0x04
+#define ATTRID_THERMOSTAT_UI_KEYPAD_LEVEL5_LOCOUT                   0x05
 
   // Thermostat Schedule Programming Visibility Values
 #define HVAC_THERMOSTAT_UI_LOCAL_SCHEDULE_PROGRAMMING_ENABLE             0x00 // Local schedule programming functionality is enabled

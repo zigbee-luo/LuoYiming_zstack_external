@@ -52,7 +52,9 @@ extern "C"
  */
 #include "zcl.h"
 #include "nvintf.h"
+#ifndef CUI_DISABLE
 #include "cui.h"
+#endif
 
 /*********************************************************************
  * CONSTANTS
@@ -125,11 +127,12 @@ extern uint16_t zclSampleWarningDevice_MaxDuration;
  *  Reset all writable attributes to their default values.
  */
 extern void zclSampleWarningDevice_ResetAttributesToDefaultValues(void); //implemented in zcl_samplesw_data.c
-
+#ifndef CUI_DISABLE
 extern void zclSampleWarningDevice_UiActionChangeEnrollmentMode(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
 extern void zclSampleWarningDevice_UiActionDiscoverCIE(const char _input, char* _pLines[3], CUI_cursorInfo_t* _pCurInfo);
 extern void zclSampleWarningDevice_UiActionSendEnroll(const int32_t _itemEntry);
 extern void zclSampleWarningDevice_UiActionToggleAlarm(const int32_t _itemEntry);
+#endif
 /*********************************************************************
 *********************************************************************/
 

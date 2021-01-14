@@ -63,9 +63,6 @@
 
 static void OTA_AesHashBlock(uint8_t *pHash, uint8_t *pData);
 static void OTA_XorBlock(uint8_t *pHash, uint8_t *pData);
-#if defined (ZCL_KEY_ESTABLISH)
-static int OTA_ValidateHashFunc(uint8_t *digest, uint32_t len, uint8_t *data);
-#endif
 
 /******************************************************************************
  * @fn      OTA_AesHashBlock
@@ -180,28 +177,6 @@ void OTA_CalculateMmoR3(OTA_MmoCtrl_t *pCtrl, uint8_t *pData, uint8_t len, uint8
   }
 }
 
-#if defined (ZCL_KEY_ESTABLISH)
-/******************************************************************************
- * @fn      OTA_ValidateHashFunc
- *
- * @brief   This function is a hash function used by the ZSE_ECDSAVerify.
- *
- * @param   digest - Buffer to hold the digest
- *          len - The length of the digest
- *          data - Buffer with the data
- *
- * @return  Status of the operation
- */
-static int OTA_ValidateHashFunc(uint8_t *digest, uint32_t len, uint8_t *data)
-{
-  len *= 8;  // Convert to bit length
-
-  sspMMOHash( NULL, 0, data, (uint16_t)len, digest );
-
-  return MCE_SUCCESS;
-}
-#endif
-
 /******************************************************************************
  * @fn      OTA_ValidateSignature
  *
@@ -216,35 +191,6 @@ static int OTA_ValidateHashFunc(uint8_t *digest, uint32_t len, uint8_t *data)
  */
 uint8_t OTA_ValidateSignature(uint8_t *pHash, uint8_t* pCert, uint8_t *pSig, uint8_t *pIEEE)
 {
-#if defined (ZCL_KEY_ESTABLISH)
-  uint8_t publicKey[SECT163K1_COMPRESSED_PUBLIC_KEY_SIZE];
-  uint8_t ret;
-  uint8_t *caPublicKey;
-
-  if ((caPublicKey = OsalPort_malloc(ZCL_KE_CA_PUBLIC_KEY_LEN)) == NULL)
-  {
-    return ZCL_STATUS_SOFTWARE_FAILURE;  // Memory allocation failure.
-  }
-  osal_nv_read(ZCD_NV_CA_PUBLIC_KEY, 0, ZCL_KE_CA_PUBLIC_KEY_LEN, caPublicKey);
-
-  ret = ZSE_ECQVReconstructPublicKey(pCert, caPublicKey, publicKey,
-                                     OTA_ValidateHashFunc, NULL, 0);
-  OsalPort_free(caPublicKey);
-
-  if ( ret == MCE_SUCCESS )
-  {
-    ret = ZSE_ECDSAVerify(publicKey, pHash, pSig,
-                          pSig + SECT163K1_POINT_ORDER_SIZE,
-                          NULL, 0 );
-
-    if ( ret == MCE_SUCCESS )
-    {
-      return ZSuccess;
-    }
-  }
-
-  return ZFailure;
-#else
   // silence compiler warnings
   pHash = pHash;
   pCert = pCert;
@@ -252,5 +198,4 @@ uint8_t OTA_ValidateSignature(uint8_t *pHash, uint8_t* pCert, uint8_t *pSig, uin
   pIEEE = pIEEE;
 
   return ZSuccess;
-#endif
 }

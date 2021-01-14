@@ -413,9 +413,7 @@ extern "C"
 #define MT_UTIL_SET_SECLEVEL                 0x04
 #define MT_UTIL_SET_PRECFGKEY                0x05
 #define MT_UTIL_CALLBACK_SUB_CMD             0x06
-#define MT_UTIL_KEY_EVENT                    0x07
 #define MT_UTIL_TIME_ALIVE                   0x09
-#define MT_UTIL_LED_CONTROL                  0x0A
 
 #define MT_UTIL_TEST_LOOPBACK                0x10
 #define MT_UTIL_DATA_REQ                     0x11
@@ -450,9 +448,6 @@ extern "C"
 /* AREQ from/to host */
 #define MT_UTIL_SYNC_REQ                     0xE0
 #define MT_UTIL_ZCL_KEY_ESTABLISH_IND        0xE1
-#ifdef FEATURE_GET_PRIMARY_IEEE
-#define MT_UTIL_GET_PRIMARY_IEEE             0xEF
-#endif
 
 /***************************************************************************************************
  * DEBUG COMMANDS
@@ -597,6 +592,10 @@ extern "C"
 #define MT_SRNG_EVENT                   0x1000
 #endif
 
+#ifdef MT_ZNP_FUNC
+#define MT_ZNP_BASIC_RSP_EVENT          0x2000
+#endif
+
 /* Message Command IDs */
 #define CMD_SERIAL_MSG                  0x01
 #define CMD_DEBUG_MSG                   0x02
@@ -687,9 +686,6 @@ extern "C"
 #define TGEN_STOP                  0x000b
 #define TGEN_COUNT                 0x000c
 #define DEBUG_GET                  0x000d
-#define HW_TEST                    0x000e
-#define HW_DISPLAY_RESULT          0x000f
-#define HW_SEND_STATUS             0x0010
 
 #if defined ( APP_TP ) || defined ( APP_TP2 )
 #if defined ( APP_TP )

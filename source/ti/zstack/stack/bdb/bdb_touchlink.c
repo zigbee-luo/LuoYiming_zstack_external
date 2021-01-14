@@ -40,6 +40,7 @@
 /*********************************************************************
  * INCLUDES
  */
+#include "ti_zstack_config.h"
 #include "osal_nv.h"
 #include "ssp_hash.h"
 #include "nwk_util.h"

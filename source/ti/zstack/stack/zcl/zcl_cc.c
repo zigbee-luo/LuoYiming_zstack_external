@@ -41,6 +41,7 @@
 /*********************************************************************
  * INCLUDES
  */
+#include "ti_zstack_config.h"
 #include "zcl.h"
 #include "zcl_general.h"
 #include "zcl_cc.h"
@@ -49,6 +50,7 @@
   #include "stub_aps.h"
 #endif
 
+#ifdef ZCL_CC
 /*********************************************************************
  * MACROS
  */
@@ -155,8 +157,8 @@ ZStatus_t zclCC_RegisterCmdCallbacks( uint8_t endpoint, zclCC_AppCallbacks_t *ca
   // Register as a ZCL Plugin
   if ( !zclCCPluginRegisted )
   {
-    zcl_registerPlugin( ZCL_CLUSTER_ID_GEN_COMMISSIONING,
-                        ZCL_CLUSTER_ID_GEN_COMMISSIONING,
+    zcl_registerPlugin( ZCL_CLUSTER_ID_GENERAL_COMMISSIONING,
+                        ZCL_CLUSTER_ID_GENERAL_COMMISSIONING,
                         zclCC_HdlIncoming );
     zclCCPluginRegisted = TRUE;
   }
@@ -207,8 +209,8 @@ void zclCC_RegisterUnsupportCallback( ZStatus_t (*callback)(zclIncoming_t*pInMsg
   // Register as a ZCL Plugin
   if ( !zclCCPluginRegisted )
   {
-    zcl_registerPlugin( ZCL_CLUSTER_ID_GEN_COMMISSIONING,
-                        ZCL_CLUSTER_ID_GEN_COMMISSIONING,
+    zcl_registerPlugin( ZCL_CLUSTER_ID_GENERAL_COMMISSIONING,
+                        ZCL_CLUSTER_ID_GENERAL_COMMISSIONING,
                         zclCC_HdlIncoming );
     zclCCPluginRegisted = TRUE;
   }
@@ -635,7 +637,7 @@ ZStatus_t zclCC_Send_RestartDevice( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[1] = pCmd->delay;
   buf[2] = pCmd->jitter;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_COMMISSIONING,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_COMMISSIONING,
                           COMMAND_CC_RESTART_DEVICE, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0,
                           seqNum, CC_PACKET_LEN_RESTART_DEVICE, buf );
@@ -664,7 +666,7 @@ ZStatus_t zclCC_Send_StartupParamsCmd( uint8_t srcEP, afAddrType_t *dstAddr,
   buf[0] = pCmd->options;
   buf[1] = pCmd->index;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_COMMISSIONING,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_COMMISSIONING,
                           cmdId, TRUE, ZCL_FRAME_CLIENT_SERVER_DIR,
                           disableDefaultRsp, 0, seqNum,
                           CC_PACKET_LEN_STARTUP_PARAMS_CMD, buf );
@@ -688,7 +690,7 @@ ZStatus_t zclCC_Send_ServerParamsRsp( uint8_t srcEP, afAddrType_t *dstAddr,
                                       zclCCServerParamsRsp_t *pRsp, uint8_t cmdId,
                                       uint8_t disableDefaultRsp, uint8_t seqNum )
 {
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_COMMISSIONING,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_COMMISSIONING,
                           cmdId, TRUE, ZCL_FRAME_SERVER_CLIENT_DIR,
                           disableDefaultRsp, 0, seqNum,
                           CC_PACKET_LEN_SERVER_RSP, &(pRsp->status) );
@@ -697,3 +699,6 @@ ZStatus_t zclCC_Send_ServerParamsRsp( uint8_t srcEP, afAddrType_t *dstAddr,
 
 /********************************************************************************************
 *********************************************************************************************/
+
+#endif // ZCL_CC
+

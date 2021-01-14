@@ -44,6 +44,7 @@
 /*********************************************************************
  * INCLUDES
  */
+#include "ti_zstack_config.h"
 #include "zglobals.h"
 
 #if !defined (DISABLE_GREENPOWER_BASIC_PROXY) && (ZG_BUILD_RTR_TYPE)
@@ -67,7 +68,6 @@
 extern Clock_Struct gpAppDataSendClk;
 extern Clock_Handle gpAppDataSendClkHandle;
 #endif
-
 
 /*********************************************************************
  * MACROS
@@ -663,8 +663,8 @@ ZStatus_t zclGp_SendGpNotificationCommand( gpNotificationCmd_t *pCmd, uint8_t se
       gp_addPairedSinksToMsgQueue(&gpdID, pCmdPayloadMsgCurr);
 
 #if (defined (USE_ICALL) || defined (OSAL_PORT2TIRTOS))
-      Timer_setTimeout(gpAppDataSendClkHandle, GP_QUEUE_DATA_SEND_INTERVAL);
-      Timer_start(&gpAppDataSendClk);
+      UtilTimer_setTimeout(gpAppDataSendClkHandle, GP_QUEUE_DATA_SEND_INTERVAL);
+      UtilTimer_start(&gpAppDataSendClk);
 #else
       OsalPortTimers_startTimer( zcl_TaskID, ZCL_DATABUF_SEND, 50 );
 #endif
@@ -797,8 +797,8 @@ ZStatus_t zclGp_SendGpCommissioningNotificationCommand( gpCommissioningNotificat
     }
     // Set the timer to wait for stub to send queued messages before
     // sending  ZCL commissioning notification
-    Timer_setTimeout(gpAppDataSendClkHandle, GP_QUEUE_DATA_SEND_INTERVAL);
-    Timer_start(&gpAppDataSendClk);
+    UtilTimer_setTimeout(gpAppDataSendClkHandle, GP_QUEUE_DATA_SEND_INTERVAL);
+    UtilTimer_start(&gpAppDataSendClk);
   }
   else
     status = ZMemError;

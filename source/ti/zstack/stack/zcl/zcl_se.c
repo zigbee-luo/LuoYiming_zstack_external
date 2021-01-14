@@ -43,6 +43,7 @@
  */
 
 #include "zcomdef.h"
+#include "ti_zstack_config.h"
 #include "rom_jt_154.h"
 #include "stub_aps.h"
 #include "zcl.h"
@@ -1560,16 +1561,7 @@ ZStatus_t zclSE_DRLC_SendReportEvtStatus( uint8_t srcEP, afAddrType_t *dstAddr,
   *pBuf++ = pCmd->evtCtrl;
   *pBuf++ = pCmd->signatureType;
 
-  if ( pCmd->signatureType == ZCL_SE_DRLC_SIGNATURE_TYPE_ECDSA )
-  {
-#if defined( ZCL_KEY_ESTABLISH )
-    zclKE_ECDSASign( ZCL_KE_SUITE_1, pBuf, ZCL_SE_DRLC_REPORT_EVT_STATUS_SIG_LEN, pBuf );
-#endif
-  }
-  else
-  {
-    memset( pBuf, 0xFF, ZCL_SE_DRLC_REPORT_EVT_STATUS_SIG_LEN );
-  }
+  memset( pBuf, 0xFF, ZCL_SE_DRLC_REPORT_EVT_STATUS_SIG_LEN );
 
   status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_SE_DRLC,
                             COMMAND_SE_DRLC_REPORT_EVT_STATUS, TRUE,

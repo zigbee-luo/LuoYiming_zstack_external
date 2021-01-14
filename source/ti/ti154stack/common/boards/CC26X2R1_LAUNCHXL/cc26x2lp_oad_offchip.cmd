@@ -135,9 +135,6 @@ SECTIONS
 
 
     .text           :   > FLASH
-
-    config_const { mac_user_config.obj(.const) } > FLASH
-
     .const          :   > FLASH
     .constdata      :   > FLASH
     .rodata         :   > FLASH
@@ -151,6 +148,7 @@ SECTIONS
     {
         .data LOAD_START(ramStartHere)
         .bss
+        .noinit
         .vtable
         .vtable_ram
          vtable_ram

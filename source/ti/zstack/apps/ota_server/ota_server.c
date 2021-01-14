@@ -91,7 +91,6 @@
 #include "zcl_sampleapps_ui.h"
 #include "bdb_interface.h"
 #include "ota_common.h"
-#include "ota_srv_app.h"
 
 #include "ti_drivers_config.h"
 #include <ti/drivers/apps/Button.h>
@@ -99,7 +98,9 @@
 #include "zstackmsg.h"
 #include "zcl_port.h"
 
+#include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Task.h>
 #include "zstackapi.h"
 #include "util_timer.h"
 #include "nl_mede.h"
@@ -126,20 +127,31 @@
 #define APP_TITLE "OTA Server"
 
 /*********************************************************************
+ * CONSTANTS
+ */
+// Set this value to enable rate limiting for OTA Client devices
+#define OTA_CLIENT_MIN_BLOCK_PERIOD 0
+
+// Defines the max number of OTA clients performing an upgrade simultaneously
+#define SEQ_NUM_ENTRY_MAX 3
+
+/*********************************************************************
  * TYPEDEFS
  */
+
+typedef struct
+{
+  uint8_t transSeqNum;
+  uint16_t      shortAddr;
+} otaSeqNumEntry_t;
 
 /*********************************************************************
  * GLOBAL VARIABLES
  */
-uint8_t OTA_Dongle_SeqNo;
-devStates_t OTA_Dongle_devState;
 
 /*********************************************************************
  * GLOBAL FUNCTIONS
  */
-
-uint8_t appTask_getServiceTaskID(void);
 
 /*********************************************************************
  * LOCAL VARIABLES
@@ -151,8 +163,6 @@ static Semaphore_Struct appSem;
 static uint8_t  appServiceTaskId;
 /* App service task events, set by the stack service task when sending a message */
 static uint32_t appServiceTaskEvents;
-static endPointDesc_t  zclOtaEpDesc = {0};
-static endPointDesc_t  zclSysAppEpDesc = {0};
 
 #if ZG_BUILD_ENDDEVICE_TYPE
 static Clock_Handle EndDeviceRejoinClkHandle;
@@ -167,10 +177,22 @@ static NVINTF_nvFuncts_t *pfnZdlNV = NULL;
 // Key press parameters
 static Button_Handle keys = NULL;
 
-afAddrType_t otaServer_DstAddr;
-
 static Button_Handle gRightButtonHandle;
 static Button_Handle gLeftButtonHandle;
+
+static uint8_t otaServer_MinBlockReqDelay = OTA_CLIENT_MIN_BLOCK_PERIOD;
+
+// Table used to match transaction sequence numbers in ota responses
+static otaSeqNumEntry_t SeqNumEntryTable[SEQ_NUM_ENTRY_MAX];
+
+static zclOTA_QueryImageRspParams_t queryResponse;             // Global variable for sent query response
+
+static uint8_t otaServer_SeqNo;
+
+static devStates_t otaServer_devState;
+
+static endPointDesc_t otaServerEpDesc;
+
 /*********************************************************************
  * LOCAL FUNCTIONS
  */
@@ -191,17 +213,17 @@ static void otaServer_Init( void );
 
 static void otaServer_BasicResetCB( void );
 
-static void OTA_ProcSysAppMsg(zstack_sysAppMsg_t *pMsg);
-static void OTA_ProcessSysApp_ImageNotifyReq(uint8_t *pData);
-static void OTA_ProcessSysApp_ReadAttrReq(uint8_t *pData);
-static void OTA_ProcessSysApp_DiscoveryReq(uint8_t *pData);
-static void OTA_ProcessSysApp_JoinReq(uint8_t *pData);
+static void otaServer_ProcSysAppMsg(zstack_sysAppMsg_t *pMsg);
+static void otaServer_ProcessSysApp_ImageNotifyReq(uint8_t *pData);
+static void otaServer_ProcessSysApp_ReadAttrReq(uint8_t *pData);
+static void otaServer_ProcessSysApp_DiscoveryReq(uint8_t *pData);
+static void otaServer_ProcessSysApp_JoinReq(uint8_t *pData);
 
-static void OTA_Send_DeviceInd(uint16_t shortAddr);
-static void OTA_Send_JoinInd(void);
-static void OTA_Send_ReadAttrInd(uint16_t cluster, uint16_t shortAddr, zclReadRspStatus_t *pAttr);
-static void OTA_Send_EndpointInd(uint16_t addr, uint8_t endpoint);
-static void OTA_Send_DongleInd(void);
+static void otaServer_Send_DeviceInd(uint16_t shortAddr);
+static void otaServer_Send_JoinInd(void);
+static void otaServer_Send_ReadAttrInd(uint16_t cluster, uint16_t shortAddr, zclReadRspStatus_t *pAttr);
+static void otaServer_Send_EndpointInd(uint16_t addr, uint8_t endpoint);
+static void otaServer_Send_DongleInd(void);
 
 static void otaServer_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *bdbCommissioningModeMsg);
 
@@ -220,8 +242,27 @@ static uint8_t otaServer_ProcessInDiscAttrsRspCmd( zclIncoming_t *pInMsg );
 static uint8_t otaServer_ProcessInDiscAttrsExtRspCmd( zclIncoming_t *pInMsg );
 #endif
 
-
 static void Initialize_UI(void);
+
+static ZStatus_t otaServer_ServerHdlIncoming ( zclIncoming_t *pInMsg );
+static ZStatus_t otaServer_HdlIncoming ( zclIncoming_t *pInMsg );
+static ZStatus_t otaServer_Srv_QueryNextImageReq ( afAddrType_t *pSrcAddr, zclOTA_QueryNextImageReqParams_t *pParam, uint8_t transSeqNum );
+static ZStatus_t otaServer_Srv_ImageBlockReq ( afAddrType_t *pSrcAddr, zclOTA_ImageBlockReqParams_t *pParam, uint8_t transSeqNum );
+static ZStatus_t otaServer_Srv_ImagePageReq ( afAddrType_t *pSrcAddr, zclOTA_ImagePageReqParams_t *pParam, uint8_t transSeqNum );
+static ZStatus_t otaServer_Srv_UpgradeEndReq ( afAddrType_t *pSrcAddr, zclOTA_UpgradeEndReqParams_t *pParam, uint8_t transSeqNum );
+static ZStatus_t otaServer_Srv_QuerySpecificFileReq ( afAddrType_t *pSrcAddr, zclOTA_QuerySpecificFileReqParams_t *pParam, uint8_t transSeqNum );
+static ZStatus_t otaServer_ProcessQuerySpecificFileReq ( zclIncoming_t *pInMsg );
+static void otaServer_ProcessNextImgRsp ( uint8_t* pMSGpkt, zclOTA_FileID_t *pFileId, afAddrType_t *pAddr );
+static void otaServer_ProcessFileReadRsp ( uint8_t* pMSGpkt, zclOTA_FileID_t *pFileId, afAddrType_t *pAddr );
+
+static ZStatus_t otaServer_ProcessImageBlockReq ( zclIncoming_t *pInMsg );
+static ZStatus_t otaServer_ProcessQueryNextImageReq ( zclIncoming_t *pInMsg );
+static ZStatus_t otaServer_ProcessImagePageReq ( zclIncoming_t *pInMsg );
+static ZStatus_t otaServer_ProcessUpgradeEndReq ( zclIncoming_t *pInMsg );
+
+static void otaServer_AddSeqNumEntry(uint8_t transSeqNum, uint16_t shortAddr);
+static uint16_t otaServer_FindSeqNumEntry(uint16_t shortAddr);
+static void otaServer_ServerHandleFileSysCb ( uint8_t* pMSGpkt );
 
 /*********************************************************************
  * CONSTANTS
@@ -248,13 +289,31 @@ static zclGeneral_AppCallbacks_t otaServer_CmdCallbacks =
   NULL,                                   // On/Off cluster enhanced command On with Recall Global Scene
   NULL,                                   // On/Off cluster enhanced command On with Timed Off
 #endif
+#ifdef ZCL_LEVEL_CTRL
+  NULL,                                   // Level Control Move to Level command
+  NULL,                                   // Level Control Move command
+  NULL,                                   // Level Control Step command
+  NULL,                                   // Level Control Stop command
+  NULL,                                   // Level Control Move to Closest Frequency command
+#endif
 #ifdef ZCL_GROUPS
   NULL,                                   // Group Response commands
 #endif
-  NULL,                                  // RSSI Location command
-  NULL                                   // RSSI Location Response command
+#ifdef ZCL_SCENES
+  NULL,                                   // Scene Store Request command
+  NULL,                                   // Scene Recall Request command
+  NULL,                                   // Scene Response command
+#endif
+#ifdef ZCL_ALARMS
+  NULL,                                   // Alarm (Response) commands
+#endif
+#ifdef SE_UK_EXT
+  NULL,                                   // Get Event Log command
+  NULL,                                   // Publish Event Log command
+#endif
+  NULL,                                   // RSSI Location command
+  NULL                                    // RSSI Location Response command
 };
-
 
 /*******************************************************************************
  * @fn          sampleApp_task
@@ -278,8 +337,6 @@ void sampleApp_task(NVINTF_nvFuncts_t *pfnNV)
   // No return from task process
   otaServer_process_loop();
 }
-
-
 
 /*******************************************************************************
  * @fn          otaServer_initialization
@@ -308,13 +365,8 @@ static void otaServer_initialization(void)
 
     appServiceTaskId = OsalPort_registerTask(Task_self(), appSemHandle, &appServiceTaskEvents);
 
-    //Initialize stack
     otaServer_Init();
-
-    OTA_Server_Init(appServiceTaskId);
 }
-
-
 
 /*******************************************************************************
  * @fn      SetupZStackCallbacks
@@ -345,8 +397,6 @@ static void SetupZStackCallbacks(void)
     (void)Zstackapi_DevZDOCBReq(appServiceTaskId, &zdoCBReq);
 }
 
-
-
 /*********************************************************************
  * @fn          otaServer_Init
  *
@@ -358,32 +408,32 @@ static void SetupZStackCallbacks(void)
  */
 static void otaServer_Init( void )
 {
-
-  // Set destination address to indirect
-  otaServer_DstAddr.addrMode = (afAddrMode_t)AddrNotPresent;
-  otaServer_DstAddr.endPoint = 0;
-  otaServer_DstAddr.addr.shortAddr = 0;
-
   //Register Endpoint
-  zclOtaEpDesc.endPoint = OTA_DONGLE_ENDPOINT;
-  zclOtaEpDesc.simpleDesc = &otaServerEpDesc;
-  zclport_registerEndpoint(appServiceTaskId, &zclOtaEpDesc);
-
-  //Register Endpoint
-  zclSysAppEpDesc.endPoint = OTA_SYSAPP_ENDPOINT;
-  zclSysAppEpDesc.simpleDesc = &otaServerSysAppEpDesc;
-  zclport_registerEndpoint(appServiceTaskId, &zclSysAppEpDesc);
-
-
+  otaServerEpDesc.endPoint = OTA_SERVER_ENDPOINT;
+  otaServerEpDesc.simpleDesc = &otaServerSimpleDesc;
+  zclport_registerEndpoint(appServiceTaskId, &otaServerEpDesc);
 
   // Register the ZCL General Cluster Library callback functions
-  zclGeneral_RegisterCmdCallbacks( OTA_DONGLE_ENDPOINT, &otaServer_CmdCallbacks );
+  zclGeneral_RegisterCmdCallbacks( OTA_SERVER_ENDPOINT, &otaServer_CmdCallbacks );
 
   // Register the application's attribute list and reset to default values
-  zcl_registerAttrList( OTA_DONGLE_ENDPOINT, otaServer_NumAttributes, otaServer_Attrs );
+  zcl_registerAttrList( OTA_SERVER_ENDPOINT, otaServer_NumAttributes, otaServer_Attrs );
 
   // Register the Application to receive the unprocessed Foundation command/response messages
-  zclport_registerZclHandleExternal( OTA_DONGLE_ENDPOINT, otaServer_ProcessIncomingMsg );
+  zclport_registerZclHandleExternal( OTA_SERVER_ENDPOINT, otaServer_ProcessIncomingMsg );
+
+  zclOTA_Permit = TRUE;
+
+  // Register as a ZCL Plugin
+  zcl_registerPlugin ( ZCL_CLUSTER_ID_OTA,
+                       ZCL_CLUSTER_ID_OTA,
+                       otaServer_HdlIncoming );
+
+  // Initialize SeqNumEntryTable
+  for(uint8_t i = 0; i < SEQ_NUM_ENTRY_MAX; i++)
+  {
+    memset(&SeqNumEntryTable[i], 0xFF, sizeof (otaSeqNumEntry_t));
+  }
 
   //Write the bdb initialization parameters
   otaServer_initParameters();
@@ -393,12 +443,10 @@ static void otaServer_Init( void )
 
 #ifdef ZCL_DISCOVER
   // Register the application's command list
-  zcl_registerCmdList( OTA_DONGLE_ENDPOINT, zclCmdsArraySize, otaServer_Cmds );
+  zcl_registerCmdList( OTA_SERVER_ENDPOINT, zclCmdsArraySize, otaServer_Cmds );
 #endif
-
-
-  Timer_setTimeout( OtaServerNotifyClkHandle, OTA_SEND_NOTIFY_TIMEOUT );
-  Timer_start(&OtaServerNotifyClkStruct);
+  UtilTimer_setTimeout( OtaServerNotifyClkHandle, OTA_SEND_NOTIFY_TIMEOUT );
+  UtilTimer_start(&OtaServerNotifyClkStruct);
 }
 
 static void otaServer_initParameters(void)
@@ -450,13 +498,13 @@ static void otaServer_initializeClocks(void)
 {
 #if ZG_BUILD_ENDDEVICE_TYPE
     // Initialize the timers needed for this application
-    EndDeviceRejoinClkHandle = Timer_construct(
+    EndDeviceRejoinClkHandle = UtilTimer_construct(
     &EndDeviceRejoinClkStruct,
     otaServer_processEndDeviceRejoinTimeoutCallback,
     SAMPLEAPP_END_DEVICE_REJOIN_DELAY,
     0, false, 0);
 #endif
-    OtaServerNotifyClkHandle = Timer_construct(
+    OtaServerNotifyClkHandle = UtilTimer_construct(
     &OtaServerNotifyClkStruct,
     otaServer_sendNotifylTimeoutCallback,
     OTA_SEND_NOTIFY_TIMEOUT,
@@ -559,10 +607,9 @@ static void otaServer_process_loop(void)
 #endif
             if ( appServiceTaskEvents & SAMPLEAPP_OTA_SERVER_NOTIFY_EVT )
             {
-               OTA_Send_DongleInd();
-              Timer_setTimeout( OtaServerNotifyClkHandle, OTA_SEND_NOTIFY_TIMEOUT );
-              Timer_start(&OtaServerNotifyClkStruct);
-
+              otaServer_Send_DongleInd();
+              UtilTimer_setTimeout( OtaServerNotifyClkHandle, OTA_SEND_NOTIFY_TIMEOUT );
+              UtilTimer_start(&OtaServerNotifyClkStruct);
               appServiceTaskEvents &= ~SAMPLEAPP_OTA_SERVER_NOTIFY_EVT;
             }
         }
@@ -644,11 +691,11 @@ static void otaServer_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
             zstackmsg_devStateChangeInd_t *pInd;
             pInd = (zstackmsg_devStateChangeInd_t *)pMsg;
 
-            OTA_Dongle_devState = (devStates_t)pInd->req.state;
+            otaServer_devState = (devStates_t)pInd->req.state;
 
-            if ((OTA_Dongle_devState == DEV_END_DEVICE) || (OTA_Dongle_devState == DEV_ROUTER) || (OTA_Dongle_devState == DEV_ZB_COORD))
+            if ((otaServer_devState == DEV_END_DEVICE) || (otaServer_devState == DEV_ROUTER) || (otaServer_devState == DEV_ZB_COORD))
             {
-              OTA_Send_JoinInd();
+              otaServer_Send_JoinInd();
             }
         }
         break;
@@ -658,7 +705,7 @@ static void otaServer_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
           zstackmsg_zdoDeviceAnnounceInd_t *pInd;
           pInd = (zstackmsg_zdoDeviceAnnounceInd_t *)pMsg;
 
-          OTA_Send_DeviceInd(pInd->req.devAddr);
+          otaServer_Send_DeviceInd(pInd->req.devAddr);
         }
         break;
 
@@ -667,7 +714,7 @@ static void otaServer_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
           zstackmsg_zdoMatchDescRspInd_t *pInd;
           pInd = (zstackmsg_zdoMatchDescRspInd_t *)pMsg;
 
-          OTA_Send_EndpointInd(pInd->rsp.nwkAddrOfInterest, pInd->rsp.pMatchList[0]);
+          otaServer_Send_EndpointInd(pInd->rsp.nwkAddrOfInterest, pInd->rsp.pMatchList[0]);
         }
         break;
 
@@ -676,7 +723,7 @@ static void otaServer_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
           zstackmsg_sysAppMsg_t *pInd;
           pInd = (zstackmsg_sysAppMsg_t*)pMsg;
 
-          OTA_ProcSysAppMsg(&pInd->Req);
+          otaServer_ProcSysAppMsg(&pInd->Req);
         }
         break;
 
@@ -685,8 +732,8 @@ static void otaServer_processZStackMsgs(zstackmsg_genericReq_t *pMsg)
           zstackmsg_sysOtaMsg_t *pInd;
           pInd = (zstackmsg_sysOtaMsg_t*)pMsg;
 
-          zclOTA_ServerHandleFileSysCb((uint8_t*)pInd->Req.pData);   //pData also includes cmdId at the beggining of the buffer
-
+          //pData also includes cmdId at the beginning of the buffer
+          otaServer_ServerHandleFileSysCb((uint8_t*)pInd->Req.pData);
         }
         break;
 
@@ -854,8 +901,8 @@ static void otaServer_ProcessCommissioningStatus(bdbCommissioningModeMsg_t *bdbC
       else
       {
         //Parent not found, attempt to rejoin again after a fixed delay
-        Timer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
-        Timer_start(&EndDeviceRejoinClkStruct);
+        UtilTimer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
+        UtilTimer_start(&EndDeviceRejoinClkStruct);
       }
     break;
 #endif
@@ -879,11 +926,10 @@ static void otaServer_BasicResetCB( void )
   //Reset every attribute in all supported cluster to their default value.
 
   otaServer_ResetAttributesToDefaultValues();
-
 }
 
 /*********************************************************************
- * @fn      OTA_ProcSysAppMsg
+ * @fn      otaServer_ProcSysAppMsg
  *
  * @brief   Handles sys app messages from the server application.
  *
@@ -891,7 +937,7 @@ static void otaServer_BasicResetCB( void )
  *
  * @return  none
  */
-void OTA_ProcSysAppMsg(zstack_sysAppMsg_t *pMsg)
+void otaServer_ProcSysAppMsg(zstack_sysAppMsg_t *pMsg)
 {
   uint8_t cmd;
 
@@ -903,16 +949,16 @@ void OTA_ProcSysAppMsg(zstack_sysAppMsg_t *pMsg)
   switch(cmd)
   {
   case OTA_APP_READ_ATTRIBUTE_REQ:
-    OTA_ProcessSysApp_ReadAttrReq(pMsg->pAppData);
+    otaServer_ProcessSysApp_ReadAttrReq(pMsg->pAppData);
     break;
   case OTA_APP_IMAGE_NOTIFY_REQ:
-    OTA_ProcessSysApp_ImageNotifyReq(pMsg->pAppData);
+    otaServer_ProcessSysApp_ImageNotifyReq(pMsg->pAppData);
     break;
   case OTA_APP_DISCOVERY_REQ:
-    OTA_ProcessSysApp_DiscoveryReq(pMsg->pAppData);
+    otaServer_ProcessSysApp_DiscoveryReq(pMsg->pAppData);
     break;
   case OTA_APP_JOIN_REQ:
-    OTA_ProcessSysApp_JoinReq(pMsg->pAppData);
+    otaServer_ProcessSysApp_JoinReq(pMsg->pAppData);
     break;
   case OTA_APP_LEAVE_REQ:
     // Simulate a leave by rebooting the dongle
@@ -923,7 +969,7 @@ void OTA_ProcSysAppMsg(zstack_sysAppMsg_t *pMsg)
 }
 
 /*********************************************************************
- * @fn      OTA_ProcessSysApp_ImageNotifyReq
+ * @fn      otaServer_ProcessSysApp_ImageNotifyReq
  *
  * @brief   Handles app messages from the console application.
  *
@@ -931,7 +977,7 @@ void OTA_ProcSysAppMsg(zstack_sysAppMsg_t *pMsg)
  *
  * @return  none
  */
-void OTA_ProcessSysApp_ImageNotifyReq(uint8_t *pData)
+void otaServer_ProcessSysApp_ImageNotifyReq(uint8_t *pData)
 {
   zclOTA_ImageNotifyParams_t imgNotifyParams;
   afAddrType_t dstAddr;
@@ -962,7 +1008,7 @@ void OTA_ProcessSysApp_ImageNotifyReq(uint8_t *pData)
 }
 
 /*********************************************************************
- * @fn      OTA_ProcessSysApp_ReadAttrReq
+ * @fn      otaServer_ProcessSysApp_ReadAttrReq
  *
  * @brief   Handles app messages from the console application.
  *
@@ -970,13 +1016,13 @@ void OTA_ProcessSysApp_ImageNotifyReq(uint8_t *pData)
  *
  * @return  none
  */
-void OTA_ProcessSysApp_ReadAttrReq(uint8_t *pData)
+void otaServer_ProcessSysApp_ReadAttrReq(uint8_t *pData)
 {
   uint8_t readCmd[sizeof(zclReadCmd_t) + sizeof(uint16_t) * OTA_APP_MAX_ATTRIBUTES];
   zclReadCmd_t *pReadCmd = (zclReadCmd_t*) readCmd;
   afAddrType_t dstAddr;
   uint16_t cluster;
-  int8_t i;
+  uint8_t i;
 
   // Setup the destination address
   dstAddr.addr.shortAddr = BUILD_UINT16(pData[0], pData[1]);
@@ -998,12 +1044,12 @@ void OTA_ProcessSysApp_ReadAttrReq(uint8_t *pData)
   }
 
   // Send the command
-  zcl_SendRead(OTA_DONGLE_ENDPOINT, &dstAddr, cluster, pReadCmd,
-               ZCL_FRAME_SERVER_CLIENT_DIR, TRUE, 0, OTA_Dongle_SeqNo++);
+  zcl_SendRead(OTA_SERVER_ENDPOINT, &dstAddr, cluster, pReadCmd,
+               ZCL_FRAME_SERVER_CLIENT_DIR, TRUE, 0, otaServer_SeqNo++);
 }
 
 /*********************************************************************
- * @fn      OTA_ProcessSysApp_DiscoveryReq
+ * @fn      otaServer_ProcessSysApp_DiscoveryReq
  *
  * @brief   Handles app messages from the console application.
  *
@@ -1011,7 +1057,7 @@ void OTA_ProcessSysApp_ReadAttrReq(uint8_t *pData)
  *
  * @return  none
  */
-void OTA_ProcessSysApp_DiscoveryReq(uint8_t *pData)
+void otaServer_ProcessSysApp_DiscoveryReq(uint8_t *pData)
 {
   cId_t otaClusters = ZCL_CLUSTER_ID_OTA;
   zstack_zdoMatchDescReq_t Req;
@@ -1029,7 +1075,7 @@ void OTA_ProcessSysApp_DiscoveryReq(uint8_t *pData)
 }
 
 /*********************************************************************
- * @fn      OTA_ProcessSysApp_JoinReq
+ * @fn      otaServer_ProcessSysApp_JoinReq
  *
  * @brief   Handles app messages from the console application.
  *
@@ -1037,7 +1083,7 @@ void OTA_ProcessSysApp_DiscoveryReq(uint8_t *pData)
  *
  * @return  none
  */
-void OTA_ProcessSysApp_JoinReq(uint8_t *pData)
+void otaServer_ProcessSysApp_JoinReq(uint8_t *pData)
 {
   zstack_bdbStartCommissioningReq_t zstack_bdbStartCommissioningReq;
   zstack_bdbSetAttributesReq_t Req;
@@ -1070,7 +1116,7 @@ void OTA_ProcessSysApp_JoinReq(uint8_t *pData)
 }
 
 /*********************************************************************
- * @fn      OTA_Send_DeviceInd
+ * @fn      otaServer_Send_DeviceInd
  *
  * @brief   Notifies the console about the existance of a device on the network.
  *
@@ -1078,13 +1124,13 @@ void OTA_ProcessSysApp_JoinReq(uint8_t *pData)
  *
  * @return  none
  */
-void OTA_Send_DeviceInd(uint16_t shortAddr)
+void otaServer_Send_DeviceInd(uint16_t shortAddr)
 {
   uint8_t buffer[OTA_APP_DEVICE_IND_LEN];
   uint8_t *pBuf = buffer;
   uint16_t pan = _NIB.nwkPanId;
 
-  *pBuf++ = OTA_SYSAPP_ENDPOINT;
+  *pBuf++ = OTA_SERVER_ENDPOINT;
   *pBuf++ = OTA_APP_DEVICE_IND;
 
   *pBuf++ = LO_UINT16(pan);
@@ -1098,7 +1144,7 @@ void OTA_Send_DeviceInd(uint16_t shortAddr)
 }
 
 /*********************************************************************
- * @fn      OTA_Send_ReadAttrInd
+ * @fn      otaServer_Send_ReadAttrInd
  *
  * @brief   Notifies the console about attribute values for a device.
  *
@@ -1106,13 +1152,13 @@ void OTA_Send_DeviceInd(uint16_t shortAddr)
  *
  * @return  none
  */
-void OTA_Send_ReadAttrInd(uint16_t cluster, uint16_t shortAddr, zclReadRspStatus_t *pAttr)
+void otaServer_Send_ReadAttrInd(uint16_t cluster, uint16_t shortAddr, zclReadRspStatus_t *pAttr)
 {
   uint8_t buffer[OTA_APP_READ_ATTRIBUTE_IND_LEN];
   uint8_t *pBuf = buffer;
   uint8_t len;
 
-  *pBuf++ = OTA_SYSAPP_ENDPOINT;
+  *pBuf++ = OTA_SERVER_ENDPOINT;
   *pBuf++ = OTA_APP_READ_ATTRIBUTE_IND;
 
   *pBuf++ = LO_UINT16(_NIB.nwkPanId);
@@ -1173,7 +1219,7 @@ void OTA_Send_ReadAttrInd(uint16_t cluster, uint16_t shortAddr, zclReadRspStatus
 }
 
 /*********************************************************************
- * @fn      OTA_ProcessSysApp_JoinReq
+ * @fn      otaServer_ProcessSysApp_JoinReq
  *
  * @brief   Notifies the console that the dognle has joined a network.
  *
@@ -1181,13 +1227,13 @@ void OTA_Send_ReadAttrInd(uint16_t cluster, uint16_t shortAddr, zclReadRspStatus
  *
  * @return  none
  */
-void OTA_Send_JoinInd()
+void otaServer_Send_JoinInd()
 {
   uint8_t buffer[OTA_APP_JOIN_IND_LEN];
   uint8_t *pBuf = buffer;
   uint16_t pan = _NIB.nwkPanId;
 
-  *pBuf++ = OTA_SYSAPP_ENDPOINT;
+  *pBuf++ = OTA_SERVER_ENDPOINT;
   *pBuf++ = OTA_APP_JOIN_IND;
 
   *pBuf++ = LO_UINT16(pan);
@@ -1198,7 +1244,7 @@ void OTA_Send_JoinInd()
 }
 
 /*********************************************************************
- * @fn      OTA_ProcessSysApp_JoinReq
+ * @fn      otaServer_ProcessSysApp_JoinReq
  *
  * @brief   Notifies the console about the OTA endpoint on a device.
  *
@@ -1206,12 +1252,12 @@ void OTA_Send_JoinInd()
  *
  * @return  none
  */
-void OTA_Send_EndpointInd(uint16_t addr, uint8_t endpoint)
+void otaServer_Send_EndpointInd(uint16_t addr, uint8_t endpoint)
 {
   uint8_t buffer[OTA_APP_ENDPOINT_IND_LEN];
   uint8_t *pBuf = buffer;
 
-  *pBuf++ = OTA_SYSAPP_ENDPOINT;
+  *pBuf++ = OTA_SERVER_ENDPOINT;
   *pBuf++ = OTA_APP_ENDPOINT_IND;
 
   *pBuf++ = LO_UINT16(_NIB.nwkPanId);
@@ -1227,7 +1273,7 @@ void OTA_Send_EndpointInd(uint16_t addr, uint8_t endpoint)
 }
 
 /*********************************************************************
- * @fn      OTA_Send_DongleInd
+ * @fn      otaServer_Send_DongleInd
  *
  * @brief   Notifies the console about the Dongle.
  *
@@ -1235,13 +1281,13 @@ void OTA_Send_EndpointInd(uint16_t addr, uint8_t endpoint)
  *
  * @return  none
  */
-static void OTA_Send_DongleInd(void)
+static void otaServer_Send_DongleInd(void)
 {
 
   uint8_t buffer[OTA_APP_DONGLE_IND_LEN];
   uint8_t *pBuf = buffer;
 
-  *pBuf++ = OTA_SYSAPP_ENDPOINT;
+  *pBuf++ = OTA_SERVER_ENDPOINT;
   *pBuf++ = OTA_APP_DONGLE_IND;
 
   *pBuf++ = zgDeviceLogicalType;
@@ -1256,7 +1302,7 @@ static void OTA_Send_DongleInd(void)
 
   *pBuf++ = _NIB.nwkLogicalChannel;
 
-  *pBuf = OTA_Dongle_devState;
+  *pBuf = otaServer_devState;
 
   // Send the indication
   MT_BuildAndSendZToolResponse(MT_RPC_SYS_APP, MT_APP_MSG, OTA_APP_DONGLE_IND_LEN, buffer);
@@ -1355,7 +1401,7 @@ static uint8_t otaServer_ProcessInReadRspCmd( zclIncoming_t *pInMsg )
   readRspCmd = (zclReadRspCmd_t *)pInMsg->attrCmd;
   for (i = 0; i < readRspCmd->numAttr; i++)
   {
-      OTA_Send_ReadAttrInd(pInMsg->msg->clusterId, pInMsg->msg->srcAddr.addr.shortAddr, &readRspCmd->attrList[i]);
+      otaServer_Send_ReadAttrInd(pInMsg->msg->clusterId, pInMsg->msg->srcAddr.addr.shortAddr, &readRspCmd->attrList[i]);
   }
 
   return ( TRUE );
@@ -1569,7 +1615,733 @@ static void otaServer_processKey(Button_Handle keysPressed)
 
 }
 
-uint8_t appTask_getServiceTaskID(void)
+ /******************************************************************************
+ * @fn      otaServer_AddSeqNumEntry
+ *
+ * @brief   Add an entry to SeqNumEntryTable
+ *
+ * @param   transSeqNum
+ * @param   shortAddr
+ *
+ * @return  none
+ */
+static void otaServer_AddSeqNumEntry(uint8_t transSeqNum, uint16_t shortAddr)
 {
-    return appServiceTaskId;
+  uint16_t i;
+  for(i = 0; i < SEQ_NUM_ENTRY_MAX; i++)
+  {
+    if((SeqNumEntryTable[i].shortAddr == 0xFFFF && SeqNumEntryTable[i].transSeqNum == 0xFF) ||
+      (SeqNumEntryTable[i].shortAddr == shortAddr))
+    {
+      SeqNumEntryTable[i].shortAddr = shortAddr;
+      SeqNumEntryTable[i].transSeqNum = transSeqNum;
+      break;
+    }
+  }
+}
+
+
+ /******************************************************************************
+ * @fn      otaServer_FindSeqNumEntry
+ *
+ * @brief   Find an entry to SeqNumEntryTable with matching shortAddr
+ *
+ * @param   transSeqNum - Transaction sequence number
+ * @param   shortAddr - Short address
+ *
+ * @return  uint16_t
+ */
+static uint16_t otaServer_FindSeqNumEntry(uint16_t shortAddr)
+{
+  uint16_t i;
+  uint8_t transSeqNum;
+  bool found = FALSE;
+  for(i = 0; i < SEQ_NUM_ENTRY_MAX; i++)
+  {
+    if(SeqNumEntryTable[i].shortAddr == shortAddr)
+    {
+      transSeqNum = SeqNumEntryTable[i].transSeqNum;
+      SeqNumEntryTable[i].shortAddr = 0xFFFF;
+      SeqNumEntryTable[i].transSeqNum = 0xFF;
+      found = TRUE;
+      break;
+    }
+  }
+
+  if(found){
+    return transSeqNum;
+  }
+  // Return internal frame counter if no match is found
+  return zclOTA_getSeqNo();
+}
+
+/******************************************************************************
+ * @fn      otaServer_HdlIncoming
+ *
+ * @brief   Callback from ZCL to process incoming Commands specific
+ *          to this cluster library or Profile commands for attributes
+ *          that aren't in the attribute list
+ *
+ * @param   pInMsg - pointer to the incoming message
+ *
+ * @return  ZStatus_t
+ */
+static ZStatus_t otaServer_HdlIncoming ( zclIncoming_t *pInMsg )
+{
+  ZStatus_t stat = ZSuccess;
+
+  if ( zcl_ClusterCmd ( pInMsg->hdr.fc.type ) )
+  {
+    // Is this a manufacturer specific command?
+    if ( pInMsg->hdr.fc.manuSpecific == 0 )
+    {
+      // Is command for server?
+      if ( zcl_ServerCmd ( pInMsg->hdr.fc.direction ) )
+      {
+        stat = otaServer_ServerHdlIncoming ( pInMsg );
+      }
+      else // Else command is for client
+      {
+        stat = ZCL_STATUS_UNSUP_CLUSTER_COMMAND;
+      }
+    }
+    else
+    {
+      // We don't support any manufacturer specific command.
+      stat = ZCL_STATUS_UNSUP_MANU_CLUSTER_COMMAND;
+    }
+  }
+  else
+  {
+    // Handle all the normal (Read, Write...) commands -- should never get here
+    stat = ZFailure;
+  }
+
+  return ( stat );
+}
+
+/******************************************************************************
+ * @fn      otaServer_ServerHdlIncoming
+ *
+ * @brief   Handle incoming server commands.
+ *
+ * @param   pInMsg - pointer to the incoming message
+ *
+ * @return  ZStatus_t
+ */
+ZStatus_t otaServer_ServerHdlIncoming ( zclIncoming_t *pInMsg )
+{
+  switch ( pInMsg->hdr.commandID )
+  {
+    case COMMAND_OTA_UPGRADE_QUERY_NEXT_IMAGE_REQUEST:
+      return otaServer_ProcessQueryNextImageReq ( pInMsg );
+
+    case COMMAND_OTA_UPGRADE_IMAGE_BLOCK_REQUEST:
+      return otaServer_ProcessImageBlockReq ( pInMsg );
+
+    case COMMAND_OTA_UPGRADE_IMAGE_PAGE_REQUEST:
+      return otaServer_ProcessImagePageReq ( pInMsg );
+
+    case COMMAND_OTA_UPGRADE_UPGRADE_END_REQUEST:
+      return otaServer_ProcessUpgradeEndReq ( pInMsg );
+
+    case COMMAND_OTA_UPGRADE_QUERY_DEVICE_SPECIFIC_FILE_REQUEST:
+      return otaServer_ProcessQuerySpecificFileReq ( pInMsg );
+
+    default:
+      return ZFailure;
+  }
+}
+
+
+/******************************************************************************
+ * @fn      otaServer_Srv_ImageBlockReq
+ *
+ * @brief   Handle an Image Block Request.
+ *
+ * @param   pSrcAddr - The source of the message
+ *          pParam - message parameters
+ *          transSeqNum - Transaction Sequence Number
+ *
+ * @return  ZStatus_t
+ */
+ZStatus_t otaServer_Srv_ImageBlockReq ( afAddrType_t *pSrcAddr, zclOTA_ImageBlockReqParams_t *pParam,
+    uint8_t transSeqNum )
+{
+  uint8_t status = ZFailure;
+
+  if ( ( pParam != NULL ) && (pParam->fileId.version != queryResponse.fileId.version) )
+  {
+    status = ZCL_STATUS_NO_IMAGE_AVAILABLE;
+  }
+  else
+  {
+    if ( zclOTA_Permit && ( pParam != NULL ) )
+    {
+      uint8_t len = pParam->maxDataSize;
+
+      if ( len > OTA_MAX_MTU )
+      {
+        len = OTA_MAX_MTU;
+      }
+
+      // check if client supports rate limiting feature, and if client rate needs to be set
+      if ( ( ( pParam->fieldControl & OTA_BLOCK_FC_REQ_DELAY_PRESENT ) != 0 ) &&
+           ( pParam->blockReqDelay != otaServer_MinBlockReqDelay ) )
+      {
+        zclOTA_ImageBlockRspParams_t blockRsp;
+
+        // Fill in the response parameters
+        blockRsp.status = ZOtaWaitForData;
+        OsalPort_memcpy ( &blockRsp.rsp.success.fileId, &pParam->fileId, sizeof ( zclOTA_FileID_t ) );
+        blockRsp.rsp.wait.currentTime = 0;
+        blockRsp.rsp.wait.requestTime = 0;
+        blockRsp.rsp.wait.blockReqDelay = otaServer_MinBlockReqDelay;
+
+        // Send a wait response with updated rate limit timing
+        zclOTA_SendImageBlockRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, &blockRsp, transSeqNum );
+      }
+      else
+      {
+        // Read the data from the OTA Console
+        status = MT_OtaFileReadReq ( pSrcAddr, &pParam->fileId, len, pParam->fileOffset );
+
+        // Send a wait response to the client
+        if ( status != ZSuccess )
+        {
+          zclOTA_ImageBlockRspParams_t blockRsp;
+
+          // Fill in the response parameters
+          blockRsp.status = ZOtaWaitForData;
+          OsalPort_memcpy ( &blockRsp.rsp.success.fileId, &pParam->fileId, sizeof ( zclOTA_FileID_t ) );
+          blockRsp.rsp.wait.currentTime = 0;
+          blockRsp.rsp.wait.requestTime = OTA_SEND_BLOCK_WAIT;
+          blockRsp.rsp.wait.blockReqDelay = otaServer_MinBlockReqDelay;
+
+          // Send the block to the peer
+          zclOTA_SendImageBlockRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, &blockRsp, transSeqNum );
+        }
+        else
+        {
+          // Add transSeqNum to SeqNumEntryTable for use in response
+          otaServer_AddSeqNumEntry( transSeqNum, pSrcAddr->addr.shortAddr );
+        }
+      }
+
+      status = ZCL_STATUS_CMD_HAS_RSP;
+
+    }
+  }
+
+  return status;
+}
+
+/******************************************************************************
+ * @fn      otaServer_ProcessQueryNextImageReq
+ *
+ * @brief   Process received Query Next Image Request.
+ *
+ * @param   pInMsg - pointer to the incoming message
+ *
+ * @return  ZStatus_t
+ */
+static ZStatus_t otaServer_ProcessQueryNextImageReq ( zclIncoming_t *pInMsg )
+{
+  zclOTA_QueryNextImageReqParams_t  param;
+  uint8_t *pData;
+  uint8_t transSeqNum = pInMsg->hdr.transSeqNum;
+
+  /* verify message length */
+  if ( ( pInMsg->pDataLen != PAYLOAD_MAX_LEN_QUERY_NEXT_IMAGE_REQ ) &&
+       ( pInMsg->pDataLen != PAYLOAD_MIN_LEN_QUERY_NEXT_IMAGE_REQ ) )
+  {
+    /* no further processing if invalid */
+    return ZCL_STATUS_MALFORMED_COMMAND;
+  }
+
+  /* parse message parameters */
+  pData = pInMsg->pData;
+  param.fieldControl = *pData++;
+  param.fileId.manufacturer = BUILD_UINT16 ( pData[0], pData[1] );
+  pData += 2;
+  param.fileId.type = BUILD_UINT16 ( pData[0], pData[1] );
+  pData += 2;
+  param.fileId.version = OsalPort_buildUint32 ( pData, 4 );
+  pData += 4;
+  if ( ( param.fieldControl & 0x01 ) != 0 )
+  {
+    param.hardwareVersion = BUILD_UINT16 ( pData[0], pData[1] );
+  }
+
+  /* call callback */
+  return otaServer_Srv_QueryNextImageReq ( &pInMsg->msg->srcAddr, &param, transSeqNum );
+}
+
+/******************************************************************************
+ * @fn      otaServer_ProcessImageBlockReq
+ *
+ * @brief   Process received Image Block Request.
+ *
+ * @param   pInMsg - pointer to the incoming message
+ *
+ * @return  ZStatus_t
+ */
+static ZStatus_t otaServer_ProcessImageBlockReq ( zclIncoming_t *pInMsg )
+{
+  zclOTA_ImageBlockReqParams_t  param;
+  uint8_t *pData;
+  uint8_t transSeqNum = pInMsg->hdr.transSeqNum;
+
+  /* verify message length */
+  if ( ( pInMsg->pDataLen > PAYLOAD_MAX_LEN_IMAGE_BLOCK_REQ ) &&
+       ( pInMsg->pDataLen < PAYLOAD_MIN_LEN_IMAGE_BLOCK_REQ ) )
+  {
+    /* no further processing if invalid */
+    return ZCL_STATUS_MALFORMED_COMMAND;
+  }
+
+  /* parse message parameters */
+  pData = pInMsg->pData;
+  param.fieldControl = *pData++;
+  param.fileId.manufacturer = BUILD_UINT16 ( pData[0], pData[1] );
+  pData += 2;
+  param.fileId.type = BUILD_UINT16 ( pData[0], pData[1] );
+  pData += 2;
+  param.fileId.version = OsalPort_buildUint32 ( pData, 4 );
+  pData += 4;
+  param.fileOffset = OsalPort_buildUint32 ( pData, 4 );
+  pData += 4;
+  param.maxDataSize = *pData++;
+  if ( ( param.fieldControl & OTA_BLOCK_FC_NODES_IEEE_PRESENT ) != 0 )
+  {
+    osal_cpyExtAddr ( param.nodeAddr, pData );
+    pData += 8;
+  }
+  if ( ( param.fieldControl & OTA_BLOCK_FC_REQ_DELAY_PRESENT ) != 0 )
+  {
+    param.blockReqDelay = BUILD_UINT16 ( pData[0], pData[1] );
+  }
+
+  /* call callback */
+  return otaServer_Srv_ImageBlockReq ( &pInMsg->msg->srcAddr, &param, transSeqNum );
+}
+
+/******************************************************************************
+ * @fn      otaServer_ProcessImagePageReq
+ *
+ * @brief   Process received Image Page Request.
+ *
+ * @param   pInMsg - pointer to the incoming message
+ *
+ * @return  ZStatus_t
+ */
+static ZStatus_t otaServer_ProcessImagePageReq ( zclIncoming_t *pInMsg )
+{
+  zclOTA_ImagePageReqParams_t  param;
+  uint8_t *pData;
+  uint8_t transSeqNum = pInMsg->hdr.transSeqNum;
+
+  /* verify message length */
+  if ( ( pInMsg->pDataLen != PAYLOAD_MAX_LEN_IMAGE_PAGE_REQ ) &&
+       ( pInMsg->pDataLen != PAYLOAD_MIN_LEN_IMAGE_PAGE_REQ ) )
+  {
+    /* no further processing if invalid */
+    return ZCL_STATUS_MALFORMED_COMMAND;
+  }
+
+  /* parse message parameters */
+  pData = pInMsg->pData;
+  param.fieldControl = *pData++;
+  param.fileId.manufacturer = BUILD_UINT16 ( pData[0], pData[1] );
+  pData += 2;
+  param.fileId.type = BUILD_UINT16 ( pData[0], pData[1] );
+  pData += 2;
+  param.fileId.version = OsalPort_buildUint32 ( pData, 4 );
+  pData += 4;
+  param.fileOffset = OsalPort_buildUint32 ( pData, 4 );
+  pData += 4;
+  param.maxDataSize = *pData++;
+  param.pageSize = BUILD_UINT16 ( pData[0], pData[1] );
+  pData += 2;
+  param.responseSpacing = BUILD_UINT16 ( pData[0], pData[1] );
+  pData += 2;
+  if ( ( param.fieldControl & 0x01 ) != 0 )
+  {
+    osal_cpyExtAddr ( param.nodeAddr, pData );
+  }
+
+  /* call callback */
+  return otaServer_Srv_ImagePageReq ( &pInMsg->msg->srcAddr, &param, transSeqNum );
+}
+
+/******************************************************************************
+ * @fn      otaServer_Srv_QueryNextImageReq
+ *
+ * @brief   Handle a Query Next Image Request.
+ *
+ * @param   pSrcAddr - The source of the message
+ * @param   pParam - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
+ *
+ * @return  ZStatus_t
+ *
+ * @note    On a query next image, we must request a file listing
+ *          from the File Server.  Then open a file if
+ */
+ZStatus_t otaServer_Srv_QueryNextImageReq ( afAddrType_t *pSrcAddr, zclOTA_QueryNextImageReqParams_t *pParam,
+    uint8_t transSeqNum )
+{
+  uint8_t options = 0;
+  uint8_t status;
+
+  if ( zclOTA_Permit )
+  {
+    if ( pParam->fieldControl )
+    {
+      options |= MT_OTA_HW_VER_PRESENT_OPTION;
+    }
+
+    // Request the next image for this device from the console via the MT File System
+    status = MT_OtaGetImage ( pSrcAddr, &pParam->fileId, pParam->hardwareVersion, NULL, options );
+  }
+  else
+  {
+    status = ZOtaNoImageAvailable;
+  }
+
+  if ( status != ZSuccess )
+  {
+    zclOTA_QueryImageRspParams_t queryRsp;
+
+    // Fill in the response parameters
+    OsalPort_memcpy ( &queryRsp.fileId, &pParam->fileId, sizeof ( zclOTA_FileID_t ) );
+    queryRsp.status = ZOtaNoImageAvailable;
+    queryRsp.imageSize = 0;
+
+    // Send a failure response to the client
+    zclOTA_SendQueryNextImageRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, &queryRsp, transSeqNum );
+  }
+  else
+  {
+    // Add transSeqNum to SeqNumEntryTable for use in response
+    otaServer_AddSeqNumEntry( transSeqNum, pSrcAddr->addr.shortAddr );
+  }
+
+  return ZCL_STATUS_CMD_HAS_RSP;
+}
+
+/******************************************************************************
+ * @fn      otaServer_Srv_ImagePageReq
+ *
+ * @brief   Handle an Image Page Request.  Note: Not currently supported.
+ *
+ * @param   pSrcAddr - The source of the message
+ * @param   pParam - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
+ *
+ * @return  ZStatus_t
+ */
+ZStatus_t otaServer_Srv_ImagePageReq ( afAddrType_t *pSrcAddr, zclOTA_ImagePageReqParams_t *pParam,
+    uint8_t transSeqNum )
+{
+  // Send not supported resposne
+  return ZUnsupClusterCmd;
+}
+
+/******************************************************************************
+ * @fn      otaServer_ProcessUpgradeEndReq
+ *
+ * @brief   Process received Upgrade End Request.
+ *
+ * @param   pInMsg - pointer to the incoming message
+ *
+ * @return  ZStatus_t
+ */
+static ZStatus_t otaServer_ProcessUpgradeEndReq ( zclIncoming_t *pInMsg )
+{
+  zclOTA_UpgradeEndReqParams_t  param;
+  uint8_t *pData;
+  uint8_t transSeqNum = pInMsg->hdr.transSeqNum;
+
+  /* verify message length */
+  if ( ( pInMsg->pDataLen != PAYLOAD_MAX_LEN_UPGRADE_END_REQ ) &&
+       ( pInMsg->pDataLen != PAYLOAD_MIN_LEN_UPGRADE_END_REQ ) )
+  {
+    /* no further processing if invalid */
+    return ZCL_STATUS_MALFORMED_COMMAND;
+  }
+
+  /* parse message parameters */
+  pData = pInMsg->pData;
+  param.status = *pData++;
+  if ( param.status == ZCL_STATUS_SUCCESS )
+  {
+    param.fileId.manufacturer = BUILD_UINT16 ( pData[0], pData[1] );
+    pData += 2;
+    param.fileId.type = BUILD_UINT16 ( pData[0], pData[1] );
+    pData += 2;
+    param.fileId.version = OsalPort_buildUint32 ( pData, 4 );
+  }
+
+  /* call callback */
+  return otaServer_Srv_UpgradeEndReq ( &pInMsg->msg->srcAddr, &param, transSeqNum );
+}
+
+/******************************************************************************
+ * @fn      otaServer_Srv_UpgradeEndReq
+ *
+ * @brief   Handle an Upgrade End Request.
+ *
+ * @param   pSrcAddr - The source of the message
+ *          pParam - message parameters
+ *          transSeqNum - Transaction Sequence Number
+ *
+ * @return  ZStatus_t
+ */
+ZStatus_t otaServer_Srv_UpgradeEndReq ( afAddrType_t *pSrcAddr, zclOTA_UpgradeEndReqParams_t *pParam,
+    uint8_t transSeqNum )
+{
+  uint8_t status = ZFailure;
+
+  if ( zclOTA_Permit && ( pParam != NULL ) )
+  {
+    zclOTA_UpgradeEndRspParams_t rspParms;
+
+    if ( pParam->status == ZSuccess )
+    {
+      OsalPort_memcpy ( &rspParms.fileId, &pParam->fileId, sizeof ( zclOTA_FileID_t ) );
+      rspParms.currentTime = MAP_osal_GetSystemClock();
+      rspParms.upgradeTime = rspParms.currentTime + OTA_UPGRADE_DELAY;
+
+      // Send the response to the peer
+      zclOTA_SendUpgradeEndRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, &rspParms, transSeqNum );
+
+      status = ZCL_STATUS_CMD_HAS_RSP;
+    }
+    else
+    {
+      // When non success status is received, send default rsp with success status
+      status = ZSuccess;
+    }
+
+    // Notify the Console Tool
+    MT_OtaSendStatus ( pSrcAddr->addr.shortAddr, MT_OTA_DL_COMPLETE, pParam->status, 0 );
+  }
+
+  return status;
+}
+
+/******************************************************************************
+ * @fn      otaServer_ServerHandleFileSysCb
+ *
+ * @brief   Handles File Server Callbacks.
+ *
+ * @param   pMSGpkt - The data from the server.
+ *
+ * @return  none
+ */
+void otaServer_ServerHandleFileSysCb ( uint8_t* pMSGpkt )
+{
+  zclOTA_FileID_t pFileId;
+  afAddrType_t pAddr;
+  uint8_t *pMsg;
+
+  if ( pMSGpkt != NULL )
+  {
+    // Get the File ID and AF Address
+    pMsg = ((OTA_MtMsg_t*)pMSGpkt)->data;
+    pMsg = OTA_StreamToFileId ( &pFileId, pMsg );
+    pMsg = OTA_StreamToAfAddr ( &pAddr, pMsg );
+
+    switch ( ((OTA_MtMsg_t*)pMSGpkt)->cmd )
+    {
+      case MT_OTA_NEXT_IMG_RSP:
+        otaServer_ProcessNextImgRsp ( pMsg, &pFileId, &pAddr );
+        break;
+
+      case MT_OTA_FILE_READ_RSP:
+        otaServer_ProcessFileReadRsp ( pMsg, &pFileId, &pAddr );
+        break;
+
+      default:
+        break;
+    }
+  }
+}
+
+/******************************************************************************
+ * @fn      otaServer_ProcessNextImgRsp
+ *
+ * @brief   Handles a response to a MT_OTA_NEXT_IMG_RSP.
+ *
+ * @param   pMsg - The data from the server.
+ * @param   pFileId - The ID of the OTA File.
+ * @param   pAddr - The source of the message.
+ *
+ * @return  none
+ */
+void otaServer_ProcessNextImgRsp ( uint8_t* pMsg, zclOTA_FileID_t *pFileId,
+                                afAddrType_t *pAddr )
+{
+  zclOTA_QueryImageRspParams_t queryRsp;
+  uint8_t options;
+  uint8_t status;
+  uint8_t transSeqNum = otaServer_FindSeqNumEntry(pAddr->addr.shortAddr);
+
+  // Get the status of the operation
+  status = *pMsg++;
+
+  // Get the options
+  options = *pMsg++;
+
+  // Copy the file ID
+  OsalPort_memcpy ( &queryRsp.fileId, pFileId, sizeof ( zclOTA_FileID_t ) );
+
+  // Set the image size
+  if ( status == ZSuccess )
+  {
+    queryRsp.status = ZSuccess;
+    queryRsp.imageSize = BUILD_UINT32 ( pMsg[0], pMsg[1], pMsg[2], pMsg[3] );
+  }
+  else
+  {
+    queryRsp.status = ZOtaNoImageAvailable;
+    queryRsp.imageSize = 0;
+  }
+
+  queryResponse = queryRsp; // save global variable for query image response. Used later in image block request check
+
+  // Send a response to the client
+  if ( options & MT_OTA_QUERY_SPECIFIC_OPTION )
+  {
+    zclOTA_SendQuerySpecificFileRsp ( ZCL_OTA_ENDPOINT, pAddr, &queryRsp, transSeqNum );
+  }
+  else
+  {
+    zclOTA_SendQueryNextImageRsp ( ZCL_OTA_ENDPOINT, pAddr, &queryRsp, transSeqNum );
+  }
+}
+
+/******************************************************************************
+ * @fn      otaServer_ProcessFileReadRsp
+ *
+ * @brief   Handles a response to a MT_OTA_FILE_READ_RSP.
+ *
+ * @param   pMsg - The data from the server.
+ *          pFileId - The ID of the OTA File.
+ *          pAddr - The source of the message.
+ *
+ * @return  none
+ */
+void otaServer_ProcessFileReadRsp ( uint8_t* pMsg, zclOTA_FileID_t *pFileId,
+                                 afAddrType_t *pAddr )
+{
+  zclOTA_ImageBlockRspParams_t blockRsp;
+  uint8_t transSeqNum = otaServer_FindSeqNumEntry(pAddr->addr.shortAddr);
+
+  // Set the status
+  blockRsp.status = *pMsg++;
+
+  // Check the status of the file read
+  if ( blockRsp.status == ZSuccess )
+  {
+    // Fill in the response parameters
+    OsalPort_memcpy ( &blockRsp.rsp.success.fileId, pFileId, sizeof ( zclOTA_FileID_t ) );
+    blockRsp.rsp.success.fileOffset = BUILD_UINT32 ( pMsg[0], pMsg[1], pMsg[2], pMsg[3] );
+    pMsg += 4;
+    blockRsp.rsp.success.dataSize = *pMsg++;
+    blockRsp.rsp.success.pData = pMsg;
+  }
+  else
+  {
+    blockRsp.status = ZOtaAbort;
+  }
+
+  // Send the block response to the peer
+  zclOTA_SendImageBlockRsp ( ZCL_OTA_ENDPOINT, pAddr, &blockRsp, transSeqNum );
+}
+
+/******************************************************************************
+ * @fn      otaServer_ProcessQuerySpecificFileReq
+ *
+ * @brief   Process received Image Page Request.
+ *
+ * @param   pInMsg - pointer to the incoming message
+ *
+ * @return  ZStatus_t
+ */
+static ZStatus_t otaServer_ProcessQuerySpecificFileReq ( zclIncoming_t *pInMsg )
+{
+  zclOTA_QuerySpecificFileReqParams_t  param;
+  uint8_t *pData;
+  uint8_t transSeqNum = pInMsg->hdr.transSeqNum;
+
+  /* verify message length */
+  if ( pInMsg->pDataLen != PAYLOAD_MAX_LEN_QUERY_SPECIFIC_FILE_REQ )
+  {
+    /* no further processing if invalid */
+    return ZCL_STATUS_MALFORMED_COMMAND;
+  }
+
+  /* parse message parameters */
+  pData = pInMsg->pData;
+  osal_cpyExtAddr ( param.nodeAddr, pData );
+  pData += Z_EXTADDR_LEN;
+  param.fileId.manufacturer = BUILD_UINT16 ( pData[0], pData[1] );
+  pData += 2;
+  param.fileId.type = BUILD_UINT16 ( pData[0], pData[1] );
+  pData += 2;
+  param.fileId.version = OsalPort_buildUint32 ( pData, 4 );
+  pData += 4;
+  param.stackVersion = BUILD_UINT16 ( pData[0], pData[1] );
+
+  /* call callback */
+  return otaServer_Srv_QuerySpecificFileReq ( &pInMsg->msg->srcAddr, &param, transSeqNum );
+}
+
+/******************************************************************************
+ * @fn      otaServer_Srv_QuerySpecificFileReq
+ *
+ * @brief   Handles a Query Specific File Request.
+ *
+ * @param   pSrcAddr - The source of the message
+ * @param   pParam - message parameters
+ * @param   transSeqNum - Transaction Sequence Number
+ *
+ * @return  ZStatus_t
+ */
+ZStatus_t otaServer_Srv_QuerySpecificFileReq ( afAddrType_t *pSrcAddr, zclOTA_QuerySpecificFileReqParams_t *pParam,
+    uint8_t transSeqNum )
+{
+  uint8_t status;
+
+  // Request the image from the console
+  if ( zclOTA_Permit )
+  {
+    status = MT_OtaGetImage ( pSrcAddr, &pParam->fileId, 0,  pParam->nodeAddr, MT_OTA_QUERY_SPECIFIC_OPTION );
+  }
+  else
+  {
+    status = ZOtaNoImageAvailable;
+  }
+
+  if ( status != ZSuccess )
+  {
+    zclOTA_QueryImageRspParams_t queryRsp;
+
+    // Fill in the response parameters
+    OsalPort_memcpy ( &queryRsp.fileId, &pParam->fileId, sizeof ( zclOTA_FileID_t ) );
+    queryRsp.status = ZOtaNoImageAvailable;
+    queryRsp.imageSize = 0;
+
+    // Send a failure response to the client
+    zclOTA_SendQuerySpecificFileRsp ( ZCL_OTA_ENDPOINT, pSrcAddr, &queryRsp, transSeqNum );
+  }
+  else
+  {
+    // Add transSeqNum to SeqNumEntryTable for use in response
+    otaServer_AddSeqNumEntry( transSeqNum, pSrcAddr->addr.shortAddr );
+  }
+
+  return ZCL_STATUS_CMD_HAS_RSP;
 }

@@ -95,7 +95,12 @@
 #include "zstackapi.h"
 #endif
 
+#ifndef CUI_DISABLE
 #include "cui.h"
+#endif
+
+
+#include "ti_zstack_config.h"
 
 /******************************************************************************
  Constants
@@ -205,7 +210,9 @@ void Main_assertHandler(uint8_t assertReason)
     while(1)
     {
         /* Put you code here to do something if in assert */
+        #ifndef CUI_DISABLE
         CUI_assert(assertLine, TRUE);
+        #endif
     }
 #endif
 }
@@ -238,7 +245,9 @@ Void taskFxn(UArg a0, UArg a1)
     extern void sampleApp_task(NVINTF_nvFuncts_t *pfnNV);
     sampleApp_task(&zstack_user0Cfg.nvFps);
 }
+
 #endif
+
 /*!
  * @brief       TIRTOS HWI Handler.  The name of this function is set to
  *              M3Hwi.excHandlerFunc in app.cfg, you can disable this by
@@ -278,7 +287,7 @@ void Main_lowVoltageCb(uint32_t voltage)
 /*!
  * @brief       "main()" function - starting point
  */
-Void main()
+int main()
 {
 #ifndef USE_DEFAULT_USER_CFG
     zstack_user0Cfg.macConfig.pAssertFP = assertHandler;
@@ -302,7 +311,7 @@ Void main()
     Board_initGeneral();
 
 // OTA client projects use BIM, so CCFG isn't present in this image
-#ifndef OTA_CLIENT
+#if !((defined OTA_CLIENT_STANDALONE) || (defined OTA_CLIENT_INTEGRATED))
     /*
      * Copy the extended address from the CCFG area
      * Assumption: the memory in CCFG_IEEE_MAC_0 and CCFG_IEEE_MAC_1
@@ -316,7 +325,7 @@ Void main()
            (APIMAC_SADDR_EXT_LEN));
     /* Check to see if the CCFG IEEE is valid */
     if(memcmp(zstack_user0Cfg.extendedAddress, dummyExtAddr, APIMAC_SADDR_EXT_LEN) == 0)
-#endif // OTA_CLIENT
+#endif // (defined OTA_CLIENT_STANDALONE) || (defined OTA_CLIENT_INTEGRATED
     {
         /* No, it isn't valid.  Get the Primary IEEE Address */
         OsalPort_memcpy(zstack_user0Cfg.extendedAddress, (uint8_t *)(FCFG1_BASE + EXTADDR_OFFSET),
@@ -355,14 +364,22 @@ Void main()
 
 // ZNP does not need an application task
 #ifndef ZNP_NPI
+
+#ifndef CUI_DISABLE
+    CUI_params_t cuiParams;
+
+    CUI_paramsInit(&cuiParams);
+    CUI_init(&cuiParams);
+#endif
     Task_Params taskParams;
 
     /* Configure app task. */
     Task_Params_init(&taskParams);
     taskParams.stack = myTaskStack;
     taskParams.stackSize = APP_TASK_STACK_SIZE;
-    taskParams.priority = 1;
+    taskParams.priority = 2;
     Task_construct(&myTask, taskFxn, &taskParams, NULL);
+
 #endif
 
 #ifdef DEBUG_SW_TRACE
@@ -371,4 +388,6 @@ Void main()
 #endif /* DEBUG_SW_TRACE */
 
     BIOS_start(); /* enable interrupts and start SYS/BIOS */
+
+    return 0; // never executed
 }

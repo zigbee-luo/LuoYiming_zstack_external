@@ -40,6 +40,7 @@
 /*********************************************************************
  * INCLUDES
  */
+#include "ti_zstack_config.h"
 #include "zcl.h"
 #include "zcl_general.h"
 #include "zcl_appliance_control.h"
@@ -118,8 +119,8 @@ ZStatus_t zclApplianceControl_RegisterCmdCallbacks( uint8_t endpoint, zclApplian
   // Register as a ZCL Plugin
   if ( zclApplianceControlPluginRegisted == FALSE )
   {
-    zcl_registerPlugin( ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL,
-                        ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL,
+    zcl_registerPlugin( ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL,
+                        ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL,
                         zclApplianceControl_HdlIncoming );
     zclApplianceControlPluginRegisted = TRUE;
   }
@@ -168,8 +169,8 @@ void zclApplianceControl_RegisterUnsupportCallback( ZStatus_t (*callback)(zclInc
   // Register as a ZCL Plugin
   if ( zclApplianceControlPluginRegisted == FALSE )
   {
-    zcl_registerPlugin( ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL,
-                        ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL,
+    zcl_registerPlugin( ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL,
+                        ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL,
                         zclApplianceControl_HdlIncoming );
     zclApplianceControlPluginRegisted = TRUE;
   }
@@ -198,7 +199,7 @@ extern ZStatus_t zclApplianceControl_Send_CommandExecution( uint8_t srcEP, afAdd
 
   buf[0] = commandID;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL,
                           COMMAND_APPLIANCE_CONTROL_COMMAND_EXECUTION, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
@@ -220,7 +221,7 @@ extern ZStatus_t zclApplianceControl_Send_SignalState( uint8_t srcEP, afAddrType
 {
   // no payload
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL,
                           COMMAND_APPLIANCE_CONTROL_SIGNAL_STATE, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, 0, 0 );
 }
@@ -272,7 +273,7 @@ extern ZStatus_t zclApplianceControl_Send_WriteFunctions( uint8_t srcEP, afAddrT
     pBuf[3 + i] = pPayload->pFunctionData[i];
   }
 
-  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL,
+  status = zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL,
                            COMMAND_APPLIANCE_CONTROL_WRITE_FUNCTIONS, TRUE,
                            ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, calculatedBufSize, pBuf );
   zcl_mem_free( pBuf );
@@ -297,7 +298,7 @@ extern ZStatus_t zclApplianceControl_Send_OverloadPauseResume( uint8_t srcEP, af
 {
   // no payload
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL,
                           COMMAND_APPLIANCE_CONTROL_OVERLOAD_PAUSE_RESUME, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, 0, 0 );
 }
@@ -319,7 +320,7 @@ extern ZStatus_t zclApplianceControl_Send_OverloadPause( uint8_t srcEP, afAddrTy
 {
   // no payload
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL,
                           COMMAND_APPLIANCE_CONTROL_OVERLOAD_PAUSE, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, 0, 0 );
 }
@@ -345,7 +346,7 @@ extern ZStatus_t zclApplianceControl_Send_OverloadWarning( uint8_t srcEP, afAddr
 
   buf[0] = warningEvent;
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL,
                           COMMAND_APPLIANCE_CONTROL_OVERLOAD_WARNING, TRUE,
                           ZCL_FRAME_CLIENT_SERVER_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
@@ -378,7 +379,7 @@ extern ZStatus_t zclApplianceControl_Send_SignalStateRsp( uint8_t srcEP, afAddrT
   buf[3] = BREAK_UINT32( applianceStatus2, 1 );
   buf[4] = BREAK_UINT32( applianceStatus2, 2 );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL,
                           COMMAND_APPLIANCE_CONTROL_SIGNAL_STATE_RSP, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }
@@ -411,7 +412,7 @@ extern ZStatus_t zclApplianceControl_Send_SignalStateNotification( uint8_t srcEP
   buf[3] = BREAK_UINT32( applianceStatus2, 1 );
   buf[4] = BREAK_UINT32( applianceStatus2, 2 );
 
-  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GEN_APPLIANCE_CONTROL,
+  return zcl_SendCommand( srcEP, dstAddr, ZCL_CLUSTER_ID_GENERAL_APPLIANCE_CONTROL,
                           COMMAND_APPLIANCE_CONTROL_SIGNAL_STATE_NOTIFICATION, TRUE,
                           ZCL_FRAME_SERVER_CLIENT_DIR, disableDefaultRsp, 0, seqNum, sizeof( buf ), buf );
 }

@@ -960,7 +960,7 @@ void nwk_MTCallbackSubDataIndication(uint16_t SrcAddress, int16_t nsduLength, ui
     //to represent nsdu length
     *msg++ = ( uint8_t ) nsduLength;
 
-    memset( msg, NULL, ZTEST_DEFAULT_DATA_LEN ); // Clear the mem
+    memset( msg, 0U, ZTEST_DEFAULT_DATA_LEN ); // Clear the mem
     OsalPort_memcpy( msg, nsdu, nsduLength );
     msg += ZTEST_DEFAULT_DATA_LEN;
 

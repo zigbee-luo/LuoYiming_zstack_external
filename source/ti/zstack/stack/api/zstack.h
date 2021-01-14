@@ -846,10 +846,6 @@ typedef struct _zstack_sysconfigreadreq_t
     bool nwkUseMultiCast;
     /** True to return if the device is already part of a network */
     bool devPartOfNetwork;
-    /** True to return rejoin backoff duration */
-    bool rejoinBackoffDuration;
-    /** True to return rejoin scan duration */
-    bool rejoinScanDuration;
 } zstack_sysConfigReadReq_t;
 
 /**
@@ -1013,16 +1009,6 @@ typedef struct _zstack_sysconfigwritereq_t
     bool has_nwkUseMultiCast;
     /** True to enable the use of Multicast messaging */
     bool nwkUseMultiCast;
-
-    /** Set to true if rejoinBackoffDuration is available , false if not */
-    bool has_rejoinBackoffDuration;
-    /**  rejoin backoff duration */
-    uint32_t rejoinBackoffDuration;
-
-    /** Set to true if rejoinScanDuration is available , false if not */
-    bool has_rejoinScanDuration;
-    /**  rejoin scan duration */
-    uint32_t rejoinScanDuration;
 } zstack_sysConfigWriteReq_t;
 
 /**
@@ -1226,16 +1212,6 @@ typedef struct _zstack_sysconfigreadrsp_t
      * start from the parameters already in NV.
      */
     bool devPartOfNetwork;
-
-    /** Set if rejoin backoff duration is available , false if not */
-    bool has_rejoinBackoffDuration;
-    /** Rejoin backoff duration */
-    uint32_t rejoinBackoffDuration;
-
-    /** Set if rejoin scan duration is available , false if not */
-    bool has_rejoinScanDuration;
-    /** Rejoin scan duration */
-    uint32_t rejoinScanDuration;
 
 } zstack_sysConfigReadRsp_t;
 

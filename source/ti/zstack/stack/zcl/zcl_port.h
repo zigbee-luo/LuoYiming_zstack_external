@@ -51,6 +51,7 @@ extern "C"
 #include "zstack.h"
 #include "zcl.h"
 #include "zcomdef.h"
+#include "ti_zstack_config.h"
 
 /**
  \defgroup ZclPort ZCL Porting Layer
@@ -112,14 +113,14 @@ extern void zclport_registerNV(NVINTF_nvFuncts_t *pfnNV, uint16_t sceneNVID);
 
 /**
  * @brief   Call to register a function pointer to handle
- *          zcl_HandleExternal() messages. fixed by luoyiming 2020-02-08
+ *          zcl_HandleExternal() messages.
  *
- * @param   endpoint - endpoint of ZCL External messages.
+ * @param   endpoint - endpoint ID
  * @param   pfn - pointer to the function that handles ZCL External messages.
  *
- * @return  TRUE if success
+ * @return  true if able to regiester, otherwise false
  */
-extern bool zclport_registerZclHandleExternal(uint8_t endpoint, zclport_pFnZclHandleExternal pfn);
+extern bool zclport_registerZclHandleExternal( uint8_t endpoint, zclport_pFnZclHandleExternal pfn);
 
 /**
  * @brief   Call to get Device Information.

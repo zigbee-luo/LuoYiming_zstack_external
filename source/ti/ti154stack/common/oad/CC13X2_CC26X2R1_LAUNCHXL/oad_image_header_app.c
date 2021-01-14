@@ -108,11 +108,11 @@ extern const uint8_t  ENTRY_START;
 #endif
 
 
-#ifdef __TI_COMPILER_VERSION__
-/* This symbol is create by the linker file */
+#if defined(__TI_COMPILER_VERSION__) || defined(__clang__)
+/* This symbol is created by the linker file */
 extern uint8_t prgEntryAddr;
 extern uint8_t flashEndAddr;
-#endif /* __TI_COMPILER_VERSION__ */
+#endif /* __TI_COMPILER_VERSION__ || __clang__ */
 
 #ifdef __TI_COMPILER_VERSION__
 #pragma DATA_SECTION(_imgHdr, ".image_header")
@@ -121,7 +121,9 @@ const imgHdr_t _imgHdr =
 #elif  defined(__IAR_SYSTEMS_ICC__)
 #pragma location=".img_hdr"
 const imgHdr_t _imgHdr @ ".img_hdr" =
-#endif /*  defined(__IAR_SYSTEMS_ICC__) */
+#elif defined(__clang__)
+const imgHdr_t _imgHdr __attribute__((section( ".image_header"))) __attribute__((used)) =
+#endif
 {
   {
     .imgID = OAD_IMG_ID_VAL,
@@ -140,7 +142,7 @@ const imgHdr_t _imgHdr @ ".img_hdr" =
     .hdrLen = offsetof(imgHdr_t, fixedHdr.rfu) + sizeof(((imgHdr_t){0}).fixedHdr.rfu),   
                                             //!< Total length of the image header */
     .rfu = 0xFFFF,                         //!< reserved bytes */
-#ifdef __TI_COMPILER_VERSION__
+#if defined(__TI_COMPILER_VERSION__) || defined(__clang__)
     .prgEntry = (uint32_t)&prgEntryAddr,
     .imgEndAddr = (uint32_t)&flashEndAddr,
 #elif  defined(__IAR_SYSTEMS_ICC__)

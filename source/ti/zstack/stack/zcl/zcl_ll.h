@@ -50,6 +50,7 @@ extern "C"
  * INCLUDES
  */
 #include "zcl.h"
+#include "ti_zstack_config.h"
 
 /*********************************************************************
  * CONSTANTS
@@ -59,23 +60,25 @@ extern "C"
 #define ZLL_PROFILE_ID                                     0xc05e
 
 // ZLL Basic Lighting Device IDs
-#define ZLL_DEVICEID_ON_OFF_LIGHT                          0x0000
-#define ZLL_DEVICEID_ON_OFF_PLUG_IN_UNIT                   0x0010
-#define ZLL_DEVICEID_DIMMABLE_LIGHT                        0x0100
-#define ZLL_DEVICEID_DIMMABLE_PLUG_IN_UNIT                 0x0110
+#define ZCL_DEVICEID_ON_OFF_BALLAST                        0x0108
+#define ZCL_DEVICEID_DIMMABLE_BALLAST                      0x0109
+#define ZCL_DEVICEID_LIGHT_LEVEL_SENSOR                    0x010E
+
+// ZLL Basic Lighting Device IDs
+#define ZCL_DEVICEID_ON_OFF_PLUG_IN_UNIT                   0x010A
+#define ZCL_DEVICEID_DIMMABLE_PLUG_IN_UNIT                 0x010B
 
 // ZLL Color Lighting Device IDs
-#define ZLL_DEVICEID_COLOR_LIGHT                           0x0200
-#define ZLL_DEVICEID_EXTENDED_COLOR_LIGHT                  0x0210
-#define ZLL_DEVICEID_COLOR_TEMPERATURE_LIGHT               0x0220
+#define ZCL_DEVICEID_EXTENDED_COLOR_LIGHT                  0x010D
+#define ZCL_DEVICEID_COLOR_TEMPERATURE_LIGHT               0x010C
 
 // ZLL Lighting Remotes Device IDs
-#define ZLL_DEVICEID_COLOR_CONTORLLER                      0x0800
-#define ZLL_DEVICEID_COLOR_SCENE_CONTROLLER                0x0810
-#define ZLL_DEVICEID_NON_COLOR_CONTORLLER                  0x0820
-#define ZLL_DEVICEID_NON_COLOR_SCENE_CONTROLLER            0x0830
-#define ZLL_DEVICEID_CONTROL_BRIDGE                        0x0840
-#define ZLL_DEVICEID_ON_OFF_SENSOR                         0x0850
+#define ZCL_DEVICEID_COLOR_CONTROLLER                      0x0800
+#define ZCL_DEVICEID_COLOR_SCENE_CONTROLLER                0x0810
+#define ZCL_DEVICEID_NON_COLOR_CONTROLLER                  0x0820
+#define ZCL_DEVICEID_NON_COLOR_SCENE_CONTROLLER            0x0830
+#define ZCL_DEVICEID_CONTROL_BRIDGE                        0x0840
+#define ZCL_DEVICEID_ON_OFF_SENSOR                         0x0850
 
 // ZLL Device Version
 #define ZLL_DEVICE_VERSION                                 2

@@ -80,12 +80,6 @@ typedef struct zgItem
  * NWK GLOBAL VARIABLES
  */
 
-// Rejoin backoff (silent period ) duration
-uint32_t zgDefaultRejoinBackoff = REJOIN_BACKOFF;
-
-// Rejoin scan duration
-uint32_t zgDefaultRejoinScan = REJOIN_SCAN ;
-
 // Transmission retries numbers
 uint8_t zgMaxDataRetries = NWK_MAX_DATA_RETRIES;
 uint8_t zgMaxMissingMacAckLinkFailure = MAX_MISSING_MAC_ACK_LINK_FAILURE;
@@ -180,7 +174,7 @@ uint8_t zgNwkParentInformation = NWK_PARENT_INFO_UNDEFINED;
 // This is an index into table Requested Timeout Enumerated Values.
 // It is used by the parent router, it indicates the default timeout value
 // for any end device that does not negotiate a different timeout value
-uint8_t zgNwkEndDeviceTimeoutDefault = NWK_END_DEV_TIMEOUT_DEFAULT;
+uint8_t zgNwkEndDeviceTimeoutDefault = END_DEV_TIMEOUT_VALUE;
 
 // Index into table Requested Timeout Enumerated Values.
 // Used to keep the leave message into MAC queue for child devices that has expired

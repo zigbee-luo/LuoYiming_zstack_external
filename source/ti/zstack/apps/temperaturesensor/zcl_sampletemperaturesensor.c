@@ -78,7 +78,7 @@
 #include <ti/drivers/apps/Button.h>
 #include <ti/drivers/apps/LED.h>
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 #include "zcl_sampleapps_ui.h"
 #include "zcl_sample_app_def.h"
 #endif
@@ -87,7 +87,9 @@
 #include "zstackmsg.h"
 #include "zcl_port.h"
 
+#include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Task.h>
 #include "zstackapi.h"
 #include "util_timer.h"
 #include "mac_util.h"
@@ -159,14 +161,14 @@ static Clock_Handle EndDeviceRejoinClkHandle;
 static Clock_Struct EndDeviceRejoinClkStruct;
 #endif
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 static uint16_t zclSampleTemperatureSensor_BdbCommissioningModes;
 #endif
 
 // Passed in function pointers to the NV driver
 static NVINTF_nvFuncts_t *pfnZdlNV = NULL;
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 CONST char zclSampleTemperatureSensor_appStr[] = APP_TITLE_STR;
 CUI_clientHandle_t gCuiHandle;
 static uint32_t gSampleTemperatureSensorInfoLine;
@@ -188,7 +190,7 @@ static void zclSampleTemperatureSensor_processAfIncomingMsgInd(zstack_afIncoming
 static void zclSampleTemperatureSensor_processEndDeviceRejoinTimeoutCallback(UArg a0);
 #endif
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 static void zclSampleTemperatureSensor_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleTemperatureSensor_RemoveAppNvmData(void);
 static void zclSampleTemperatureSensor_InitializeStatusLine(CUI_clientHandle_t gCuiHandle);
@@ -239,6 +241,7 @@ static zclGeneral_AppCallbacks_t zclSampleTemperatureSensor_CmdCallbacks =
   NULL,                                           // Level Control Move command
   NULL,                                           // Level Control Step command
   NULL,                                           // Level Control Stop command
+  NULL,                                           // Level Control Move to Closest Frequency command
 #endif
 #ifdef ZCL_GROUPS
   NULL,                                           // Group Response commands
@@ -368,7 +371,7 @@ static void zclSampleTemperatureSensor_Init( void )
   zcl_registerAttrList( SAMPLETEMPERATURESENSOR_ENDPOINT, zclSampleTemperatureSensor_NumAttributes, zclSampleTemperatureSensor_Attrs );
 
   // Register the Application to receive the unprocessed Foundation command/response messages
-  zclport_registerZclHandleExternal( SAMPLETEMPERATURESENSOR_ENDPOINT, zclSampleTemperatureSensor_ProcessIncomingMsg );
+  zclport_registerZclHandleExternal(SAMPLETEMPERATURESENSOR_ENDPOINT, zclSampleTemperatureSensor_ProcessIncomingMsg);
 
   //Write the bdb initialization parameters
   zclSampleTemperatureSensor_initParameters();
@@ -389,7 +392,7 @@ static void zclSampleTemperatureSensor_Init( void )
   //Default maxReportingInterval value is 10 seconds
   //Default minReportingInterval value is 3 seconds
   //Default reportChange value is 300 (3 degrees)
-  Req.attrID = ATTRID_MS_TEMPERATURE_MEASURED_VALUE;
+  Req.attrID = ATTRID_TEMPERATURE_MEASUREMENT_MEASURED_VALUE;
   Req.cluster = ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT;
   Req.endpoint = SAMPLETEMPERATURESENSOR_ENDPOINT;
   Req.maxReportInt = 10;
@@ -399,7 +402,7 @@ static void zclSampleTemperatureSensor_Init( void )
   Zstackapi_bdbRepAddAttrCfgRecordDefaultToListReq(appServiceTaskId,&Req);
 #endif
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   // set up default application BDB commissioning modes based on build type
   if(ZG_BUILD_COORDINATOR_TYPE && ZG_DEVICE_COORDINATOR_TYPE)
   {
@@ -451,7 +454,7 @@ static void zclSampleTemperatureSensor_Init( void )
   Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
 }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 /*********************************************************************
  * @fn          zclSampleTemperatureSensor_RemoveAppNvmData
  *
@@ -511,7 +514,7 @@ static void zclSampleTemperatureSensor_initializeClocks(void)
 {
 #if ZG_BUILD_ENDDEVICE_TYPE
     // Initialize the timers needed for this application
-    EndDeviceRejoinClkHandle = Timer_construct(
+    EndDeviceRejoinClkHandle = UtilTimer_construct(
     &EndDeviceRejoinClkStruct,
     zclSampleTemperatureSensor_processEndDeviceRejoinTimeoutCallback,
     SAMPLEAPP_END_DEVICE_REJOIN_DELAY,
@@ -602,7 +605,7 @@ static void zclSampleTemperatureSensor_process_loop(void)
             }
 #endif
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             //Process the events that the UI may have
             zclsampleApp_ui_event_loop();
 #endif
@@ -618,7 +621,7 @@ static void zclSampleTemperatureSensor_process_loop(void)
             }
 #endif
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   //Update status line
   zclSampleTemperatureSensor_UpdateStatusLine();
 #endif
@@ -653,7 +656,7 @@ static void zclSampleTemperatureSensor_processZStackMsgs(zstackmsg_genericReq_t 
 
           case zstackmsg_CmdIDs_BDB_IDENTIFY_TIME_CB:
               {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbIdentifyTimeoutInd_t *pInd;
                 pInd = (zstackmsg_bdbIdentifyTimeoutInd_t*) pMsg;
                 uiProcessIdentifyTimeChange(&(pInd->EndPoint));
@@ -663,7 +666,7 @@ static void zclSampleTemperatureSensor_processZStackMsgs(zstackmsg_genericReq_t 
 
           case zstackmsg_CmdIDs_BDB_BIND_NOTIFICATION_CB:
               {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbBindNotificationInd_t *pInd;
                 pInd = (zstackmsg_bdbBindNotificationInd_t*) pMsg;
                 uiProcessBindNotification(&(pInd->Req));
@@ -711,7 +714,7 @@ static void zclSampleTemperatureSensor_processZStackMsgs(zstackmsg_genericReq_t 
 #endif
           case zstackmsg_CmdIDs_DEV_STATE_CHANGE_IND:
           {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             // The ZStack Thread is indicating a State change
             zstackmsg_devStateChangeInd_t *pInd =
                 (zstackmsg_devStateChangeInd_t *)pMsg;
@@ -757,7 +760,7 @@ static void zclSampleTemperatureSensor_processZStackMsgs(zstackmsg_genericReq_t 
 
           case zstackmsg_CmdIDs_GP_COMMISSIONING_MODE_IND:
           {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             zstackmsg_gpCommissioningModeInd_t *pInd;
             pInd = (zstackmsg_gpCommissioningModeInd_t*)pMsg;
             UI_SetGPPCommissioningMode( &(pInd->Req) );
@@ -941,14 +944,14 @@ static void zclSampleTemperatureSensor_ProcessCommissioningStatus(bdbCommissioni
       else
       {
         //Parent not found, attempt to rejoin again after a fixed delay
-        Timer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
-        Timer_start(&EndDeviceRejoinClkStruct);
+        UtilTimer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
+        UtilTimer_start(&EndDeviceRejoinClkStruct);
       }
     break;
 #endif
     }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   UI_UpdateBdbStatusLine(bdbCommissioningModeMsg);
 #endif
 }
@@ -966,7 +969,7 @@ static void zclSampleTemperatureSensor_ProcessCommissioningStatus(bdbCommissioni
 static void zclSampleTemperatureSensor_BasicResetCB( void )
 {
   zclSampleTemperatureSensor_ResetAttributesToDefaultValues();
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   zclSampleTemperatureSensor_UpdateStatusLine();
 #endif
 }
@@ -1200,7 +1203,7 @@ static uint8_t zclSampleTemperatureSensor_ProcessInDiscAttrsExtRspCmd( zclIncomi
 }
 #endif // ZCL_DISCOVER
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 /*********************************************************************
  * @fn      zclSampleTemperatureSensor_processKey
  *
@@ -1249,11 +1252,9 @@ void zclSampleTemperatureSensor_UiActionChangeTemp(const char _input, char* _lin
 
           zclSampleTemperatureSensor_MeasuredValue = zclSampleTemperatureSensor_MeasuredValue + 100;  // considering using whole number value
 #ifdef BDB_REPORTING
-          Req.attrID = ATTRID_MS_TEMPERATURE_MEASURED_VALUE;
+      Req.attrID = ATTRID_TEMPERATURE_MEASUREMENT_MEASURED_VALUE;
           Req.cluster = ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT;
           Req.endpoint = SAMPLETEMPERATURESENSOR_ENDPOINT;
-          Req.direction = 0;
-          Req.manuCode = 0;
 
           Zstackapi_bdbRepChangedAttrValueReq(appServiceTaskId,&Req);
 #endif
@@ -1269,11 +1270,9 @@ void zclSampleTemperatureSensor_UiActionChangeTemp(const char _input, char* _lin
         {
           zclSampleTemperatureSensor_MeasuredValue = zclSampleTemperatureSensor_MeasuredValue - 100;  // considering using whole number value
 #ifdef BDB_REPORTING
-          Req.attrID = ATTRID_MS_TEMPERATURE_MEASURED_VALUE;
+      Req.attrID = ATTRID_TEMPERATURE_MEASUREMENT_MEASURED_VALUE;
           Req.cluster = ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT;
           Req.endpoint = SAMPLETEMPERATURESENSOR_ENDPOINT;
-          Req.direction = 0;
-          Req.manuCode = 0;
 
           Zstackapi_bdbRepChangedAttrValueReq(appServiceTaskId,&Req);
 #endif

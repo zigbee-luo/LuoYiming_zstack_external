@@ -93,7 +93,7 @@
 #include <ti/drivers/apps/Button.h>
 #include <ti/drivers/apps/LED.h>
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 #include "zcl_sampleapps_ui.h"
 #include "zcl_sample_app_def.h"
 #endif
@@ -103,7 +103,9 @@
 #include "zstackmsg.h"
 #include "zcl_port.h"
 
+#include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Task.h>
 #include "zstackapi.h"
 #include "util_timer.h"
 #include "mac_util.h"
@@ -167,7 +169,7 @@ static Clock_Struct DiscoveryClkStruct;
 // Passed in function pointers to the NV driver
 static NVINTF_nvFuncts_t *pfnZdlNV = NULL;
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 static uint16_t zclSampleDoorLockController_BdbCommissioningModes;
 #endif
 
@@ -191,7 +193,7 @@ static uint8_t discoveryInprogress = 0x00;
 
 static LED_Handle gRedLedHandle;
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 CONST char zclSampleDoorLockController_appStr[] = APP_TITLE_STR;
 CUI_clientHandle_t gCuiHandle;
 static uint32_t gSampleDoorLockControllerInfoLine1;
@@ -215,7 +217,7 @@ static void zclSampleDoorLockController_processEndDeviceRejoinTimeoutCallback(UA
 #endif
 static void zclSampleDoorLockController_processDiscoveryTimeoutCallback(UArg a0);
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 static void zclSampleDoorLockController_processKey(uint8_t key, Button_EventMask buttonEvents);
 static void zclSampleDoorLockController_RemoveAppNvmData(void);
 static void zclSampleDoorLockController_InitializeStatusLine(CUI_clientHandle_t gCuiHandle);
@@ -271,6 +273,7 @@ static zclGeneral_AppCallbacks_t zclSampleDoorLockController_CmdCallbacks =
   NULL,                                               // Level Control Move command
   NULL,                                               // Level Control Step command
   NULL,                                               // Level Control Stop command
+  NULL,                                               // Level Control Move to Closest Frequency command
 #endif
 #ifdef ZCL_GROUPS
   NULL,                                               // Group Response commands
@@ -467,7 +470,7 @@ static void zclSampleDoorLockController_Init( void )
   zcl_registerAttrList( SAMPLEDOORLOCKCONTROLLER_ENDPOINT, zclSampleDoorLockController_NumAttributes, zclSampleDoorLockController_Attrs );
 
   // Register the Application to receive the unprocessed Foundation command/response messages
-  zclport_registerZclHandleExternal( SAMPLEDOORLOCKCONTROLLER_ENDPOINT, zclSampleDoorLockController_ProcessIncomingMsg );
+  zclport_registerZclHandleExternal(SAMPLEDOORLOCKCONTROLLER_ENDPOINT, zclSampleDoorLockController_ProcessIncomingMsg);
 
   //Write the bdb initialization parameters
   zclSampleDoorLockController_initParameters();
@@ -509,7 +512,7 @@ static void zclSampleDoorLockController_Init( void )
     }
   }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   // set up default application BDB commissioning modes based on build type
   if(ZG_BUILD_COORDINATOR_TYPE && ZG_DEVICE_COORDINATOR_TYPE)
   {
@@ -559,7 +562,7 @@ static void zclSampleDoorLockController_Init( void )
   Zstackapi_bdbStartCommissioningReq(appServiceTaskId,&zstack_bdbStartCommissioningReq);
 }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
 /*********************************************************************
  * @fn          zclSampleDoorLockController_RemoveAppNvmData
  *
@@ -629,7 +632,7 @@ static void zclSampleDoorLockController_initializeClocks(void)
 {
 #if ZG_BUILD_ENDDEVICE_TYPE
     // Initialize the timers needed for this application
-    EndDeviceRejoinClkHandle = Timer_construct(
+    EndDeviceRejoinClkHandle = UtilTimer_construct(
     &EndDeviceRejoinClkStruct,
     zclSampleDoorLockController_processEndDeviceRejoinTimeoutCallback,
     SAMPLEAPP_END_DEVICE_REJOIN_DELAY,
@@ -637,7 +640,7 @@ static void zclSampleDoorLockController_initializeClocks(void)
 #endif
 
     // Initialize the timers needed for this application
-    DiscoveryClkHandle = Timer_construct(
+    DiscoveryClkHandle = UtilTimer_construct(
     &DiscoveryClkStruct,
     zclSampleDoorLockController_processDiscoveryTimeoutCallback,
     DISCOVERY_IN_PROGRESS_TIMEOUT,
@@ -719,7 +722,7 @@ static void zclSampleDoorLockController_process_loop(void)
                 OsalPort_msgDeallocate((uint8_t*)pMsg);
             }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
             //Process the events that the UI may have
             zclsampleApp_ui_event_loop();
 #endif
@@ -801,7 +804,7 @@ static void zclSampleDoorLockController_processZStackMsgs(zstackmsg_genericReq_t
 
           case zstackmsg_CmdIDs_BDB_IDENTIFY_TIME_CB:
               {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbIdentifyTimeoutInd_t *pInd;
                 pInd = (zstackmsg_bdbIdentifyTimeoutInd_t*) pMsg;
                 uiProcessIdentifyTimeChange(&(pInd->EndPoint));
@@ -811,7 +814,7 @@ static void zclSampleDoorLockController_processZStackMsgs(zstackmsg_genericReq_t
 
           case zstackmsg_CmdIDs_BDB_BIND_NOTIFICATION_CB:
               {
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
                 zstackmsg_bdbBindNotificationInd_t *pInd;
                 pInd = (zstackmsg_bdbBindNotificationInd_t*) pMsg;
                 uiProcessBindNotification(&(pInd->Req));
@@ -854,7 +857,7 @@ static void zclSampleDoorLockController_processZStackMsgs(zstackmsg_genericReq_t
 
 #endif
           case zstackmsg_CmdIDs_DEV_STATE_CHANGE_IND:
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
           {
             // The ZStack Thread is indicating a State change
             zstackmsg_devStateChangeInd_t *pInd =
@@ -900,7 +903,7 @@ static void zclSampleDoorLockController_processZStackMsgs(zstackmsg_genericReq_t
 
 
           case zstackmsg_CmdIDs_GP_COMMISSIONING_MODE_IND:
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
           {
             zstackmsg_gpCommissioningModeInd_t *pInd;
             pInd = (zstackmsg_gpCommissioningModeInd_t*)pMsg;
@@ -1141,14 +1144,14 @@ static void zclSampleDoorLockController_ProcessCommissioningStatus(bdbCommission
       else
       {
         //Parent not found, attempt to rejoin again after a fixed delay
-        Timer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
-        Timer_start(&EndDeviceRejoinClkStruct);
+        UtilTimer_setTimeout( EndDeviceRejoinClkHandle, SAMPLEAPP_END_DEVICE_REJOIN_DELAY );
+        UtilTimer_start(&EndDeviceRejoinClkStruct);
       }
     break;
 #endif
   }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   UI_UpdateBdbStatusLine(bdbCommissioningModeMsg);
 #endif
 }
@@ -1172,7 +1175,7 @@ static void zclSampleDoorLockController_BasicResetCB( void )
   zclSampleDoorLockController_ResetAttributesToDefaultValues();
 
   // update the display
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   zclSampleDoorLockController_UpdateStatusLine();
 #endif
 }
@@ -1233,7 +1236,7 @@ static ZStatus_t zclSampleDoorLockController_DoorLockRspCB ( zclIncoming_t *pInM
     zclReadCmd_t readCmd;
 
     readCmd.numAttr = 1;
-    readCmd.attrID[0] = ATTRID_CLOSURES_LOCK_STATE;
+    readCmd.attrID[0] = ATTRID_DOOR_LOCK_LOCK_STATE;
 
     pInMsg->hdr.transSeqNum += 1;
     zcl_SendRead( pInMsg->msg->endPoint, &pInMsg->msg->srcAddr,
@@ -1242,7 +1245,7 @@ static ZStatus_t zclSampleDoorLockController_DoorLockRspCB ( zclIncoming_t *pInM
 #endif
   }
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   LastCmdStatus = status;
   //Update status line
   zclSampleDoorLockController_UpdateStatusLine();
@@ -1329,7 +1332,7 @@ static void zclSampleDoorLockController_ProcessInReportCmd( zclIncoming_t *pInMs
 
   pInDoorLockReport = (zclReportCmd_t *)pInMsg->attrCmd;
 
-  if ( pInDoorLockReport->attrList[0].attrID != ATTRID_CLOSURES_LOCK_STATE )
+  if ( pInDoorLockReport->attrList[0].attrID != ATTRID_DOOR_LOCK_LOCK_STATE )
   {
     return;
   }
@@ -1348,7 +1351,7 @@ static void zclSampleDoorLockController_ProcessInReportCmd( zclIncoming_t *pInMs
   remoteDoorAddr = pInMsg->msg->srcAddr.addr.shortAddr;
 
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   //Update status line
   zclSampleDoorLockController_UpdateStatusLine();
 #endif
@@ -1386,7 +1389,7 @@ static uint8_t zclSampleDoorLockController_ProcessInReadRspCmd( zclIncoming_t *p
   }
   remoteDoorAddr = pInMsg->msg->srcAddr.addr.shortAddr;
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
+#ifndef CUI_DISABLE
   //Update status line
   zclSampleDoorLockController_UpdateStatusLine();
 #endif
@@ -1452,8 +1455,8 @@ void zclSampleDoorLockController_UiActionDoorLockDiscovery(const int32_t _itemEn
     discoveryInprogress = TRUE;
 
 
-    Timer_setTimeout( DiscoveryClkHandle, DISCOVERY_IN_PROGRESS_TIMEOUT );
-    Timer_start(&DiscoveryClkStruct);
+    UtilTimer_setTimeout( DiscoveryClkHandle, DISCOVERY_IN_PROGRESS_TIMEOUT );
+    UtilTimer_start(&DiscoveryClkStruct);
 
     destAddr.endPoint = 0xFF;
     destAddr.addrMode = afAddr16Bit;
@@ -1482,6 +1485,7 @@ void zclSampleDoorLockController_UpdateLedState(void)
   }
 }
 
+#ifndef CUI_DISABLE
 void zclSampleDoorLockController_UiActionLock(const int32_t _itemEntry)
 {
     zclDoorLock_t cmd;
@@ -1666,7 +1670,6 @@ void zclSampleDoorLockController_UiActionEnterPin(const char _input, char* _line
 }
 
 
-#ifdef USE_ZCL_SAMPLEAPP_UI
 /*********************************************************************
  * @fn      zclSampleDoorLockController_processKey
  *
@@ -1707,6 +1710,6 @@ static void zclSampleDoorLockController_processKey(uint8_t key, Button_EventMask
         }
     }
 }
-#endif
+#endif // CUI_DISABLE
 
 

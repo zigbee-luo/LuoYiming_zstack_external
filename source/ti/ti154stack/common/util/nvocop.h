@@ -77,10 +77,10 @@ extern "C"
 
 #ifndef FLASH_PAGE_SIZE
 #if !defined (DeviceFamily_CC13X2) && !defined (DeviceFamily_CC26X2)
-// Common page size for all CC26xx devices
+// Common page size for all CC13X0/CC26X0 devices
 #define FLASH_PAGE_SIZE  HAL_FLASH_PAGE_SIZE
 #else
-// Common page size for all Agama devices
+// Common page size for all CC13X2/CC26X2 devices
 #define FLASH_PAGE_SIZE  (2 * HAL_FLASH_PAGE_SIZE)
 #endif
 #endif
