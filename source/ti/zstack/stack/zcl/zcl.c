@@ -4141,27 +4141,22 @@ static void *zclParseInWriteRspCmd( zclParseCmd_t *pCmd )
 {
   zclWriteRspCmd_t *writeRspCmd;
   uint8_t *pBuf = pCmd->pData;
-  uint8_t i = 0;
+  uint8_t numAttr = 0;
 
-  writeRspCmd = (zclWriteRspCmd_t *)zcl_mem_alloc( sizeof ( zclWriteRspCmd_t ) + pCmd->dataLen );
+  // malloc correct size for attr-buffer, fixed by luoyiming, 2021-01-14
+  numAttr = pCmd->dataLen / ( 1 + 2 ); // Status + Attribute ID
+
+  writeRspCmd = (zclWriteRspCmd_t *)zcl_mem_alloc( sizeof ( zclWriteRspCmd_t ) + ( numAttr * sizeof(zclWriteRspStatus_t) ) );
   if ( writeRspCmd != NULL )
   {
-    if ( pCmd->dataLen == 1 )
+    uint8_t i;
+    writeRspCmd->numAttr = numAttr; // if write attr all success, numAttr is 0, fixed by luoyiming, 2021-01-14
+    for( i = 0; i < writeRspCmd->numAttr; i++ )
     {
-      // special case when all writes were successfull
-      writeRspCmd->attrList[i++].status = *pBuf;
+      writeRspCmd->attrList[i].status = *pBuf++;
+      writeRspCmd->attrList[i++].attrID = BUILD_UINT16( pBuf[0], pBuf[1] );
+      pBuf += 2;
     }
-    else
-    {
-      while ( pBuf < ( pCmd->pData + pCmd->dataLen ) )
-      {
-        writeRspCmd->attrList[i].status = *pBuf++;
-        writeRspCmd->attrList[i++].attrID = BUILD_UINT16( pBuf[0], pBuf[1] );
-        pBuf += 2;
-      }
-    }
-
-    writeRspCmd->numAttr = i;
   }
 
   return ( (void *)writeRspCmd );
@@ -4354,7 +4349,7 @@ void *zclParseInReadReportCfgCmd( zclParseCmd_t *pCmd )
   {
     uint8_t i;
     readReportCfgCmd->numAttr = numAttr;
-    for ( i = 0; i < readReportCfgCmd->numAttr; i++)
+    for ( i = 0; i < readReportCfgCmd->numAttr; i++ )
     {
       readReportCfgCmd->attrList[i].direction = *pBuf++;;
       readReportCfgCmd->attrList[i].attrID = BUILD_UINT16( pBuf[0], pBuf[1] );
