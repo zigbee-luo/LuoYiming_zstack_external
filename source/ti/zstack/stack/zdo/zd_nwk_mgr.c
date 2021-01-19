@@ -536,7 +536,7 @@ static void ZDNwkMgr_CheckForChannelChange( ZDO_MgmtNwkUpdateNotify_t *pNotify )
  */
 static void ZDNwkMgr_ProcessMgmtNwkUpdateReq( zdoIncomingMsg_t *inMsg )
 {
-  ZDO_MgmtNwkUpdateReq_t Req;
+  ZDO_MgmtNwkUpdateReq_t Req = {0};
 
   ZDO_ParseMgmtNwkUpdateReq( inMsg, &Req );
 
@@ -636,7 +636,7 @@ static void ZDNwkMgr_ProcessMgmtNwkUpdateReq( zdoIncomingMsg_t *inMsg )
  */
 void ZDNwkMgr_ProcessServerDiscRsp( zdoIncomingMsg_t *inMsg )
 {
-  ZDO_ServerDiscRsp_t Rsp;
+  ZDO_ServerDiscRsp_t Rsp = {0};
 
   ZDO_ParseServerDiscRsp( inMsg, &Rsp );
 
@@ -1034,8 +1034,7 @@ void ZDNwkMgr_ProcessNetworkReport( ZDNwkMgr_NetworkReport_t *pNetworkReport )
 
       Here is some example code that shows how to send a Network PAN ID Update after receiving a
       conflict report:
-	  
-	  */
+*/
 
     uint8_t i;
     uint16_t newPID;

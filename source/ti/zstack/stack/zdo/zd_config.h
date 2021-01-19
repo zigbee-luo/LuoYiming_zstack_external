@@ -276,7 +276,7 @@ extern "C"
 
 #if defined ( ZIGBEE_FRAGMENTATION )
   // The application/profile must fill this field out.
-  #define MAX_TRANSFER_SIZE	        	250//160
+  #define MAX_TRANSFER_SIZE	        	320  //160
 #else
   #define MAX_TRANSFER_SIZE	        	80
 #endif
